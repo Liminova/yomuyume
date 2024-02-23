@@ -8,7 +8,7 @@
         "commands": [
             {
                 "name": "Client lint",
-                "command": "bun run --bun lint-client"
+                "command": "time bun run --bun lint-client"
             },
             {
                 "name": "Client dev",
@@ -16,7 +16,7 @@
             },
             {
                 "name": "Client build",
-                "command": "bun run --bun build-client"
+                "command": "time NODE_ENV=\"production\" bun run --bun build-client"
             },
             {
                 "name": "|",
@@ -24,7 +24,7 @@
             },
             {
                 "name": "Server lint",
-                "command": "bun run lint-server"
+                "command": "time bun run lint-server"
             },
             {
                 "name": "Server dev",
