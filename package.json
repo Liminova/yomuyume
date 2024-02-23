@@ -12,10 +12,10 @@
     "lint-server": "cargo check && cargo fmt && cargo clippy",
     "lint": "concurrently \"pnpm lint-client\" \"pnpm lint-server\"",
     "dev-client": "nuxt dev",
-    "dev-server": "cd src-rust/server && cargo run",
+    "dev-server": "cargo run -p yomuyume-server",
     "dev": "concurrently \"pnpm dev-client\" \"pnpm dev-server\"",
     "postinstall": "nuxt prepare",
-    "build-server": "cargo run -p yomuyume-server",
+    "build-server": "cargo build -p yomuyume-server",
     "build-client": "nuxt generate"
   },
   "devDependencies": {
