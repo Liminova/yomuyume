@@ -7,23 +7,31 @@
         "loadNpmCommands": false,
         "commands": [
             {
-                "name": "💄 Lint",
-                "command": "pnpm lint"
+                "name": "Client lint",
+                "command": "bun run --bun lint-client"
             },
             {
-                "name": "🧪 Dev client",
+                "name": "Client dev",
                 "command": "bun run --bun dev-client"
             },
             {
-                "name": "🧪 Dev server",
-                "command": "bun run dev-server"
-            },
-            {
-                "name": "📦 Build client",
+                "name": "Client build",
                 "command": "bun run --bun build-client"
             },
             {
-                "name": "📦 Build server",
+                "name": "|",
+                "command": ""
+            },
+            {
+                "name": "Server lint",
+                "command": "bun run lint-server"
+            },
+            {
+                "name": "Server dev",
+                "command": "bun run dev-server"
+            },
+            {
+                "name": "Server build",
                 "command": "bun run build-server"
             },
         ]
