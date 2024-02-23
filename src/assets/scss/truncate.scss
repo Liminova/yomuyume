@@ -1,0 +1,32 @@
+@layer utilities {
+    .truncate-base {
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+    }
+
+    .truncate-2 {
+        @apply truncate-base;
+        -webkit-line-clamp: 2;
+    }
+
+    .truncate-3 {
+        @apply truncate-base;
+        -webkit-line-clamp: 3;
+    }
+
+    .truncate-4 {
+        @apply truncate-base;
+        -webkit-line-clamp: 4;
+    }
+
+    .truncate-5 {
+        @apply truncate-base;
+        -webkit-line-clamp: 5;
+    }
+
+    .truncate-8 {
+        @apply truncate-base;
+        -webkit-line-clamp: 8;
+    }
+}

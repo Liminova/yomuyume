@@ -1,0 +1,31 @@
+{
+    "css.customData": [
+        ".vscode/css_custom_data.json"
+    ],
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "actionButtons": {
+        "loadNpmCommands": false,
+        "commands": [
+            {
+                "name": "💄 Lint",
+                "command": "pnpm lint"
+            },
+            {
+                "name": "🧪 Dev client",
+                "command": "bun run --bun dev-client"
+            },
+            {
+                "name": "🧪 Dev server",
+                "command": "bun run dev-server"
+            },
+            {
+                "name": "📦 Build client",
+                "command": "bun run --bun build-client"
+            },
+            {
+                "name": "📦 Build server",
+                "command": "bun run build-server"
+            },
+        ]
+    },
+}

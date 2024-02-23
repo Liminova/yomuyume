@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+
+members = ["src-rust/server", "src-rust/bridge"]
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"

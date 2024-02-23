@@ -1,0 +1,12 @@
+{
+    "recommendations": [
+        "tamasfe.even-better-toml",
+        "seunlanlege.action-buttons",
+        "maptz.regionfolder",
+        "serayuzgur.crates",
+        "rust-lang.rust-analyzer",
+        "bradlc.vscode-tailwindcss",
+        "vue.vscode-typescript-vue-plugin",
+        "vue.volar"
+    ]
+}
