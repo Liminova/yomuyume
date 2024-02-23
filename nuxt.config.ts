@@ -81,6 +81,6 @@ export default defineNuxtConfig({
 		plugins: [wasm()],
 		build: {
 			target: "esnext",
-		}
+		},
 	},
 });
