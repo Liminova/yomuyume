@@ -2,33 +2,28 @@
 
 <img src="assets/yomuyume.png" alt="yomuyume logo" width="128" height="128">
 
-the backend of yomuyume - a self-hosted comics/manga server.
+this is the main monorepo for Yomuyume, a media server for manga and comics.
 
-## usage
+## repository info
 
-- clone the repository:
+this monorepo contains the following codebases:
 
-```bash
-git clone https://github.com/Liminova/yomuyume-server
-```
+-   `src/` - the Nuxt.js frontend component.
 
-- create a `.env` file in your working directory, using [`.env.example`](.env.example) as a base.
-- in your terminal:
+the reference implementation of Yomuyume's frontend.
 
-```bash
-cargo run
-```
+-   `src-rust/` - the Rust/Axum-based backend component.
 
-- the backend should be live at `127.0.0.1:3000/api` by default!
+this contains all the API calls, along with interfacing with the SQLite database.
 
 ## license
 
 licensed under either of
 
-- Apache License, Version 2.0
-  ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license
-  ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+-   Apache License, Version 2.0
+    ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+-   MIT license
+    ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
 
