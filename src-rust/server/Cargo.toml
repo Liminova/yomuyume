@@ -28,7 +28,6 @@ notify = "6.1.1"
 rand = "0.8.5"
 rand_core = { version = "0.6.4", features = ["getrandom"] }
 rayon = "1.8.0"
-rust-bert = "0.22.0"
 sea-orm = { version = "0.12.6", features = [
     "runtime-tokio-rustls",
     "mock",
@@ -43,10 +42,8 @@ serde = { version = "1.0.188", features = ["serde_derive"] }
 serde-email = "3.0.0"
 serde_json = "1.0.108"
 serde_with = { version = "3.4.0", features = ["json"] }
-tch = "0.14.0"
 time = "0.3.30"
 tokio = { version = "1.32.0", features = ["full"] }
-toml_edit = "0.21.0"
 tower-http = { version = "0.5.0", features = ["tracing", "trace", "cors"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
@@ -54,8 +51,11 @@ utoipa = { version = "4.1.0", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-redoc = { version = "2.0.0", features = ["axum"] }
 utoipa-swagger-ui = { version = "5.0.0", features = ["axum"] }
 uuid = { version = "1.4.1", features = ["serde", "v4"] }
-wasm-bindgen = "0.2.91"
 zip = "0.6.6"
+bridge = { version = "*", path = "../bridge" }
+toml_edit = "0.22.6"
+bitcode = "0.5.1"
+wasm-bindgen = "0.2.91"
 
 [dev-dependencies]
 axum-test = "14.0.0"
