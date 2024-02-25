@@ -11,7 +11,6 @@
 	},
 	"extends": [
 		"plugin:nuxt/recommended",
-		"plugin:oxlint/recommended",
 		"plugin:cadence/recommended",
 		"plugin:tailwindcss/recommended"
 	],
