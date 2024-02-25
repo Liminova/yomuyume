@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import "@material/web/button/text-button.js";
 import debounce from "debounce";
-import type { TitleServerResponse } from "~/composables/api";
+import type { TitleResponseBody } from "~/composables/bridge";
 import { indexApi, userApi, fileApiUrl } from "~/composables/api";
 import NavDrawerWrapper from "~/layouts/NavDrawerWrapper.vue";
 
@@ -11,12 +11,12 @@ const id = Array.isArray(idRaw) ? idRaw[0] : idRaw;
 const snackbarMessage = ref("");
 const snackbarTimeout = ref(5000);
 
-const title = ref({}) as Ref<TitleServerResponse>;
+const title = ref({}) as Ref<TitleResponseBody>;
 
 const isFavorite = ref(false);
 const isBookmark = ref(false);
-const favorites = ref(0);
-const bookmarks = ref(0);
+const favorites: Ref<bigint> = ref(BigInt(0));
+const bookmarks: Ref<bigint> = ref(BigInt(0));
 
 // Fetching all infos
 void (async () => {
@@ -31,31 +31,31 @@ void (async () => {
 	document.title = data.title;
 	isFavorite.value = data.is_favorite ?? false;
 	isBookmark.value = data.is_bookmark ?? false;
-	favorites.value = data.favorites ?? 0;
-	bookmarks.value = data.bookmarks ?? 0;
+	favorites.value = data.favorites ?? BigInt(0);
+	bookmarks.value = data.bookmarks ?? BigInt(0);
 })();
 
 async function toggleFavorite() {
 	const { message, ok } = await userApi.favorite(id, isFavorite.value ? "DELETE" : "PUT");
 
-	snackbarMessage.value = message;
+	snackbarMessage.value = message ?? "";
 	if (!ok) {
 		return;
 	}
 
 	isFavorite.value = !isFavorite.value;
-	favorites.value = favorites.value + (isFavorite.value ? -1 : 1);
+	favorites.value = favorites.value + (isFavorite.value ? BigInt(-1) : BigInt(1));
 }
 
 async function toggleBookmark() {
 	const { message, ok } = await userApi.bookmark(id, isBookmark.value ? "DELETE" : "PUT");
 
-	snackbarMessage.value = message;
+	snackbarMessage.value = message ?? "";
 	if (!ok) {
 		return;
 	}
 
-	bookmarks.value = bookmarks.value + (isBookmark.value ? -1 : 1);
+	bookmarks.value = bookmarks.value + (isBookmark.value ? BigInt(-1) : BigInt(1));
 	isBookmark.value = !isBookmark.value;
 }
 
@@ -83,7 +83,7 @@ async function saveProgress(currentPageIndex: number) {
 	const { ok, message } = await userApi.progress(id, currentPageIndex);
 
 	if (!ok) {
-		snackbarMessage.value = message;
+		snackbarMessage.value = message ?? "";
 	}
 }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getSwiperBreakpoint } from "~/composables/swiperBreakPoint";
 import NavDrawerWrapper from "~/layouts/NavDrawerWrapper.vue";
+import type { CategoriesResponseBody, CategoryResponse } from "~/composables/bridge"
 
 const imageContainerRef = ref<HTMLElement | null>(null);
 const imagePerRow = ref(5);
@@ -8,7 +9,7 @@ const spaceBetween = ref(16);
 
 const snackbarMessage = ref("");
 
-const categories = ref<Array<CategoryItemServerResponse>>([]);
+const categories: Ref<Array<CategoryResponse>> = ref([]);
 
 void (async () => {
 	const { data, message } = await indexApi.categories();

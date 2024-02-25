@@ -7,9 +7,8 @@ import RegisterMode from "~/components/auth/Register.vue";
 import ResetPassword from "~/components/auth/ResetPassword.vue";
 import { AuthScreen, authStore } from "~/components/auth/utils";
 import changeTheme from "~/composables/changeTheme";
-import Theme from "~/composables/enums/Theme";
 
-changeTheme(Theme.AUTO);
+changeTheme("auto");
 
 document.title = "Yomuyume - Auth";
 </script>

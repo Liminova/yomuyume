@@ -1,17 +1,7 @@
 import newRoute from "./newRoute";
+import { StatusResponseBody, TagsMapResponseBody, GenericResponseBody } from "~/composables/bridge";
 
-type StatusSrvResponse = {
-	server_time: string;
-	version: string;
-	echo?: string;
-
-	message?: string;
-};
-type StatusFnResponse = {
-	data?: StatusSrvResponse;
-	message?: string;
-};
-async function status(endpoint: string): Promise<StatusFnResponse> {
+async function status(endpoint: string): Promise<{ data?: StatusResponseBody; message?: string }> {
 	let res: Response;
 
 	try {
@@ -19,28 +9,25 @@ async function status(endpoint: string): Promise<StatusFnResponse> {
 			method: "GET",
 			headers: {
 				"Content-Type": "application/json",
+				Accept: "bitcode",
 			},
 		});
 	} catch (e) {
 		return { message: (e as { message: string }).message };
 	}
 
-	try {
-		const data = (await res.json()) as StatusSrvResponse;
+	const buffer = new Uint8Array(await res.arrayBuffer());
 
-		return { data: res.ok ? data : undefined, message: data.message ?? "" };
-	} catch {
-		return { message: "Can't parse server response" };
+	const data = StatusResponseBody.from_bitcode(buffer);
+
+	if (res.ok) {
+		return { data };
 	}
+
+	return { message: GenericResponseBody.from_bitcode(buffer).message };
 }
 
-type TagsServerResponse = {
-	data?: Array<[number, string]>;
-	message?: string;
-};
-type TagsFnResponse = TagsServerResponse;
-
-async function tags(): Promise<TagsFnResponse> {
+async function tags(): Promise<{ data?: TagsMapResponseBody; message?: string }> {
 	let res: Response;
 
 	try {
@@ -49,66 +36,22 @@ async function tags(): Promise<TagsFnResponse> {
 			headers: {
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${globalStore.token}`,
+				Accept: "bitcode",
 			},
 		});
 	} catch (e) {
 		return { message: (e as { message: string }).message };
 	}
 
-	try {
-		const data = (await res.json()) as TagsServerResponse;
+	const buffer = new Uint8Array(await res.arrayBuffer());
 
-		return { data: res.ok ? data.data : undefined, message: data.message ?? "" };
-	} catch {
-		return { message: "Can't parse server response" };
+	const data = TagsMapResponseBody.from_bitcode(buffer);
+
+	if (res.ok) {
+		return { data };
 	}
+
+	return { message: GenericResponseBody.from_bitcode(buffer).message };
 }
 
-type SsimEvalTitleServerResponse = {
-	id: string;
-	title: string;
-	desc: string;
-	tags: Array<number>;
-	blurhash: string;
-	width: number;
-	height: number;
-	format: string;
-};
-type SsimEvalServerResponse = {
-	title_a: SsimEvalTitleServerResponse;
-	title_b: SsimEvalTitleServerResponse;
-	ssim: number;
-	message?: string;
-};
-type SsimEvalFnResponse = {
-	data?: SsimEvalServerResponse;
-	message?: string;
-};
-
-// Return 2 random titles and their ssim
-async function ssimEval(): Promise<SsimEvalFnResponse> {
-	let res: Response;
-
-	try {
-		res = await fetch(newRoute("/api/utils/ssim_eval"), {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${globalStore.token}`,
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message };
-	}
-
-	try {
-		const data = (await res.json()) as SsimEvalServerResponse;
-
-		return { data: res.ok ? data : undefined, message: data.message ?? "" };
-	} catch {
-		return { message: "Can't parse server response" };
-	}
-}
-
-export default { status, tags, ssimEval };
-export type { SsimEvalServerResponse, SsimEvalTitleServerResponse };
+export default { status, tags };

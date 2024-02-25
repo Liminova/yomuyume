@@ -1,20 +1,18 @@
-import Theme from "./enums/Theme";
-
 function getSystemPreference() {
 	if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-		return Theme.LIGHT;
+		return "light";
 	}
 
-	return Theme.DARK;
+	return "dark";
 }
 
-function setAttr(theme: Theme) {
+function setAttr(theme: "auto" | "dark" | "light") {
 	window.document.documentElement.setAttribute("data-theme", theme);
 	window.document.documentElement.setAttribute("class", theme);
 }
 
-export default function changeTheme(theme: Theme) {
-	if (theme !== Theme.AUTO) {
+export default function changeTheme(theme: "auto" | "dark" | "light") {
+	if (theme !== "auto") {
 		setAttr(theme);
 		window.localStorage.setItem("theme", theme);
 	} else {

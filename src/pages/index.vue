@@ -4,6 +4,7 @@ import CardRecommend from "~/components/home/CardRecommend.vue";
 import CarouselWrapper from "~/components/home/CarouselWrapper.vue";
 import { homeStore } from "~/components/home/utils";
 import NavDrawerWrapper from "~/layouts/NavDrawerWrapper.vue";
+import { FilterTitleResponseBody } from "~/composables/bridge";
 
 document.title = "Yomuyume - Home";
 
@@ -12,10 +13,10 @@ register();
 const store = homeStore();
 const snackbarMessage = ref("");
 
-const recommendsItems: Ref<Array<FilterItemServerResponse>> = ref([]);
-const recentlyUpdatedItems: Ref<Array<FilterItemServerResponse>> = ref([]);
-const newlyAddedItems: Ref<Array<FilterItemServerResponse>> = ref([]);
-const completedStoriesItems: Ref<Array<FilterItemServerResponse>> = ref([]);
+const recommendsItems: Ref<FilterTitleResponseBody[]> = ref([]);
+const recentlyUpdatedItems: Ref<FilterTitleResponseBody[]> = ref([]);
+const newlyAddedItems: Ref<FilterTitleResponseBody[]> = ref([]);
+const completedStoriesItems: Ref<FilterTitleResponseBody[]> = ref([]);
 
 void Promise.all([
 	indexApi.filter({ keywords: [""], limit: 10 }),
@@ -71,7 +72,7 @@ void Promise.all([
 							blurhash: title.blurhash,
 							format: title.format,
 						}"
-						:progress="title.page_read ? title.page_read / title.page_count : 0"
+						:progress="title.page_read ? Number(title.page_read / title.page_count) : 0"
 						:title-id="title.id"
 						:title="title.title"
 					/>
@@ -96,7 +97,7 @@ void Promise.all([
 							format: title.format,
 						}"
 						:cover-height="store.coverHeight"
-						:progress="title.page_read ? title.page_read / title.page_count : 0"
+						:progress="title.page_read ? Number(title.page_read / title.page_count) : 0"
 						:title-id="title.id"
 						:title="title.title"
 					/>
@@ -121,7 +122,7 @@ void Promise.all([
 							format: title.format,
 						}"
 						:cover-height="store.coverHeight"
-						:progress="title.page_read ? title.page_read / title.page_count : 0"
+						:progress="title.page_read ? Number(title.page_read / title.page_count) : 0"
 						:title-id="title.id"
 						:title="title.title"
 					/>

@@ -1,13 +1,10 @@
 import newRoute from "./newRoute";
+import { GenericResponseBody, LoginResponseBody } from "~/composables/bridge";
 
-type LoginServerResponse = {
-	token?: string;
-	message?: string;
-};
-
-type LoginFnResponse = LoginServerResponse;
-
-async function login(body: { login: string; password: string }): Promise<LoginFnResponse> {
+async function login(body: {
+	login: string;
+	password: string;
+}): Promise<{ token?: string; message?: string }> {
 	let res: Response;
 
 	try {
@@ -15,6 +12,7 @@ async function login(body: { login: string; password: string }): Promise<LoginFn
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
+				Accept: "bitcode",
 			},
 			body: JSON.stringify(body),
 		});
@@ -22,20 +20,22 @@ async function login(body: { login: string; password: string }): Promise<LoginFn
 		return { message: (e as { message: string }).message };
 	}
 
-	try {
-		const data = (await res.json()) as LoginServerResponse;
+	const buffer = new Uint8Array(await res.arrayBuffer());
 
-		return { token: res.ok ? data.token : undefined, message: data.message ?? "" };
-	} catch {
-		return { message: "Can't parse server response" };
+	if (res.ok) {
+		const data = LoginResponseBody.from_bitcode(buffer);
+
+		return { token: data?.token };
 	}
+
+	return { message: GenericResponseBody.from_bitcode(buffer).message };
 }
 
 async function register(body: {
 	username: string;
 	email: string;
 	password: string;
-}): Promise<GenericSrvResponse> {
+}): Promise<{ ok: boolean; message: string }> {
 	let res: Response;
 
 	try {
@@ -43,6 +43,7 @@ async function register(body: {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
+				Accept: "bitcode",
 			},
 			body: JSON.stringify(body),
 		});
@@ -50,15 +51,12 @@ async function register(body: {
 		return { message: (e as { message: string }).message, ok: false };
 	}
 
-	const message = "Can't parse server response";
+	const buffer = new Uint8Array(await res.arrayBuffer());
 
-	try {
-		const data = (await res.json()) as GenericSrvResponse;
-
-		return { message: data.message, ok: res.ok };
-	} catch {
-		return { message, ok: false };
-	}
+	return {
+		ok: res.ok,
+		message: GenericResponseBody.from_bitcode(buffer).message,
+	};
 }
 
 export default {

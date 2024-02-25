@@ -1,19 +1,13 @@
 import newRoute from "./newRoute";
+import type { FilterTitleResponseBody, CategoryResponse } from "~/composables/bridge";
+import {
+	FilterResponseBody,
+	CategoriesResponseBody,
+	GenericResponseBody,
+	TitleResponseBody,
+} from "~/composables/bridge";
 
-type CategoryItemSrvResponse = {
-	id: string;
-	name: string;
-	description?: string;
-};
-
-type CategorySrvResponse = {
-	data?: Array<CategoryItemSrvResponse>;
-	message?: string;
-};
-
-type CategoriesFnResponse = CategorySrvResponse;
-
-async function categories(): Promise<CategoriesFnResponse> {
+async function categories(): Promise<{ data?: Array<CategoryResponse>; message?: string }> {
 	let res: Response;
 
 	try {
@@ -22,43 +16,23 @@ async function categories(): Promise<CategoriesFnResponse> {
 			headers: {
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${globalStore.token}`,
+				Accept: "bitcode",
 			},
 		});
 	} catch (e) {
 		return { message: (e as { message: string }).message };
 	}
 
-	try {
-		const data = (await res.json()) as CategorySrvResponse;
+	const buffer = new Uint8Array(await res.arrayBuffer());
 
-		return { data: res.ok ? data.data : undefined, message: data.message ?? "" };
-	} catch {
-		return { message: "Can't parse server response" };
+	const data = CategoriesResponseBody.from_bitcode(buffer);
+
+	if (res.ok) {
+		return { data: data?.data };
 	}
+
+	return { message: GenericResponseBody.from_bitcode(buffer).message };
 }
-
-type FilterItemSrvResponse = {
-	id: string;
-	title: string;
-	author?: string;
-	category_id: string;
-	release_date?: string;
-	favorite_count?: number;
-	page_count: number;
-	page_read?: number;
-
-	blurhash: string;
-	width: number;
-	height: number;
-	format: string;
-};
-
-type FilterSrvResponse = {
-	data?: Array<FilterItemSrvResponse>;
-	message?: string;
-};
-
-type FilterFnResponse = FilterSrvResponse;
 
 async function filter(body: {
 	keywords?: Array<string>;
@@ -73,7 +47,7 @@ async function filter(body: {
 
 	sort_by?: string;
 	sort_order?: string;
-}): Promise<FilterFnResponse> {
+}): Promise<{ data?: Array<FilterTitleResponseBody>; message?: string }> {
 	let res: Response;
 
 	try {
@@ -82,6 +56,7 @@ async function filter(body: {
 			headers: {
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${globalStore.token}`,
+				Accept: "bitcode",
 			},
 			body: JSON.stringify(body),
 		});
@@ -89,51 +64,18 @@ async function filter(body: {
 		return { message: (e as { message: string }).message };
 	}
 
-	try {
-		const data = (await res.json()) as FilterSrvResponse;
+	const buffer = new Uint8Array(await res.arrayBuffer());
 
-		return { data: res.ok ? data.data : undefined, message: data.message ?? "" };
-	} catch {
-		return { message: "Can't parse server response" };
+	const data = FilterResponseBody.from_bitcode(buffer);
+
+	if (res.ok && data !== undefined) {
+		return { data: data.data };
 	}
+
+	return { message: GenericResponseBody.from_bitcode(buffer).message };
 }
 
-type TitleServerResponse = {
-	category_id: string;
-	title: string;
-	author?: string;
-	description?: string;
-	release?: string;
-	thumbnail: {
-		blurhash: string;
-		width: number;
-		height: number;
-		format: string;
-	};
-	tag_ids: Array<number>;
-	pages: Array<{
-		id: string;
-		format: string;
-		description?: string;
-	}>;
-	favorites?: number;
-	bookmarks?: number;
-	is_favorite?: boolean;
-	is_bookmark?: boolean;
-	page_read?: number;
-	date_added: string;
-	date_updated: string;
-
-	message?: string;
-};
-
-/** What the below fn returns */
-type TitleFnResponse = {
-	data?: TitleServerResponse;
-	message?: string;
-};
-
-async function title(id: string): Promise<TitleFnResponse> {
+async function title(id: string): Promise<{ data?: TitleResponseBody; message?: string }> {
 	let res: Response;
 
 	try {
@@ -142,26 +84,22 @@ async function title(id: string): Promise<TitleFnResponse> {
 			headers: {
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${globalStore.token}`,
+				Accept: "bitcode",
 			},
 		});
 	} catch (e) {
 		return { message: (e as { message: string }).message };
 	}
 
-	try {
-		const data = (await res.json()) as TitleServerResponse;
+	const buffer = new Uint8Array(await res.arrayBuffer());
 
-		return { data: res.ok ? data : undefined, message: data.message ?? "" };
-	} catch {
-		return { message: "Can't parse server response" };
+	const data = TitleResponseBody.from_bitcode(buffer);
+
+	if (res.ok && data !== undefined) {
+		return { data };
 	}
+
+	return { message: GenericResponseBody.from_bitcode(buffer).message };
 }
 
 export default { categories, filter, title };
-export type {
-	FilterItemSrvResponse as FilterItemServerResponse,
-	TitleServerResponse,
-	CategoryItemSrvResponse as CategoryItemServerResponse,
-	CategorySrvResponse as CategoryServerResponse,
-	CategoriesFnResponse,
-};
