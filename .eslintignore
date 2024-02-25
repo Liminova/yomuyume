@@ -1,4 +1,4 @@
 node_modules/
 src/public/
 src/assets/
-src/assets/
+src/composables/bridge/
