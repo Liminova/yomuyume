@@ -87,7 +87,6 @@ async fn main() -> Result<(), DbErr> {
     let utils_routes = Router::new()
         .route("/tags", get(get_tags))
         .route("/scanning_progress", get(get_scanning_progress))
-        .route("/ssim_eval", get(get_ssim_eval))
         .layer(apply(app_state.clone(), auth));
 
     let user_routes = Router::new()

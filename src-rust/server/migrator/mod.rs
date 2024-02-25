@@ -11,7 +11,6 @@ mod m_20231212_000007_create_bookmarks_table;
 mod m_20231212_000008_create_thumbnails_table;
 mod m_20231212_000009_create_favorites_table;
 mod m_20231212_000010_create_progresses_table;
-mod m_20231212_000011_create_titles_ssim;
 
 pub struct Migrator;
 
@@ -29,7 +28,6 @@ impl MigratorTrait for Migrator {
             Box::new(m_20231212_000008_create_thumbnails_table::Migration),
             Box::new(m_20231212_000009_create_favorites_table::Migration),
             Box::new(m_20231212_000010_create_progresses_table::Migration),
-            Box::new(m_20231212_000011_create_titles_ssim::Migration),
         ]
     }
 }

@@ -181,8 +181,6 @@ impl GenericRsp {
         TagsMapResponseBody,
         TitleResponseBody,
         ScanningProgressResponseBody,
-        SsimEvalBody,
-        SsimEvalTitle,
 
         // Other
         GenericResponseBody,
