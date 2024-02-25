@@ -1,34 +1,31 @@
+use std::sync::Arc;
+
+pub use bridge::routes::user::ModifyRequest;
+
 use crate::{
     models::prelude::*,
-    routes::{check_pass, ErrRsp, GenericRsp},
+    routes::{check_pass, MyResponse, MyResponseBuilder},
     AppState,
 };
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
-use sea_orm::{ActiveModelTrait, Set};
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use utoipa::ToSchema;
 
-#[derive(Deserialize, Serialize, Debug, ToSchema)]
-pub struct ModifyRequest {
-    pub username: Option<String>,
-    pub email: Option<String>,
-    pub password: Option<String>,
-    pub new_password: Option<String>,
-}
+use axum::{extract::State, http::HeaderMap, response::IntoResponse, Extension, Json};
+use sea_orm::{ActiveModelTrait, Set};
 
 /// Modify user information.
 #[utoipa::path(post, path = "/api/user/modify", responses(
     (status = 200, description = "Modify user successful", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = ErrorResponseBody),
-    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
-    (status = 500, description = "Internal server error", body = ErrorResponseBody)
+    (status = 400, description = "Bad request", body = GenericResponseBody),
+    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = GenericResponseBody)
 ))]
 pub async fn post_modify(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
+    header: HeaderMap,
     Json(body): Json<ModifyRequest>,
-) -> Result<impl IntoResponse, ErrRsp> {
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let password_in_db = user.password.clone();
     let is_verified = user.is_verified;
 
@@ -45,13 +42,10 @@ pub async fn post_modify(
 
     if let Some(password) = body.password {
         if !is_verified {
-            return Err(ErrRsp::new(
-                StatusCode::UNAUTHORIZED,
-                "User is not verified, cannot change password.",
-            ));
+            return Err(builder.unauthorized("User is not verified, cannot change password."));
         }
         if !check_pass(&password_in_db, &password) {
-            return Err(ErrRsp::bad_request("Invalid password."));
+            return Err(builder.bad_request("Invalid password."));
         }
     }
 
@@ -62,7 +56,7 @@ pub async fn post_modify(
     active_user
         .save(&data.db)
         .await
-        .map_err(|e| ErrRsp::internal(format!("Can't update user: {}", e)))?;
+        .map_err(|e| builder.db_error(e))?;
 
-    Ok(GenericRsp::create("Modify user successful."))
+    Ok(builder.generic_success("Modify user successful."))
 }

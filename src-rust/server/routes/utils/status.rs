@@ -1,26 +1,8 @@
 use crate::constants::version::get_version;
 use axum::{extract::Query, http::StatusCode, response::IntoResponse, Json};
-use chrono::{DateTime, Local};
-use serde::{Deserialize, Serialize};
-use utoipa::{IntoParams, ToSchema};
+use chrono::Local;
 
-#[derive(Deserialize, Serialize, ToSchema)]
-pub struct StatusResponseBody {
-    /// Current local server time.
-    pub server_time: DateTime<Local>,
-    /// Current yomuyume version.
-    pub version: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// Your test string.
-    pub echo: Option<String>,
-}
-
-#[derive(Deserialize, IntoParams, ToSchema)]
-pub struct StatusRequest {
-    ///  A test string to test your request body.
-    pub echo: Option<String>,
-}
+pub use bridge::routes::utils::{StatusRequest, StatusResponseBody};
 
 #[utoipa::path(get, path = "/api/utils/status", params(StatusRequest), responses(
     (status = 200, description = "Status check successful", body = StatusResponseBody)
@@ -31,7 +13,7 @@ pub async fn get_status(query: Query<StatusRequest>) -> impl IntoResponse {
     (
         StatusCode::OK,
         Json(StatusResponseBody {
-            server_time: Local::now(),
+            server_time: Local::now().to_string(),
             version,
             echo,
         }),
@@ -47,7 +29,7 @@ pub async fn post_status(query: Option<Json<StatusRequest>>) -> impl IntoRespons
     (
         StatusCode::OK,
         Json(StatusResponseBody {
-            server_time: Local::now(),
+            server_time: Local::now().to_string(),
             version,
             echo,
         }),

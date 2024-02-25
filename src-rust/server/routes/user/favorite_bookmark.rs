@@ -1,34 +1,40 @@
+use std::sync::Arc;
+
 use crate::{
     models::prelude::*,
-    routes::{ErrRsp, GenericRsp},
+    routes::{MyResponse, MyResponseBuilder},
     AppState,
 };
+
 use axum::{
     extract::{Path, State},
+    http::HeaderMap,
     response::IntoResponse,
     Extension,
 };
 use sea_orm::{
     ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
 };
-use std::sync::Arc;
 
-#[utoipa::path(put, path = "/api/user/favorite/:id", responses(
+#[utoipa::path(put, path = "/api/user/favorite/{id}", responses(
     (status = 200, description = "Add favorite successful", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = ErrorResponseBody),
-    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
-    (status = 500, description = "Internal server error", body = ErrorResponseBody)
+    (status = 400, description = "Bad request", body = GenericResponseBody),
+    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = GenericResponseBody)
 ))]
 pub async fn put_favorite(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
+    header: HeaderMap,
     Path(id): Path<String>,
-) -> Result<impl IntoResponse, ErrRsp> {
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let title = Titles::find_by_id(id)
         .one(&data.db)
         .await
-        .map_err(|e| ErrRsp::internal(format!("Can't find title: {}", e)))?
-        .ok_or_else(|| ErrRsp::bad_request("Invalid title id."))?;
+        .map_err(|e| builder.db_error(e))?
+        .ok_or_else(|| builder.bad_request("Invalid title id."))?;
 
     let favorite_model = Favorites::find()
         .filter(
@@ -38,10 +44,10 @@ pub async fn put_favorite(
         )
         .one(&data.db)
         .await
-        .map_err(|e| ErrRsp::internal(format!("Can't find favorite: {}", e)))?;
+        .map_err(|e| builder.db_error(e))?;
 
     if favorite_model.is_some() {
-        return Err(ErrRsp::bad_request("Title already favorited."));
+        return Ok(builder.bad_request("Title already favorited."));
     }
 
     let _ = favorites::ActiveModel {
@@ -51,27 +57,30 @@ pub async fn put_favorite(
     }
     .insert(&data.db)
     .await
-    .map_err(|e| ErrRsp::internal(format!("Can't insert favorite: {}", e)))?;
+    .map_err(|e| builder.db_error(e))?;
 
-    Ok(GenericRsp::create("Add favorite successful."))
+    Ok(builder.generic_success("Add favorite successful."))
 }
 
-#[utoipa::path(put, path = "/api/user/bookmark/:id", responses(
+#[utoipa::path(put, path = "/user/favorite/{id}", responses(
     (status = 200, description = "Add bookmark successful", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = ErrorResponseBody),
-    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
-    (status = 500, description = "Internal server error", body = ErrorResponseBody)
+    (status = 400, description = "Bad request", body = GenericResponseBody),
+    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = GenericResponseBody)
 ))]
 pub async fn put_bookmark(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
+    header: HeaderMap,
     Path(id): Path<String>,
-) -> Result<impl IntoResponse, ErrRsp> {
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let title = Titles::find_by_id(id)
         .one(&data.db)
         .await
-        .map_err(|e| ErrRsp::internal(format!("Can't find title: {}", e)))?
-        .ok_or_else(|| ErrRsp::bad_request("Invalid title id."))?;
+        .map_err(|e| builder.db_error(e))?
+        .ok_or_else(|| builder.bad_request("Invalid title id."))?;
 
     let bookmark_model = Bookmarks::find()
         .filter(
@@ -81,10 +90,10 @@ pub async fn put_bookmark(
         )
         .one(&data.db)
         .await
-        .map_err(|e| ErrRsp::internal(format!("Can't find bookmark: {}", e)))?;
+        .map_err(|e| builder.db_error(e))?;
 
     if bookmark_model.is_some() {
-        return Err(ErrRsp::bad_request("Title already bookmarked."));
+        return Ok(builder.generic_success("Title already bookmarked."));
     }
 
     let _ = bookmarks::ActiveModel {
@@ -94,27 +103,30 @@ pub async fn put_bookmark(
     }
     .insert(&data.db)
     .await
-    .map_err(|e| ErrRsp::internal(format!("Can't insert bookmark: {}", e)))?;
+    .map_err(|e| builder.db_error(e))?;
 
-    Ok(GenericRsp::create("Add bookmark successful."))
+    Ok(builder.generic_success("Add bookmark successful."))
 }
 
-#[utoipa::path(delete, path = "/api/user/favorite/:id", responses(
+#[utoipa::path(delete, path = "/api/user/favorite/{id}", responses(
     (status = 200, description = "Delete favorite successful", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = ErrorResponseBody),
-    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
-    (status = 500, description = "Internal server error", body = ErrorResponseBody)
+    (status = 400, description = "Bad request", body = GenericResponseBody),
+    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = GenericResponseBody)
 ))]
 pub async fn delete_favorite(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
+    header: HeaderMap,
     Path(id): Path<String>,
-) -> Result<impl IntoResponse, ErrRsp> {
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let title = Titles::find_by_id(id)
         .one(&data.db)
         .await
-        .map_err(|e| ErrRsp::internal(format!("Can't find title: {}", e)))?
-        .ok_or_else(|| ErrRsp::bad_request("Invalid title id."))?;
+        .map_err(|e| builder.db_error(e))?
+        .ok_or_else(|| builder.bad_request("Invalid title id."))?;
 
     Favorites::delete_many()
         .filter(
@@ -124,27 +136,30 @@ pub async fn delete_favorite(
         )
         .exec(&data.db)
         .await
-        .map_err(|e| ErrRsp::internal(format!("Can't delete favorite: {}", e)))?;
+        .map_err(|e| builder.db_error(e))?;
 
-    Ok(GenericRsp::create("Delete favorite successful."))
+    Ok(builder.generic_success("Delete favorite successful."))
 }
 
-#[utoipa::path(delete, path = "/api/user/bookmark/:id", responses(
+#[utoipa::path(delete, path = "/user/favorite/{id}", responses(
     (status = 200, description = "Delete bookmark successful", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = ErrorResponseBody),
-    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
-    (status = 500, description = "Internal server error", body = ErrorResponseBody)
+    (status = 400, description = "Bad request", body = GenericResponseBody),
+    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = GenericResponseBody)
 ))]
 pub async fn delete_bookmark(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
+    header: HeaderMap,
     Path(id): Path<String>,
-) -> Result<impl IntoResponse, ErrRsp> {
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let title = Titles::find_by_id(id)
         .one(&data.db)
         .await
-        .map_err(|e| ErrRsp::internal(format!("Can't find title: {}", e)))?
-        .ok_or_else(|| ErrRsp::bad_request("Invalid title id."))?;
+        .map_err(|e| builder.db_error(e))?
+        .ok_or_else(|| builder.bad_request("Invalid title id."))?;
 
     Bookmarks::delete_many()
         .filter(
@@ -154,7 +169,7 @@ pub async fn delete_bookmark(
         )
         .exec(&data.db)
         .await
-        .map_err(|e| ErrRsp::internal(format!("Can't delete bookmark: {}", e)))?;
+        .map_err(|e| builder.db_error(e))?;
 
-    Ok(GenericRsp::create("Delete bookmark successful."))
+    Ok(builder.generic_success("Delete bookmark successful."))
 }

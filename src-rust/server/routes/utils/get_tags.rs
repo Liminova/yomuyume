@@ -1,29 +1,44 @@
-use crate::{models::prelude::*, routes::ErrRsp, AppState};
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use sea_orm::EntityTrait;
-use serde::Serialize;
 use std::sync::Arc;
-use utoipa::ToSchema;
 
-#[derive(Serialize, Debug, ToSchema)]
-pub struct TagsMapResponseBody {
-    pub data: Vec<(u32, String)>,
-}
+pub use bridge::routes::utils::{TagResponseBody, TagsMapResponseBody};
+
+use crate::{
+    models::prelude::*,
+    routes::{MyResponse, MyResponseBuilder},
+    AppState,
+};
+
+use axum::{
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    response::IntoResponse,
+    Json,
+};
+use sea_orm::EntityTrait;
 
 #[utoipa::path(get, path = "/api/utils/tags", responses(
     (status = 200, description = "Tags map.", body = TagsMapResponseBody),
-    (status = 500, description = "Internal server error.", body = ErrorResponseBody),
+    (status = 500, description = "Internal server error.", body = GenericResponseBody),
 ))]
-pub async fn get_tags(State(data): State<Arc<AppState>>) -> Result<impl IntoResponse, ErrRsp> {
+pub async fn get_tags(
+    State(data): State<Arc<AppState>>,
+    header: HeaderMap,
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let tags = Tags::find()
         .all(&data.db)
         .await
-        .map_err(|e| ErrRsp::internal(format!("Can't get tags: {}", e)))?;
+        // .map_err(|e| GenericResponse::internal(format!("Can't get tags: {}", e)))?;
+        .map_err(|e| builder.db_error(e))?;
 
     let data = tags
         .into_iter()
-        .map(|tag| (tag.id, tag.name))
-        .collect::<Vec<(u32, String)>>();
+        .map(|tag| TagResponseBody {
+            id: tag.id,
+            name: tag.name,
+        })
+        .collect::<Vec<_>>();
 
     Ok((StatusCode::OK, Json(TagsMapResponseBody { data })))
 }

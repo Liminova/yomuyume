@@ -1,25 +1,38 @@
-use crate::{models::prelude::*, routes::ErrRsp, AppState};
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use sea_orm::*;
-use serde::Serialize;
 use std::sync::Arc;
-use utoipa::ToSchema;
 
-#[derive(Serialize, ToSchema)]
-pub struct CategoriesResponseBody {
-    /// A list of all categories fetched.
-    pub data: Vec<categories::Model>,
-}
+pub use bridge::routes::index::{CategoriesResponseBody, CategoryResponse};
+
+use crate::{
+    models::prelude::*,
+    routes::{MyResponse, MyResponseBuilder},
+    AppState,
+};
+
+use axum::{extract::State, http::HeaderMap, response::IntoResponse};
+use sea_orm::*;
 
 /// Get all categories to be displayed on the library page.
 #[utoipa::path(get, path = "/api/index/categories", responses(
     (status = 200, description = "Fetch all categories successful", body = CategoriesResponseBody),
-    (status = 500, description = "Internal server error", body = ErrorResponseBody)
+    (status = 500, description = "Internal server error", body = GenericResponseBody)
 ))]
 pub async fn get_categories(
     State(data): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, ErrRsp> {
-    let data = Categories::find().all(&data.db).await.map_err(ErrRsp::db)?;
+    header: HeaderMap,
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
 
-    Ok((StatusCode::OK, Json(CategoriesResponseBody { data })))
+    let data = Categories::find()
+        .all(&data.db)
+        .await
+        .map_err(|e| builder.db_error(e))?
+        .into_iter()
+        .map(|category| CategoryResponse {
+            id: category.id,
+            name: category.name,
+            description: category.description,
+        })
+        .collect();
+
+    Ok(builder.success(CategoriesResponseBody { data }))
 }

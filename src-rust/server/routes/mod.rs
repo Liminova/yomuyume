@@ -5,96 +5,25 @@ pub mod middlewares;
 pub mod user;
 pub mod utils;
 
+use std::fmt::Display;
+
 pub use self::{auth::*, file::*, index::*, user::*, utils::*};
+use axum::{
+    body::Body,
+    http::{header, HeaderMap, HeaderName, Response, StatusCode},
+    response::IntoResponse,
+};
+use bridge::GenericResponseBody;
 pub use middlewares::auth::auth;
-use sea_orm::DbErr;
 
 use crate::{
     constants::{blurhash_dimension_cap, ratio_percision},
     models::categories::Model as Categories,
 };
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
-use serde::{Deserialize, Serialize};
-use utoipa::{OpenApi, ToSchema};
-
-/* #region - to replace the clunky (StatusCode, Json<ErrorResponseBody>) with ErrorResponse */
-#[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
-pub struct ErrorResponseBody {
-    pub message: String,
-}
-
-pub struct ErrRsp {
-    status: StatusCode,
-    body: Json<ErrorResponseBody>,
-}
-impl ErrRsp {
-    pub fn new<S: AsRef<str>>(status: StatusCode, body: S) -> Self {
-        Self {
-            status,
-            body: Json(ErrorResponseBody {
-                message: body.as_ref().to_string(),
-            }),
-        }
-    }
-
-    /// Internal Server Error, but add "Database error: " to the message
-    pub fn db(body: DbErr) -> Self {
-        Self::new(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Database error: {}", body),
-        )
-    }
-
-    /// Internal Server Error
-    pub fn internal<S: AsRef<str>>(body: S) -> Self {
-        Self::new(StatusCode::INTERNAL_SERVER_ERROR, body)
-    }
-
-    pub fn bad_request<S: AsRef<str>>(body: S) -> Self {
-        Self::new(StatusCode::BAD_REQUEST, body)
-    }
-
-    pub fn not_found<S: AsRef<str>>(body: S) -> Self {
-        Self::new(StatusCode::NOT_FOUND, body)
-    }
-
-    pub fn no_token() -> Self {
-        Self::new(
-            StatusCode::UNAUTHORIZED,
-            "You're not logged in, please provide a token.",
-        )
-    }
-}
-impl IntoResponse for ErrRsp {
-    fn into_response(self) -> Response {
-        (self.status, self.body).into_response()
-    }
-}
-/* #endregion */
-
-/* #region - GenericResponse::new() looks more elegant than build_resp() */
-#[derive(Clone, Deserialize, Serialize, ToSchema, Debug)]
-struct GenericResponseBody {
-    pub message: String,
-}
-
-struct GenericRsp;
-impl GenericRsp {
-    pub fn create<S: AsRef<str>>(body: S) -> (StatusCode, Json<GenericResponseBody>) {
-        (
-            StatusCode::OK,
-            Json(GenericResponseBody {
-                message: body.as_ref().to_string(),
-            }),
-        )
-    }
-}
-/* #endregion */
+use bitcode::Encode;
+use serde::Serialize;
+use utoipa::OpenApi;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -151,7 +80,6 @@ impl GenericRsp {
         utils::post_status,
         utils::get_tags,
         utils::get_scanning_progress,
-        utils::get_ssim_eval,
 
         file::get_page,
         file::get_thumbnail,
@@ -178,16 +106,151 @@ impl GenericRsp {
         // Utils
         StatusRequest,
         StatusResponseBody,
+        TagResponseBody,
         TagsMapResponseBody,
         TitleResponseBody,
         ScanningProgressResponseBody,
 
+
         // Other
         GenericResponseBody,
-        ErrorResponseBody,
     ))
 )]
 pub struct ApiDoc;
+
+pub struct MyResponse {
+    pub status_code: StatusCode,
+    pub response_header: Vec<(HeaderName, String)>,
+    pub payload: Vec<u8>,
+}
+
+impl MyResponse {
+    pub fn add_header(self, header: (HeaderName, String)) -> Self {
+        let mut response_header = self.response_header;
+        response_header.push(header);
+        MyResponse {
+            status_code: self.status_code,
+            response_header,
+            payload: self.payload,
+        }
+    }
+}
+
+impl IntoResponse for MyResponse {
+    fn into_response(self) -> Response<Body> {
+        let mut headers = HeaderMap::new();
+        for (name, value) in self.response_header {
+            headers.insert(name, value.parse().unwrap());
+        }
+
+        (self.status_code, headers, self.payload).into_response()
+    }
+}
+
+/// Init inside a route handler with the request header to determine whether
+/// to encode the response body as bitcode or json.
+#[derive(Debug)]
+pub struct MyResponseBuilder {
+    request_header: HeaderMap,
+}
+
+impl MyResponseBuilder {
+    pub fn new(request_header: HeaderMap) -> Self {
+        MyResponseBuilder { request_header }
+    }
+
+    pub fn build<T: Encode + Serialize>(
+        &self,
+        status_code: StatusCode,
+        response_body: T,
+    ) -> MyResponse {
+        let accept_bitcode = &self
+            .request_header
+            .get(header::ACCEPT)
+            .map(|v| v.to_str().unwrap_or_default())
+            .unwrap_or_default()
+            .contains("bitcode");
+
+        let (header, payload) = match accept_bitcode {
+            true => (
+                "bitcode".to_string(),
+                bitcode::encode(&response_body)
+                    .map_err(|e| tracing::error!("Failed to encode bitcode: {}", e))
+                    .unwrap_or_default(),
+            ),
+
+            false => (
+                "application/json".to_string(),
+                serde_json::to_vec(&response_body)
+                    .map_err(|e| tracing::error!("Failed to encode json: {}", e))
+                    .unwrap_or_default(),
+            ),
+        };
+
+        MyResponse {
+            status_code,
+            response_header: vec![(header::CONTENT_TYPE, header)],
+            payload,
+        }
+    }
+
+    /// For building all success responses
+    pub fn success<T: Encode + Serialize>(&self, body: T) -> MyResponse {
+        self.build(StatusCode::OK, body)
+    }
+
+    /// For building all error responses
+    pub fn generic<T: AsRef<str>>(&self, status_code: StatusCode, message: T) -> MyResponse {
+        self.build(
+            status_code,
+            GenericResponseBody {
+                message: message.as_ref().to_string(),
+            },
+        )
+    }
+
+    /* Childrens of self.build, shorthand for commonly used error resps */
+
+    pub fn generic_success<T: AsRef<str>>(&self, message: T) -> MyResponse {
+        self.build(
+            StatusCode::OK,
+            GenericResponseBody {
+                message: message.as_ref().to_string(),
+            },
+        )
+    }
+
+    pub fn no_content<T: AsRef<str>>(&self, message: T) -> MyResponse {
+        self.generic(StatusCode::NO_CONTENT, message)
+    }
+
+    pub fn db_error<T: Display>(&self, message: T) -> MyResponse {
+        self.generic(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Database error: {}", message),
+        )
+    }
+
+    pub fn internal<T: AsRef<str>>(&self, message: T) -> MyResponse {
+        self.generic(StatusCode::INTERNAL_SERVER_ERROR, message)
+    }
+
+    pub fn bad_request<T: AsRef<str>>(&self, message: T) -> MyResponse {
+        self.generic(StatusCode::BAD_REQUEST, message)
+    }
+
+    pub fn not_found<T: AsRef<str>>(&self, message: T) -> MyResponse {
+        self.generic(StatusCode::NOT_FOUND, message)
+    }
+
+    pub fn conflict<T: AsRef<str>>(&self, message: T) -> MyResponse {
+        self.generic(StatusCode::CONFLICT, message)
+    }
+
+    pub fn unauthorized<T: AsRef<str>>(&self, message: T) -> MyResponse {
+        self.generic(StatusCode::UNAUTHORIZED, message)
+    }
+}
 
 fn check_pass(real: &str, input: &String) -> bool {
     match PasswordHash::new(real) {

@@ -43,6 +43,7 @@ async fn main() -> Result<(), DbErr> {
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
+        .with_env_filter("sqlx=warn,axum=info,yomuyume_server=warn")
         .init();
 
     let db = Database::connect(&config.database_url).await?;
@@ -108,7 +109,7 @@ async fn main() -> Result<(), DbErr> {
 
     let file_routes = Router::new()
         .route("/page/:page_id", get(get_page))
-        .route("/thumbnail/:thumbnail_id", get(get_thumbnail))
+        .route("/thumbnail/:title_id", get(get_thumbnail))
         .layer(apply(app_state.clone(), auth));
 
     let open_routes = Router::new()

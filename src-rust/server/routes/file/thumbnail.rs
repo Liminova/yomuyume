@@ -1,50 +1,59 @@
 use std::{fs::File, io::Read, path::PathBuf, sync::Arc};
 
+use crate::{
+    models::prelude::*,
+    routes::{MyResponse, MyResponseBuilder},
+    AppState,
+};
+
 use axum::{
     extract::{Path, State},
-    http::{header, StatusCode},
+    http::{header, HeaderMap, StatusCode},
     response::IntoResponse,
 };
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use zip::ZipArchive;
 
-use crate::{models::prelude::*, routes::ErrRsp, AppState};
-
-#[utoipa::path(get, path = "/api/file/thumbnail/{thumbnail_id}", responses(
+#[utoipa::path(get, path = "/api/file/thumbnail/{id}", responses(
     (status = 200, description = "Fetch thumbnail successful", body = Vec<u8>),
-    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
-    (status = 404, description = "Thumbnail not found", body = ErrorResponseBody),
-    (status = 500, description = "Internal server error", body = ErrorResponseBody),
+    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 404, description = "Thumbnail not found", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = GenericResponseBody),
 ))]
 pub async fn get_thumbnail(
     State(data): State<Arc<AppState>>,
-    Path(thumbnail_id): Path<String>,
-) -> Result<impl IntoResponse, ErrRsp> {
+    Path(title_id): Path<String>,
+    header: HeaderMap,
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let thumbnail_model = Thumbnails::find()
-        .filter(thumbnails::Column::Id.eq(thumbnail_id))
+        .filter(thumbnails::Column::Id.eq(title_id))
         .one(&data.db)
         .await
-        .map_err(ErrRsp::db)?
-        .ok_or_else(|| ErrRsp::not_found("Page not found."))?;
+        .map_err(|e| builder.db_error(e))?
+        .ok_or_else(|| builder.not_found("Thumbnail not found."))?;
 
     let title_model = Titles::find()
         .filter(titles::Column::Id.contains(&thumbnail_model.id))
         .one(&data.db)
         .await
-        .map_err(ErrRsp::db)?
-        .ok_or_else(|| ErrRsp::not_found("Title not found."))?;
+        .map_err(|e| builder.db_error(e))?
+        .ok_or_else(|| builder.not_found("Title not found."))?;
+
     let mut zip = ZipArchive::new(
-        File::open(title_model.path).map_err(|e| ErrRsp::internal(format!("File error: {}", e)))?,
+        File::open(title_model.path)
+            .map_err(|e| builder.internal(format!("Read title error: {}", e)))?,
     )
-    .map_err(|e| ErrRsp::internal(format!("Zip error: {}", e)))?;
+    .map_err(|e| builder.internal(format!("Zip error: {}", e)))?;
 
     let mut file = zip
         .by_name(thumbnail_model.path.as_ref())
-        .map_err(|e| ErrRsp::internal(format!("Zip error: {}", e)))?;
+        .map_err(|e| builder.internal(format!("Read thumbnail from zip error: {}", e)))?;
 
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)
-        .map_err(|e| ErrRsp::internal(format!("File read error: {}", e)))?;
+        .map_err(|e| builder.internal(format!("Read thumbnail error: {}", e)))?;
 
     let mime_type = format!(
         "image/{}",

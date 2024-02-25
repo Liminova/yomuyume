@@ -1,32 +1,29 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use serde::Serialize;
-use utoipa::ToSchema;
+pub use bridge::routes::utils::ScanningProgressResponseBody;
 
-use crate::{routes::ErrRsp, AppState};
+use crate::{
+    routes::{MyResponse, MyResponseBuilder},
+    AppState,
+};
 
-#[derive(Debug, Clone, Serialize, ToSchema)]
-pub struct ScanningProgressResponseBody {
-    scanning_completed: bool,
-    scanning_progress: f64,
-}
+use axum::{extract::State, http::HeaderMap, response::IntoResponse};
 
 #[utoipa::path(get, path = "/api/utils/scanning_progress", responses(
     (status = 200, description = "", body = ScanningProgressResponseBody),
-    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
+    (status = 401, description = "Unauthorized", body = GenericResponseBody),
 ))]
 pub async fn get_scanning_progress(
     State(data): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, ErrRsp> {
+    header: HeaderMap,
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let scanning_complete = data.scanning_complete.lock().await;
     let scanning_progress = data.scanning_progress.lock().await;
 
-    Ok((
-        StatusCode::OK,
-        Json(ScanningProgressResponseBody {
-            scanning_completed: *scanning_complete,
-            scanning_progress: *scanning_progress,
-        }),
-    ))
+    Ok(builder.success(ScanningProgressResponseBody {
+        scanning_completed: *scanning_complete,
+        scanning_progress: *scanning_progress,
+    }))
 }

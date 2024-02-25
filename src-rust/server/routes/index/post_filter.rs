@@ -1,86 +1,43 @@
+use std::{path::PathBuf, sync::Arc};
+
+pub use bridge::routes::index::{FilterRequest, FilterResponseBody, FilterTitleResponseBody};
+
 use super::{find_favorite_count, find_page_count, find_page_read};
 use crate::{
     models::prelude::*,
-    routes::{calculate_dimension, ErrRsp},
+    routes::{calculate_dimension, MyResponse, MyResponseBuilder},
     AppState,
 };
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
+
+use axum::{extract::State, http::HeaderMap, response::IntoResponse, Extension, Json};
 use sea_orm::{
     ColumnTrait, Condition, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
 };
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-use std::{path::PathBuf, sync::Arc};
-use utoipa::ToSchema;
-
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
-pub struct FilterRequest {
-    /// Keywords to search for (search in title, description, author, tags)
-    keywords: Option<Vec<String>>,
-    /// Categories to filter by
-    category_ids: Option<Vec<String>>,
-    /// Tags to filter by
-    tag_ids: Option<Vec<i32>>,
-    /// Maximum number of results to return
-    limit: Option<u32>,
-
-    is_reading: Option<bool>,
-    is_finished: Option<bool>,
-    is_bookmarked: Option<bool>,
-    is_favorite: Option<bool>,
-
-    sort_by: Option<String>,
-    sort_order: Option<String>,
-}
-
-#[derive(Serialize, ToSchema)]
-#[skip_serializing_none]
-pub struct FilterTitleResponseBody {
-    id: String,
-    title: String,
-    author: Option<String>,
-    category_id: String,
-    release: Option<String>,
-    favorite_count: Option<i64>,
-    page_count: i64,
-    page_read: Option<i64>,
-
-    /// Thumbnail
-    blurhash: String,
-    width: u32,
-    height: u32,
-    format: String,
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct FilterResponseBody {
-    pub data: Vec<FilterTitleResponseBody>,
-}
 
 /// Filtering titles by various parameters.
 ///
 /// And also sorting them by various options.
-#[utoipa::path(post, path = "/api/index/filter", responses(
+#[utoipa::path(post, path = "api/index/filter", responses(
     (status = 200, description = "Fetch all items successful", body = FilterResponseBody),
     (status = 204, description = "Fetch all items successful, but none were found", body = FilterResponseBody),
-    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
-    (status = 500, description = "Internal server error", body = ErrorResponseBody)
+    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = GenericResponseBody)
 ))]
 pub async fn post_filter(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
+    header: HeaderMap,
     Json(query): Json<FilterRequest>,
-) -> Result<impl IntoResponse, ErrRsp> {
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let keywords = query.keywords;
     let category_ids = query.category_ids;
     let tag_ids = query.tag_ids;
     let limit = query.limit;
 
     if keywords.is_none() && category_ids.is_none() && tag_ids.is_none() {
-        return Ok((
-            StatusCode::NO_CONTENT,
-            Json(FilterResponseBody { data: vec![] }),
-        ));
+        return Ok(builder.no_content("No title found"));
     }
 
     let mut condition = Condition::any();
@@ -109,7 +66,7 @@ pub async fn post_filter(
             .filter(internal_cond)
             .all(&data.db)
             .await
-            .map_err(ErrRsp::db)?;
+            .map_err(|e| builder.db_error(e))?;
         for entity in title_tag_has_tag_id {
             condition = condition.add(titles::Column::Id.eq(entity.title_id));
         }
@@ -122,7 +79,7 @@ pub async fn post_filter(
                 .filter(progresses::Column::Page.gt(0))
                 .all(&data.db)
                 .await
-                .map_err(ErrRsp::db)?;
+                .map_err(|e| builder.db_error(e))?;
             for entity in progress_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -136,7 +93,7 @@ pub async fn post_filter(
                 .filter(progresses::Column::Page.eq(0))
                 .all(&data.db)
                 .await
-                .map_err(ErrRsp::db)?;
+                .map_err(|e| builder.db_error(e))?;
             for entity in progress_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -149,7 +106,7 @@ pub async fn post_filter(
                 .filter(bookmarks::Column::UserId.eq(&user.id))
                 .all(&data.db)
                 .await
-                .map_err(ErrRsp::db)?;
+                .map_err(|e| builder.db_error(e))?;
             for entity in bookmark_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -162,7 +119,7 @@ pub async fn post_filter(
                 .filter(favorites::Column::UserId.eq(&user.id))
                 .all(&data.db)
                 .await
-                .map_err(ErrRsp::db)?;
+                .map_err(|e| builder.db_error(e))?;
             for entity in favorite_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -196,7 +153,7 @@ pub async fn post_filter(
         .order_by(sort_by, sort_order)
         .all(&data.db)
         .await
-        .map_err(ErrRsp::db)?;
+        .map_err(|e| builder.db_error(e))?;
 
     let mut resp_data: Vec<FilterTitleResponseBody> = vec![];
 
@@ -207,10 +164,8 @@ pub async fn post_filter(
         let thumbnail_model = Thumbnails::find_by_id(&title.id)
             .one(&data.db)
             .await
-            .map_err(ErrRsp::db)?
-            .ok_or_else(|| {
-                ErrRsp::new(StatusCode::INTERNAL_SERVER_ERROR, "Thumbnail not found.")
-            })?;
+            .map_err(|e| builder.db_error(e))?
+            .ok_or_else(|| builder.no_content("No thumbnail found"))?;
 
         let (width, height) = calculate_dimension(thumbnail_model.ratio);
 
@@ -235,10 +190,5 @@ pub async fn post_filter(
         });
     }
 
-    let status_code = match resp_data.is_empty() {
-        true => StatusCode::NO_CONTENT,
-        false => StatusCode::OK,
-    };
-
-    Ok((status_code, Json(FilterResponseBody { data: resp_data })))
+    Ok(builder.success(FilterResponseBody { data: resp_data }))
 }

@@ -1,51 +1,51 @@
+use std::sync::Arc;
+
+pub use bridge::routes::auth::{LoginRequest, LoginResponseBody};
+
 use crate::{
     models::{auth::TokenClaims, prelude::*},
-    routes::{check_pass, ErrRsp},
+    routes::{check_pass, MyResponse, MyResponseBuilder},
     AppState,
 };
+
 use axum::{
     extract::State,
-    http::{header, StatusCode},
+    http::{header, HeaderMap},
     response::IntoResponse,
     Json,
 };
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use utoipa::ToSchema;
+use wasm_bindgen::prelude::*;
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
-pub struct LoginRequest {
-    pub login: String,
-    pub password: String,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct LoginResponseBody {
-    pub token: String,
+#[wasm_bindgen(getter_with_clone)]
+pub struct LoremIpsum {
+    pub ipsum: String,
 }
 
 /// Login with username and password and get the JWT token.
 #[utoipa::path(post, path = "/api/auth/login", responses(
-    (status = 200, description = "Login successful", body = LoginResponseBody),
-    (status = 500, description = "Internal server error", body = ErrorResponseBody),
-    (status = 400, description = "Bad request", body = ErrorResponseBody),
+    (status = 200, description = "Login successful", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = GenericResponseBody),
+    (status = 400, description = "Bad request", body = GenericResponseBody),
 ))]
 pub async fn post_login(
     State(data): State<Arc<AppState>>,
+    header: HeaderMap,
     query: Json<LoginRequest>,
-) -> Result<impl IntoResponse, ErrRsp> {
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let user: users::Model = Users::find()
         .filter(users::Column::Username.eq(&query.login))
         .one(&data.db)
         .await
-        .map_err(ErrRsp::db)?
-        .ok_or_else(|| ErrRsp::bad_request("Invalid username or password."))?;
+        .map_err(|e| builder.db_error(e))?
+        .ok_or_else(|| builder.bad_request("Invalid username or password."))?;
 
     if !check_pass(&user.password, &query.password) {
-        return Err(ErrRsp::bad_request("Invalid username or password."));
+        return Err(builder.bad_request("Invalid username or password."));
     }
 
     let now = chrono::Utc::now();
@@ -63,7 +63,7 @@ pub async fn post_login(
         &claims,
         &EncodingKey::from_secret(data.env.jwt_secret.as_ref()),
     )
-    .map_err(|e| ErrRsp::internal(format!("JWT error: {}", e)))?;
+    .map_err(|e| builder.internal(format!("JWT error: {}", e)))?;
 
     let cookie = Cookie::build(("token", token.to_owned()))
         .path("/")
@@ -71,9 +71,7 @@ pub async fn post_login(
         .same_site(SameSite::Lax)
         .http_only(true);
 
-    Ok((
-        StatusCode::OK,
-        [(header::SET_COOKIE, cookie.to_string())],
-        Json(LoginResponseBody { token }),
-    ))
+    Ok(builder
+        .success(LoginResponseBody { token })
+        .add_header((header::SET_COOKIE, cookie.to_string())))
 }

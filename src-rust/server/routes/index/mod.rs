@@ -2,7 +2,7 @@ mod get_categories;
 mod get_title;
 mod post_filter;
 
-use crate::{models::prelude::*, routes::ErrRsp};
+use crate::models::prelude::*;
 
 use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter};
 
@@ -15,7 +15,6 @@ pub async fn find_page_count(db: &DatabaseConnection, title_id: &str) -> i64 {
         .filter(pages::Column::TitleId.contains(title_id))
         .all(db)
         .await
-        .map_err(ErrRsp::db)
         .unwrap_or(vec![]);
 
     match pages.is_empty() {
@@ -33,7 +32,6 @@ pub async fn find_page_read(db: &DatabaseConnection, title_id: &str, user_id: &s
         )
         .one(db)
         .await
-        .map_err(ErrRsp::db)
         .unwrap_or_default();
 
     match progresses {
@@ -47,7 +45,6 @@ pub async fn find_favorite_count(db: &DatabaseConnection, title_id: &str) -> Opt
         .filter(favorites::Column::TitleId.contains(title_id))
         .all(db)
         .await
-        .map_err(ErrRsp::db)
         .unwrap_or(vec![]);
 
     match favorites.is_empty() {

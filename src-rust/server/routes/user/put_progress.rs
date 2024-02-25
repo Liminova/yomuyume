@@ -1,56 +1,50 @@
 use std::sync::Arc;
 
+use crate::{
+    models::prelude::*,
+    routes::{MyResponse, MyResponseBuilder},
+    AppState,
+};
+
 use axum::{
     extract::{Path, State},
+    http::HeaderMap,
     response::IntoResponse,
     Extension,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
-use tracing::warn;
 
-use crate::{
-    models::prelude::*,
-    routes::{ErrRsp, GenericRsp},
-    AppState,
-};
-
-#[utoipa::path(put, path = "/api/user/progress/:title_id/:page", responses(
+#[utoipa::path(put, path = "/api/user/progress/{title_id}/{page}", responses(
     (status = 200, description = "Set progress successfully", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = ErrorResponseBody),
-    (status = 401, description = "Unauthorized", body = ErrorResponseBody),
+    (status = 400, description = "Bad request", body = GenericResponseBody),
+    (status = 401, description = "Unauthorized", body = GenericResponseBody),
 ))]
 pub async fn put_progress(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
+    header: HeaderMap,
     Path((title_id, page)): Path<(String, i64)>,
-) -> Result<impl IntoResponse, ErrRsp> {
+) -> Result<impl IntoResponse, MyResponse> {
+    let builder = MyResponseBuilder::new(header);
+
     let progress_model = Progresses::find()
         .filter(progresses::Column::TitleId.eq(&title_id))
         .filter(progresses::Column::UserId.eq(&user.id))
         .one(&data.db)
         .await
-        .map_err(|e| {
-            warn!(
-                "find progress failed | title {} | user {}: {}",
-                title_id, user.id, e
-            );
-            ErrRsp::internal(format!("Can't find progress: {}", e))
-        })?;
+        .map_err(|e| builder.db_error(e))?;
 
     // Update if exist
     if let Some(progress_model) = progress_model {
         let mut active_model: progresses::ActiveModel = progress_model.into();
         active_model.last_read_at = Set(chrono::Utc::now().to_rfc3339());
         active_model.page = Set(page);
-        active_model.update(&data.db).await.map_err(|e| {
-            warn!(
-                "update progress failed | title {} | user {}: {}",
-                title_id, user.id, e
-            );
-            ErrRsp::internal(format!("Can't update progress: {}", e))
-        })?;
+        active_model
+            .update(&data.db)
+            .await
+            .map_err(|e| builder.db_error(e))?;
 
-        return Ok(GenericRsp::create("Progress updated."));
+        return Ok(builder.generic_success("Progress updated."));
     }
 
     progresses::ActiveModel {
@@ -62,14 +56,8 @@ pub async fn put_progress(
     }
     .insert(&data.db)
     .await
-    .map_err(|e| {
-        warn!(
-            "insert progress failed | title {} | user {}: {}",
-            title_id, user.id, e
-        );
-        ErrRsp::internal(format!("Can't insert progress: {}", e))
-    })?;
+    .map_err(|e| builder.db_error(e))?;
 
     // just return the OK status
-    Ok(GenericRsp::create("Progress set."))
+    Ok(builder.generic_success("Progress set."))
 }
