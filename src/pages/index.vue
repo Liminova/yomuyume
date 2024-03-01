@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { register } from "swiper/element/bundle";
+import type { FilterTitleResponseBody } from "~/composables/bridge";
 import CardRecommend from "~/components/home/CardRecommend.vue";
 import CarouselWrapper from "~/components/home/CarouselWrapper.vue";
 import { homeStore } from "~/components/home/utils";
 import NavDrawerWrapper from "~/layouts/NavDrawerWrapper.vue";
-import { FilterTitleResponseBody } from "~/composables/bridge";
 
 document.title = "Yomuyume - Home";
 
@@ -13,10 +13,10 @@ register();
 const store = homeStore();
 const snackbarMessage = ref("");
 
-const recommendsItems: Ref<FilterTitleResponseBody[]> = ref([]);
-const recentlyUpdatedItems: Ref<FilterTitleResponseBody[]> = ref([]);
-const newlyAddedItems: Ref<FilterTitleResponseBody[]> = ref([]);
-const completedStoriesItems: Ref<FilterTitleResponseBody[]> = ref([]);
+const recommendsItems: Ref<Array<FilterTitleResponseBody>> = ref([]);
+const recentlyUpdatedItems: Ref<Array<FilterTitleResponseBody>> = ref([]);
+const newlyAddedItems: Ref<Array<FilterTitleResponseBody>> = ref([]);
+const completedStoriesItems: Ref<Array<FilterTitleResponseBody>> = ref([]);
 
 void Promise.all([
 	indexApi.filter({ keywords: [""], limit: 10 }),

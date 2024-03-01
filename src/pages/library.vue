@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import type { CategoryResponse } from "~/composables/bridge";
 import { getSwiperBreakpoint } from "~/composables/swiperBreakPoint";
 import NavDrawerWrapper from "~/layouts/NavDrawerWrapper.vue";
-import type { CategoriesResponseBody, CategoryResponse } from "~/composables/bridge"
 
 const imageContainerRef = ref<HTMLElement | null>(null);
 const imagePerRow = ref(5);
