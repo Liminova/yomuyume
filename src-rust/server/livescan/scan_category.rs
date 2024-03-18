@@ -31,9 +31,9 @@ pub async fn scan_category(item_dir: &PathBuf) -> Vec<ScannedTitle> {
         }
         let ext = path
             .extension()
-            .unwrap_or_default()
-            .to_str()
+            .and_then(|e| e.to_str())
             .unwrap_or_default();
+
         if ext == "zip" {
             match path {
                 p if p.to_str().unwrap_or_default().is_empty() => continue 'next_title,
@@ -41,10 +41,8 @@ pub async fn scan_category(item_dir: &PathBuf) -> Vec<ScannedTitle> {
                     path: p.clone(),
                     name: p
                         .file_name()
-                        .unwrap_or_default()
-                        .to_str()
-                        .unwrap_or_default()
-                        .to_string(),
+                        .and_then(|n| n.to_str())
+                        .map_or("".to_string(), |n| n.to_string()),
                 }),
             }
         }
