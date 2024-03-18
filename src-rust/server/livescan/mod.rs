@@ -1,9 +1,9 @@
 mod blurhash;
+mod cover_finder;
 mod handle_category;
 mod handle_title;
 mod scan_category;
 mod scan_library;
-mod thumbnail_finder;
 
 use self::{
     blurhash::Blurhash,

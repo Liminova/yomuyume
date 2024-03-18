@@ -2,8 +2,8 @@ use sea_orm::entity::prelude::*;
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, ToSchema)]
-#[schema(as = Thumbnail)]
-#[sea_orm(table_name = "thumbnails")]
+#[schema(as = Cover)]
+#[sea_orm(table_name = "covers")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,

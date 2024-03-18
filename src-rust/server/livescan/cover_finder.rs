@@ -1,5 +1,5 @@
 use super::blurhash::{Blurhash, BlurhashResult};
-use crate::constants::{extended_img_formats, thumbnail_filestems};
+use crate::constants::{cover_filestems, extended_img_formats};
 use rayon::prelude::*;
 use std::{
     fs::File,
@@ -8,10 +8,10 @@ use std::{
 use tracing::error;
 use zip::ZipArchive;
 
-/// Find a valid thumbnail filename/path in a vector of filenames/paths
+/// Find a valid cover filename/path in a vector of filenames/paths
 ///
 /// Doesn't check if the file actually exists or is a valid image
-struct ThumbnailPathFinder<'a> {
+struct CoverPathFinder<'a> {
     /// Just the filenames of the pages
     pub(super) exist_filepaths: &'a Vec<String>,
     /// Explicit name of the file to look for
@@ -19,9 +19,9 @@ struct ThumbnailPathFinder<'a> {
     pub(super) explicit_name: &'a Option<String>,
 }
 
-impl ThumbnailPathFinder<'_> {
+impl CoverPathFinder<'_> {
     pub fn find(exist_filepaths: &Vec<String>, explicit_name: &Option<String>) -> Option<String> {
-        let instance = ThumbnailPathFinder {
+        let instance = CoverPathFinder {
             exist_filepaths,
             explicit_name,
         };
@@ -52,7 +52,7 @@ impl ThumbnailPathFinder<'_> {
     }
 
     fn fuzzy(&self) -> Option<String> {
-        thumbnail_filestems().iter().find_map(|possible_filestem| {
+        cover_filestems().iter().find_map(|possible_filestem| {
             self.exist_filepaths
                 .iter()
                 .find(|path| {
@@ -68,20 +68,20 @@ impl ThumbnailPathFinder<'_> {
     }
 }
 
-/// Finds a valid thumbnail file in a directory, then encode it to blurhash,
+/// Finds a valid cover file in a directory, then encode it to blurhash,
 /// exhaustively, and return the first non-None result
 ///
 /// ### Parameters
-/// - parent_dir: Where to look for the thumbnail image file
+/// - parent_dir: Where to look for the cover image file
 /// - explicit_name: Explicit name of the file to look for (in <category>.toml)
 ///  (with or without extension both work)
-/// - blurhash: An instance of Blurhash to encode the thumbnail
+/// - blurhash: An instance of Blurhash to encode the cover
 ///
 /// ### Returns a tuple
-/// - The first second one is the full path to the thumbnail to be store in DB
+/// - The first second one is the full path to the cover to be store in DB
 /// because no, I'm not adding another field to BlurhashResult
-/// - The second one is the path to the thumbnail file
-pub fn thumbnail_finder(
+/// - The second one is the path to the cover file
+pub fn cover_finder(
     parent_dir: &Path,
     explicit_name: &Option<String>,
     blurhash: &Blurhash,
@@ -108,8 +108,8 @@ pub fn thumbnail_finder(
         .map(|entry| entry.to_string_lossy().to_string())
         .collect::<Vec<String>>();
 
-    // Find a thumbnail file, blurhash-encode then return if Some(blurhash)
-    let result = ThumbnailPathFinder::find(&filepaths_strs, explicit_name);
+    // Find a cover file, blurhash-encode then return if Some(blurhash)
+    let result = CoverPathFinder::find(&filepaths_strs, explicit_name);
     if let Some(result) = result {
         let result = PathBuf::from(result);
         let extension = result
@@ -137,9 +137,9 @@ pub fn thumbnail_finder(
         .map(|blurhash| (blurhash, filepaths[0].clone()))
 }
 
-/// Extract a title zip, then find a valid thumbnail file in it, then encode it
+/// Extract a title zip, then find a valid cover file in it, then encode it
 /// to blurhash, exhaustively, and return the first non-None result
-pub async fn title_thumbnail_finder(
+pub async fn title_cover_finder(
     temp_dir: &PathBuf,
     title_path: &PathBuf,
     explicit_name: &Option<String>,
@@ -174,13 +174,13 @@ pub async fn title_thumbnail_finder(
     })
     .ok()?;
 
-    // Find and encode thumbnail
-    let result = thumbnail_finder(&title_temp_dir, explicit_name, blurhash)
+    // Find and encode cover
+    let result = cover_finder(&title_temp_dir, explicit_name, blurhash)
         .map(|(blurhash, _)| blurhash)
         .ok_or_else(|| {
             let temp_dir = title_temp_dir.to_string_lossy();
-            error!("no thumbnail found in {}", temp_dir);
-            std::io::Error::new(std::io::ErrorKind::NotFound, "no thumbnail found")
+            error!("no cover found in {}", temp_dir);
+            std::io::Error::new(std::io::ErrorKind::NotFound, "no cover found")
         })
         .ok();
 

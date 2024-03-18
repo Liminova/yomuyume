@@ -40,7 +40,7 @@ pub struct ResponsePage {
 
 #[wasm_bindgen(getter_with_clone)]
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize, Encode, Decode)]
-pub struct ResponseThumbnail {
+pub struct ResponseCover {
     pub blurhash: String,
     pub width: u32,
     pub height: u32,
@@ -56,7 +56,7 @@ pub struct TitleResponseBody {
     pub author: Option<String>,
     pub description: Option<String>,
     pub release_date: Option<String>,
-    pub thumbnail: ResponseThumbnail,
+    pub cover: ResponseCover,
     pub tag_ids: Vec<u32>,
     pub pages: Vec<ResponsePage>,
     pub favorites: Option<i64>,
@@ -110,7 +110,7 @@ pub struct FilterTitleResponseBody {
     pub page_count: i64,
     pub page_read: Option<i64>,
 
-    /// Thumbnail
+    /// Cover
     pub blurhash: String,
     pub width: u32,
     pub height: u32,

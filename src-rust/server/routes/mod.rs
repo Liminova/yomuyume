@@ -82,7 +82,7 @@ use utoipa::OpenApi;
         utils::get_scanning_progress,
 
         file::get_page,
-        file::get_thumbnail,
+        file::get_cover,
     ),
     components(schemas(
         // Auth

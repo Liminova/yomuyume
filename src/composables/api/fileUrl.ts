@@ -1,10 +1,10 @@
 /**
- * Get the url of the thumbnail file for a title.
+ * Get the url of the cover file for a title.
  *
  * @param id the id of the title
  */
-function thumbnail(id: string): string {
-	return new URL(`/api/file/thumbnail/${id}`, globalStore.instanceAddr).toString();
+function cover(id: string): string {
+	return new URL(`/api/file/cover/${id}`, globalStore.instanceAddr).toString();
 }
 
 /**
@@ -17,6 +17,6 @@ function page(id: string): string {
 }
 
 export default {
-	thumbnail,
+	cover,
 	page,
 };

@@ -2,7 +2,7 @@ use sea_orm::entity::prelude::*;
 use serde::Serialize;
 use utoipa::ToSchema;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, ToSchema)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, ToSchema, Default)]
 #[schema(as = Title)]
 #[sea_orm(table_name = "titles")]
 pub struct Model {
@@ -33,8 +33,8 @@ pub enum Relation {
     Pages,
     #[sea_orm(has_many = "super::titles_tags::Entity")]
     TitlesTags,
-    #[sea_orm(has_one = "super::thumbnails::Entity")]
-    Thumbnails,
+    #[sea_orm(has_one = "super::covers::Entity")]
+    Covers,
     #[sea_orm(has_many = "super::bookmarks::Entity")]
     Bookmarks,
     #[sea_orm(has_many = "super::favorites::Entity")]
@@ -61,9 +61,9 @@ impl Related<super::titles_tags::Entity> for Entity {
     }
 }
 
-impl Related<super::thumbnails::Entity> for Entity {
+impl Related<super::covers::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Thumbnails.def()
+        Relation::Covers.def()
     }
 }
 

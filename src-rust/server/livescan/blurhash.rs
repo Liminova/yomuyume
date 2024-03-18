@@ -34,7 +34,7 @@ impl Blurhash {
     ///
     /// # Note
     ///
-    /// Being called in thumbnail_finder and handle_tite, there're already a
+    /// Being called in cover_finder and handle_tite, there're already a
     /// extension extraction to check against the supported formats, no need to
     /// re-extract the extension again, wasting cpu cycles.
     #[tracing::instrument]

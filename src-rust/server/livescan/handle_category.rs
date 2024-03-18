@@ -1,7 +1,7 @@
 use super::{scan_library::ScannedCategory, Scanner};
 use crate::{
-    constants::thumbnail_filestems,
-    livescan::{scan_category::scan_category, thumbnail_finder::thumbnail_finder},
+    constants::cover_filestems,
+    livescan::{cover_finder::cover_finder, scan_category::scan_category},
     models::{metadata::CategoryMetadata, prelude::*},
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
@@ -28,8 +28,8 @@ impl Scanner {
         })
         .await;
         debug!(
-            "metadata | [name] {:?} [description] {:?} [thumbnail] {:?}",
-            &category_metadata.name, &category_metadata.description, &category_metadata.thumbnail
+            "metadata | [name] {:?} [description] {:?} [cover] {:?}",
+            &category_metadata.name, &category_metadata.description, &category_metadata.cover
         );
 
         /* generate ID if needed */
@@ -95,67 +95,63 @@ impl Scanner {
         }
         /* #endregion */
 
-        /* #region - find category thumbnail */
-        let mut implicit_thumbnail_names = thumbnail_filestems();
-        implicit_thumbnail_names.push(&category.name);
-        if let Some(thumbnail) = &category_metadata.thumbnail {
-            implicit_thumbnail_names.push(thumbnail);
+        /* #region - find category cover */
+        let mut implicit_cover_names = cover_filestems();
+        implicit_cover_names.push(&category.name);
+        if let Some(cover) = &category_metadata.cover {
+            implicit_cover_names.push(cover);
         }
-        let thumbnail =
-            thumbnail_finder(&category.path, &category_metadata.thumbnail, &self.blurhash);
+        let cover = cover_finder(&category.path, &category_metadata.cover, &self.blurhash);
         /* #endregion */
 
-        /* #region - push thumbnail to DB if needed */
-        if let Some(thumbnail) = thumbnail {
-            info!("- thumbnail found: {}", thumbnail.1.to_string_lossy());
+        /* #region - push cover to DB if needed */
+        if let Some(cover) = cover {
+            info!("- cover found: {}", cover.1.to_string_lossy());
 
             // check if exists in DB by blurhash
-            let thumbnail_in_db = Thumbnails::find()
-                .filter(thumbnails::Column::Blurhash.eq(&thumbnail.0.blurhash))
+            let cover_in_db = Covers::find()
+                .filter(covers::Column::Blurhash.eq(&cover.0.blurhash))
                 .one(&self.app_state.db)
                 .await
                 .map_err(|e| {
-                    error!("error search thumbnail in DB: {}", e);
+                    error!("error search cover in DB: {}", e);
                     e
                 })?;
 
             // exists ? update path (blurhash same => dimensions same, no guarantee for path) : insert
-            if let Some(thumbnail_in_db) = thumbnail_in_db {
-                debug!("thumbnail already exists in DB");
-                let mut active_thumbnail: thumbnails::ActiveModel = thumbnail_in_db.into();
-                active_thumbnail.path = Set(thumbnail.1.to_string_lossy().to_string());
-                let _ = active_thumbnail
-                    .update(&self.app_state.db)
-                    .await
-                    .map_err(|e| {
-                        error!("error update thumbnail path in DB: {}", e);
-                        e
-                    })?;
+            if let Some(cover_in_db) = cover_in_db {
+                debug!("cover already exists in DB");
+                let mut active_cover: covers::ActiveModel = cover_in_db.into();
+                active_cover.path = Set(cover.1.to_string_lossy().to_string());
+                let _ = active_cover.update(&self.app_state.db).await.map_err(|e| {
+                    error!("error update cover path in DB: {}", e);
+                    e
+                })?;
             } else {
-                debug!("thumbnail not exists in DB, insert");
-                let _ = Thumbnails::delete_many()
-                    .filter(thumbnails::Column::Id.eq(&category_id))
+                debug!("cover not exists in DB, insert");
+                let _ = Covers::delete_many()
+                    .filter(covers::Column::Id.eq(&category_id))
                     .exec(&self.app_state.db)
                     .await
                     .map_err(|e| {
-                        error!("error delete thumbnail in DB: {}", e);
+                        error!("error delete cover in DB: {}", e);
                         e
                     })?;
-                let _ = thumbnails::ActiveModel {
+                let _ = covers::ActiveModel {
                     id: Set(category_id.clone()),
-                    path: Set(thumbnail.1.to_string_lossy().into_owned()),
-                    blurhash: Set(thumbnail.0.blurhash),
-                    ratio: Set(thumbnail.0.ratio),
+                    path: Set(cover.1.to_string_lossy().into_owned()),
+                    blurhash: Set(cover.0.blurhash),
+                    ratio: Set(cover.0.ratio),
                 }
                 .insert(&self.app_state.db)
                 .await
                 .map_err(|e| {
-                    error!("error insert thumbnail to DB: {}", e);
+                    error!("error insert cover to DB: {}", e);
                     e
                 })?;
             }
         } else {
-            warn!("- thumbnail not found");
+            warn!("- cover not found");
         }
         /* #endregion */
 

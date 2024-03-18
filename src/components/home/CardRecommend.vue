@@ -15,7 +15,7 @@ const props = defineProps({
 });
 
 const cover = {
-	src: fileApiUrl.thumbnail(props.previewTitle.id),
+	src: fileApiUrl.cover(props.previewTitle.id),
 	width: props.previewTitle.width,
 	height: props.previewTitle.height,
 	format: props.previewTitle.format,

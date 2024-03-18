@@ -1,8 +1,8 @@
 pub mod version;
 
-/// Filestem of thumbnail files used in thumbnail_finder.rs
-pub fn thumbnail_filestems<'a>() -> Vec<&'a str> {
-    vec!["thumbnail", "cover", "_", "folder"]
+/// Filestem of cover files used in cover_finder.rs
+pub fn cover_filestems<'a>() -> Vec<&'a str> {
+    vec!["cover", "cover", "_", "folder"]
 }
 
 pub fn native_img_formats<'a>() -> Vec<&'a str> {

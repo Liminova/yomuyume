@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-pub use bridge::routes::index::{ResponsePage, ResponseThumbnail, TitleResponseBody};
+pub use bridge::routes::index::{ResponseCover, ResponsePage, TitleResponseBody};
 
 use crate::{
     models::prelude::*,
@@ -38,11 +38,11 @@ pub async fn get_title(
         .map_err(|e| builder.db_error(e))?
         .ok_or_else(|| builder.not_found("No title found."))?;
 
-    let thumbnail = Thumbnails::find_by_id(&title.id)
+    let cover = Covers::find_by_id(&title.id)
         .one(&data.db)
         .await
         .map_err(|e| builder.db_error(e))?
-        .ok_or_else(|| builder.not_found("No thumbnail found."))?;
+        .ok_or_else(|| builder.not_found("No cover found."))?;
 
     let pages = Pages::find()
         .filter(pages::Column::TitleId.eq(&title.id))
@@ -51,12 +51,12 @@ pub async fn get_title(
         .await
         .map_err(|e| builder.db_error(e))?;
 
-    // place the thumbnail.path at the front of the Vec<pages::Model>
+    // place the cover.path at the front of the Vec<pages::Model>
     // and convert it to Vec<ResponsePage>
     let pages = pages
         .into_iter()
         .fold(Vec::new(), |mut list, page_model| {
-            if page_model.path == thumbnail.path {
+            if page_model.path == cover.path {
                 list.insert(0, page_model);
             } else {
                 list.push(page_model);
@@ -137,7 +137,7 @@ pub async fn get_title(
         .map(|tag| tag.tag_id)
         .collect::<Vec<_>>();
 
-    let (width, height) = calculate_dimension(thumbnail.ratio);
+    let (width, height) = calculate_dimension(cover.ratio);
 
     let data = TitleResponseBody {
         category_id: title.category_id,
@@ -145,11 +145,11 @@ pub async fn get_title(
         author: title.author,
         description: title.description,
         release_date: title.release,
-        thumbnail: ResponseThumbnail {
-            blurhash: thumbnail.blurhash,
+        cover: ResponseCover {
+            blurhash: cover.blurhash,
             width,
             height,
-            format: PathBuf::from(thumbnail.path)
+            format: PathBuf::from(cover.path)
                 .extension()
                 .and_then(|s| s.to_str())
                 .unwrap_or("")

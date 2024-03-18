@@ -161,13 +161,13 @@ pub async fn post_filter(
         let page_count = find_page_count(&data.db, &title.id).await;
         let favorite_count = find_favorite_count(&data.db, &title.id).await;
         let page_read = find_page_read(&data.db, &title.id, &user.id).await;
-        let thumbnail_model = Thumbnails::find_by_id(&title.id)
+        let cover_model = Covers::find_by_id(&title.id)
             .one(&data.db)
             .await
             .map_err(|e| builder.db_error(e))?
-            .ok_or_else(|| builder.no_content("No thumbnail found"))?;
+            .ok_or_else(|| builder.no_content("No cover found"))?;
 
-        let (width, height) = calculate_dimension(thumbnail_model.ratio);
+        let (width, height) = calculate_dimension(cover_model.ratio);
 
         resp_data.push(FilterTitleResponseBody {
             id: title.id,
@@ -179,10 +179,10 @@ pub async fn post_filter(
             page_count,
             page_read,
 
-            blurhash: thumbnail_model.blurhash,
+            blurhash: cover_model.blurhash,
             width,
             height,
-            format: PathBuf::from(thumbnail_model.path)
+            format: PathBuf::from(cover_model.path)
                 .extension()
                 .map(|s| s.to_str().unwrap_or(""))
                 .unwrap_or("")

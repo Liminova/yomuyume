@@ -1,5 +1,5 @@
+mod cover;
 mod get_page;
-mod thumbnail;
 
+pub use cover::*;
 pub use get_page::*;
-pub use thumbnail::*;

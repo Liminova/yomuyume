@@ -32,9 +32,9 @@ fn try_read_toml(path: &PathBuf) -> Option<Document> {
 pub struct TitleMetadata {
     pub title: Option<String>,
     pub description: Option<String>,
-    pub thumbnail: Option<String>,
+    pub cover: Option<String>,
     pub author: Option<String>,
-    pub release_date: Option<String>,
+    pub release: Option<String>,
     pub tags: Option<Vec<String>>,
     /// Per-page description
     /// 1st element is the page number
@@ -56,8 +56,8 @@ impl TitleMetadata {
         new.description = new.parse_string("description");
         new.author = new.parse_string("author");
         new.tags = new.parse_array("tags");
-        new.thumbnail = new.parse_string("thumbnail");
-        new.release_date = new.parse_string("release");
+        new.cover = new.parse_string("cover");
+        new.release = new.parse_string("release");
         new.descriptions = new.parse_table("descriptions");
         new.path = path.clone();
 
@@ -117,9 +117,9 @@ impl TitleMetadata {
             .map(|(_, description)| description.clone())
     }
 
-    pub fn set_thumbnail(&mut self, value: String) {
-        self.doc["thumbnail"] = toml_edit::value(&value);
-        self.thumbnail = Some(value);
+    pub fn set_cover(&mut self, value: String) {
+        self.doc["cover"] = toml_edit::value(&value);
+        self.cover = Some(value);
         if let Err(e) = std::fs::write(&self.path, self.doc.to_string()) {
             warn!("error writing toml file: {}\n", e);
         }
@@ -168,7 +168,7 @@ impl TitleMetadata {
 pub struct CategoryMetadata {
     pub name: Option<String>,
     pub description: Option<String>,
-    pub thumbnail: Option<String>,
+    pub cover: Option<String>,
     pub id: Option<String>,
     doc: Document,
     path: PathBuf,
@@ -185,7 +185,7 @@ impl CategoryMetadata {
 
         new.name = new.parse_string("name");
         new.description = new.parse_string("description");
-        new.thumbnail = new.parse_string("thumbnail");
+        new.cover = new.parse_string("cover");
         new.id = new.parse_string("id");
         new.path = path.clone();
 

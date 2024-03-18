@@ -64,7 +64,7 @@ async fn main() -> Result<(), DbErr> {
     assert!(schema_manager.has_table("tags").await?);
     assert!(schema_manager.has_table("titles_tags").await?);
     assert!(schema_manager.has_table("bookmarks").await?);
-    assert!(schema_manager.has_table("thumbnails").await?);
+    assert!(schema_manager.has_table("covers").await?);
     assert!(schema_manager.has_table("favorites").await?);
     assert!(schema_manager.has_table("progresses").await?);
 
@@ -109,7 +109,7 @@ async fn main() -> Result<(), DbErr> {
 
     let file_routes = Router::new()
         .route("/page/:page_id", get(get_page))
-        .route("/thumbnail/:title_id", get(get_thumbnail))
+        .route("/cover/:title_id", get(get_cover))
         .layer(apply(app_state.clone(), auth));
 
     let open_routes = Router::new()

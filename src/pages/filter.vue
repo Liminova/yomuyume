@@ -192,7 +192,7 @@ document.title = "Yomuyume - Filter";
 					<ItemCard
 						:author="title.author ?? 'Unknown'"
 						:cover="{
-							src: fileApiUrl.thumbnail(title.id),
+							src: fileApiUrl.cover(title.id),
 							width: title.width,
 							height: title.height,
 							blurhash: title.blurhash,
