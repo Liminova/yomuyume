@@ -1,466 +1,274 @@
 use super::{scan_category::ScannedTitle, Scanner};
 use crate::{
-    livescan::thumbnail_finder::title_thumbnail_finder,
+    livescan::cover_finder::title_cover_finder,
     models::{metadata::TitleMetadata, prelude::*},
 };
-#[cfg(target_pointer_width = "64")]
-use murmur3::murmur3_x64_128 as murmur3_128;
-#[cfg(target_pointer_width = "32")]
-use murmur3::murmur3_x86_128 as murmur3_128;
-use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
-use std::{fs::File, path::PathBuf};
-use tracing::{debug, error, info};
+use murmur3::murmur3_32;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TryIntoModel};
+use std::{collections::HashSet, fs::File};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 use zip::ZipArchive;
+
+type TitleId = String;
 
 impl Scanner {
     pub async fn handle_title(
         &self,
-        title: &ScannedTitle,
+        scanned_title: &ScannedTitle,
         category_id: String,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        info!("✅ found title: {}", title.path.to_string_lossy());
+    ) -> Result<TitleId, Box<dyn std::error::Error + Send + Sync>> {
+        info!("✅ found title: {}", scanned_title.path.to_string_lossy());
 
-        /* #region - read <title>.toml */
-        let mut title_metadata = TitleMetadata::from(&{
-            let mut title_metadata_path = title.path.clone();
-            title_metadata_path.set_extension("toml");
-            title_metadata_path
-        })
-        .await;
-        /* #endregion */
+        let mut title_metadata = 'scoped: {
+            let mut path = scanned_title.path.clone();
+            path.set_extension("toml");
+            if !path.exists() {
+                if let Err(e) = File::create(path) {
+                    warn!("can't create metadata file: {}", e);
+                };
+                break 'scoped TitleMetadata::default();
+            }
+            TitleMetadata::from(&path).await
+        };
 
-        /* #region - title's name defined in <title>.toml ? use it : use title file_stem */
         let title_name = match title_metadata.title.clone() {
-            Some(title) => title,
-            None => title
+            Some(title) => Ok(title),
+            None => scanned_title
                 .path
                 .file_stem()
-                .ok_or_else(|| {
-                    error!("error getting title name");
-                    "error getting title name"
-                })?
-                .to_string_lossy()
-                .to_string(),
-        };
-        debug!("title | {:?}", &title_name);
-        /* #endregion */
+                .and_then(|s| s.to_string_lossy().to_string().into())
+                .ok_or_else(|| "can't get name".to_string()),
+        }?;
 
-        /* #region - check if title exist; gen uuid if needed */
-        let title_hash_current = {
-            let content = tokio::fs::read(&title.path).await?;
-            match murmur3_128(&mut &content[..], 0) {
+        let mut file_unchanged = false; // to skip 'insert_delete_pages scope
+        let mut is_new = false; // to decide to use SeaORM's insert or update
+        let (title_model, mut title_active): (titles::Model, titles::ActiveModel) = 'scoped: {
+            let title_file = tokio::fs::read(&scanned_title.path).await?;
+            let current_hash = match murmur3_32(&mut &title_file[..], 0) {
                 Ok(hash) => hash.to_string(),
-                Err(e) => {
-                    error!("error hashing: {}", e);
-                    return Err(e.into());
-                }
-            }
-        };
-        let mut title_path_exist_in_db = false;
-        let mut title_id = String::new();
+                Err(e) => return Err(format!("can't hash: {}", e).into()),
+            };
 
-        // By path -> hash change ? by hash : update metadata -> return
-        match Titles::find()
-            .filter(titles::Column::Path.eq(title.path_lossy()))
-            .one(&self.app_state.db)
-            .await
-        {
-            Ok(Some(title_model)) => {
-                title_path_exist_in_db = true;
-                title_id = title_model.id.clone();
-
-                tracing::debug!("hash in db: {}", title_model.hash);
-                tracing::debug!("hash current: {}", title_hash_current);
-
-                /* update fields if metadata changed */
-                'scoped: {
-                    let mut need_update = false;
-                    let mut active_title: titles::ActiveModel =
-                        match Titles::find_by_id(&title_model.id)
-                            .one(&self.app_state.db)
-                            .await
-                        {
-                            Ok(Some(title_model)) => title_model.into(),
-                            Ok(None) => {
-                                error!("error search title in DB, this should not happend");
-                                break 'scoped;
-                            }
-                            Err(e) => {
-                                error!("error search title in DB: {}", e);
-                                break 'scoped;
-                            }
-                        };
-                    if title_model.title != title_name {
-                        need_update = true;
-                        active_title.title = Set(title_name.clone());
-                    }
-                    if title_model.category_id != category_id {
-                        need_update = true;
-                        active_title.category_id = Set(category_id.clone());
-                    }
-                    if title_model.description != title_metadata.description {
-                        need_update = true;
-                        active_title.description = Set(title_metadata.description.clone());
-                    }
-                    if title_model.author != title_metadata.author {
-                        need_update = true;
-                        active_title.author = Set(title_metadata.author.clone());
-                    }
-                    if title_model.release != title_metadata.release_date {
-                        need_update = true;
-                        active_title.release = Set(title_metadata.release_date.clone());
-                    }
-                    if title_model.hash != title_hash_current {
-                        need_update = true;
-                        active_title.date_updated = Set(chrono::Utc::now().timestamp().to_string());
-                    }
-                    if !need_update {
-                        break 'scoped;
-                    }
-                    match active_title.update(&self.app_state.db).await {
-                        Ok(_) => {}
-                        Err(e) => {
-                            error!("error update metadata in DB: {}", e);
-                            break 'scoped;
-                        }
-                    }
-                }
-
-                /* update thumbnail if metadata changed */
-                'scoped: {
-                    let thumbnail_filename_in_db = match Thumbnails::find()
-                        .filter(thumbnails::Column::Id.eq(&title_id))
-                        .one(&self.app_state.db)
-                        .await
-                    {
-                        Ok(Some(thumbnail_model)) => Some(thumbnail_model.path),
-                        Ok(None) => {
-                            break 'scoped;
-                        }
-                        Err(e) => {
-                            error!("error search thumbnail in DB: {}", e);
-                            break 'scoped;
-                        }
-                    };
-
-                    if thumbnail_filename_in_db != title_metadata.thumbnail {
-                        info!("thumbnail in DB != in metadata, re-encoding");
-                        match Thumbnails::delete_many()
-                            .filter(thumbnails::Column::Id.eq(&title_id))
-                            .exec(&self.app_state.db)
-                            .await
-                        {
-                            Ok(_) => {}
-                            Err(e) => {
-                                error!("error delete thumbnail in DB: {}", e);
-                                break 'scoped;
-                            }
-                        };
-                        self.update_thumbnail(&mut title_metadata, &title_id, &title.path)
-                            .await?;
-                    }
-                }
-
-                /* update pages' descs if metadata changed */
-                'scoped: {
-                    let page_models = match Pages::find()
-                        .filter(pages::Column::TitleId.eq(&title_id))
-                        .all(&self.app_state.db)
-                        .await
-                    {
-                        Ok(page_models) => page_models,
-                        Err(e) => {
-                            error!("error search pages in DB: {}", e);
-                            break 'scoped;
-                        }
-                    };
-                    'iteration: for page in page_models {
-                        let page_desc_metadata = title_metadata.get_page_desc(page.path.as_str());
-                        if page.description == page_desc_metadata {
-                            continue 'iteration;
-                        }
-                        let mut active_page: pages::ActiveModel = page.into();
-                        active_page.description = Set(page_desc_metadata);
-                        match active_page.update(&self.app_state.db).await {
-                            Ok(_) => {}
-                            Err(e) => {
-                                error!("error update page in DB: {}", e);
-                                break 'scoped;
-                            }
-                        };
-                    }
-                }
-
-                if title_model.hash == title_hash_current {
-                    info!("found in DB by path, hash match, skipping");
-                    return Ok(());
-                }
-                info!("found in DB by path, hash not match, finding hash");
-            }
-            Ok(None) => {
-                info!("not found in DB by path, finding hash");
-            }
-            Err(e) => {
-                error!("error search title in DB: {}", e);
-                return Err(e.into());
-            }
-        }
-
-        // By hash -> found match ? update metadata to match : encode -> return
-        // Found match means nothing in the title.zip changed, so we can skip encoding pages
-        match Titles::find()
-            .filter(titles::Column::Hash.eq(&title_hash_current))
-            .one(&self.app_state.db)
-            .await
-        {
-            Ok(Some(found_title_in_db)) => {
-                info!("found in DB by hash, updating metadata and skipping encoding pages");
-
-                let mut active_title: titles::ActiveModel = found_title_in_db.into();
-                active_title.title = Set(title_name);
-                active_title.category_id = Set(category_id.clone());
-                active_title.description = Set(title_metadata.description.clone());
-                active_title.author = Set(title_metadata.author.clone());
-                active_title.release = Set(title_metadata.release_date.clone());
-                active_title.date_updated = Set(chrono::Utc::now().timestamp().to_string());
-
-                let _ = active_title.update(&self.app_state.db).await.map_err(|e| {
-                    error!("error update metadata in DB: {}", e);
-                    e
-                })?;
-
-                return Ok(()); // return this handle_title function
-            }
-            Ok(None) => {
-                info!("not found in DB by hash, inserting title to DB and encoding pages");
-            }
-            Err(e) => {
-                error!("error check if exist in DB: {}", e);
-                return Err(e.into());
-            }
-        }
-        /* #endregion */
-
-        /* #region - create if title is new, else update hash */
-        if !title_path_exist_in_db {
-            title_id = Uuid::new_v4().to_string();
-            let now = chrono::Utc::now().timestamp().to_string();
-            let _ = titles::ActiveModel {
-                id: Set(title_id.clone()),
-                category_id: Set(category_id),
-                description: Set(title_metadata.description.clone()),
-                title: Set(title_name),
-                author: Set(title_metadata.author.clone()),
-                release: Set(title_metadata.release_date.clone()),
-                path: Set(title.path_lossy()),
-                hash: Set(title_hash_current),
-                date_added: Set(now.clone()),
-                date_updated: Set(now),
-            }
-            .insert(&self.app_state.db)
-            .await
-            .map_err(|e| {
-                error!("error inserting title to DB: {}", e);
-                e
-            })?;
-        } else {
-            let mut active_title: titles::ActiveModel = Titles::find_by_id(&title_id)
+            let find_by_path = Titles::find()
+                .filter(titles::Column::Path.eq(scanned_title.path_lossy()))
                 .one(&self.app_state.db)
                 .await
-                .map_err(|e| {
-                    error!("error search title in DB: {}", e);
-                    e
-                })?
-                .ok_or_else(|| {
-                    let err_msg = "error search title in DB, this should not happend";
-                    error!("{}", err_msg);
-                    err_msg
-                })?
-                .into();
-            active_title.hash = Set(title_hash_current);
-            let _ = active_title.update(&self.app_state.db).await.map_err(|e| {
-                error!("error update hash in DB: {}", e);
-                e
-            })?;
-        }
-        /* #endregion */
+                .map_err(|e| format!("can't find by path: {}", e))?;
 
-        /* tags */
-        'scoped: {
-            if title_metadata.tags.is_none() {
-                break 'scoped;
-            }
-            let tags = title_metadata.tags.clone().unwrap_or_default();
-            if tags.is_empty() {
-                break 'scoped;
-            }
-            'iteration: for tag in tags {
-                let tag_model = Tags::find()
-                    .filter(tags::Column::Name.eq(&tag))
-                    .one(&self.app_state.db)
-                    .await
-                    .map_err(|e| {
-                        error!("error finding tag: {}", e);
-                        e
-                    });
-
-                let tag_model = match tag_model {
-                    Ok(Some(tag_model)) => Some(tag_model),
-                    Ok(None) => None,
-                    Err(_) => continue 'iteration,
-                };
-
-                let tag_id = match tag_model {
-                    Some(tag_model) => tag_model.id,
-                    None => {
-                        let active_tag = tags::ActiveModel {
-                            id: NotSet,
-                            name: Set(tag.clone()),
-                        };
-
-                        let result = Tags::insert(active_tag).exec(&self.app_state.db).await;
-
-                        match result {
-                            Ok(result) => result.last_insert_id,
-                            Err(e) => {
-                                error!("error inserting tag: {}", e);
-                                continue 'iteration;
-                            }
-                        }
-                    }
-                };
-
-                let result = titles_tags::ActiveModel {
-                    id: NotSet,
-                    title_id: Set(title_id.clone()),
-                    tag_id: Set(tag_id),
+            if let Some(title_model) = find_by_path {
+                let mut title_active: titles::ActiveModel = title_model.clone().into();
+                match title_model.hash == current_hash {
+                    true => file_unchanged = true,
+                    false => title_active.hash = Set(current_hash),
                 }
+                break 'scoped (title_model, title_active);
+            }
+
+            let find_by_hash = Titles::find()
+                .filter(titles::Column::Hash.eq(&current_hash))
+                .one(&self.app_state.db)
+                .await
+                .map_err(|e| format!("can't find by hash: {}", e))?;
+
+            if let Some(title_model) = find_by_hash {
+                file_unchanged = true;
+                let mut title_active: titles::ActiveModel = title_model.clone().into();
+                title_active.path = Set(scanned_title.path_lossy());
+                break 'scoped (title_model, title_active);
+            }
+
+            is_new = true;
+            let new = titles::ActiveModel {
+                id: Set(Uuid::new_v4().to_string()),
+                hash: Set(current_hash),
+                path: Set(scanned_title.path_lossy()),
+                date_added: Set(chrono::Utc::now().timestamp().to_string()),
+                date_updated: Set(chrono::Utc::now().timestamp().to_string()),
+
+                title: Set(String::new()),
+                category_id: Set(String::new()),
+                author: Set(None),
+                description: Set(None),
+                release: Set(None),
+            };
+            (
+                new.clone()
+                    .try_into_model()
+                    .map_err(|e| format!("can't convert to model: {}", e))?,
+                new,
+            )
+        };
+
+        if title_model.title != title_name {
+            title_active.title = Set(title_name.clone());
+        }
+        if title_model.category_id != category_id {
+            title_active.category_id = Set(category_id.clone());
+        }
+        if title_model.author != title_metadata.author {
+            title_active.author = Set(title_metadata.author.clone());
+        }
+        if title_model.description != title_metadata.description {
+            title_active.description = Set(title_metadata.description.clone());
+        }
+        if title_model.release != title_metadata.release {
+            title_active.release = Set(title_metadata.release.clone());
+        }
+        if title_model.path != scanned_title.path_lossy() {
+            title_active.path = Set(scanned_title.path_lossy());
+        }
+        if title_active.is_changed() {
+            title_active.date_updated = Set(chrono::Utc::now().timestamp().to_string());
+        }
+        if is_new {
+            title_active
                 .insert(&self.app_state.db)
-                .await;
-                match result {
-                    Ok(_) => {}
-                    Err(e) => {
-                        error!("error inserting title_tag: {}", e);
-                        continue 'iteration;
-                    }
+                .await
+                .map_err(|e| format!("can't insert to DB: {}", e))?;
+        } else {
+            title_active
+                .update(&self.app_state.db)
+                .await
+                .map_err(|e| format!("can't update in DB: {}", e))?;
+        }
+
+        'update_cover: {
+            let cover_model = Covers::find()
+                .filter(covers::Column::Id.eq(&title_model.id))
+                .one(&self.app_state.db)
+                .await
+                .map_err(|e| format!("can't find cover in DB: {}", e))?;
+
+            if let Some(cover_model) = cover_model {
+                if Some(cover_model.path) == title_metadata.cover {
+                    break 'update_cover;
+                }
+            }
+
+            let _ = Covers::delete_by_id(&title_model.id)
+                .exec(&self.app_state.db)
+                .await
+                .map_err(|e| format!("can't delete cover in DB: {}", e))?;
+
+            let cover = title_cover_finder(
+                &self.temp_path,
+                &scanned_title.path,
+                &title_metadata.cover,
+                &self.blurhash,
+            )
+            .await;
+
+            if let Some(cover) = cover {
+                title_metadata.set_cover(cover.file_name.clone());
+                let cover_active = covers::ActiveModel {
+                    id: Set(title_model.id.clone()),
+                    path: Set(cover.file_name),
+                    blurhash: Set(cover.blurhash),
+                    ratio: Set(cover.ratio),
                 };
+                cover_active
+                    .insert(&self.app_state.db)
+                    .await
+                    .map_err(|e| format!("can't insert cover to DB: {}", e))?;
             }
         }
 
-        /* #region - pages */
-        let _ = Pages::delete_many()
-            .filter(pages::Column::TitleId.eq(&title_id))
-            .exec(&self.app_state.db)
-            .await
-            .map_err(|e| {
-                error!("error deleting pages in DB: {}", e);
-                e
-            })?;
+        let pages_in_file_set: HashSet<String> = {
+            let reader = File::open(&scanned_title.path)
+                .map_err(|e| format!("can't read title file: {}", e))?;
+            let mut archive = ZipArchive::new(reader)?;
+            (0..archive.len())
+                .map(|i| {
+                    archive
+                        .by_index(i)
+                        .map_err(|e| format!("can't read title file as zip: {}", e))
+                        .map(|f| f.name().to_string())
+                })
+                .collect::<Result<_, _>>()?
+        };
+        let pages_in_file_vec = pages_in_file_set.iter().collect::<Vec<_>>();
 
-        let pages = list_files_in_zip(&title.path)?;
-        debug!("file_names: {:?}", pages);
-
-        'iteration: for page in &pages {
-            let result = pages::ActiveModel {
-                id: Set(Uuid::new_v4().to_string()),
-                title_id: Set(title_id.clone()),
-                path: Set(page.clone()),
-                description: Set(title_metadata.get_page_desc(page)),
+        'insert_delete_pages: {
+            if file_unchanged {
+                break 'insert_delete_pages;
             }
-            .insert(&self.app_state.db)
-            .await;
-            match result {
-                Ok(_) => {}
-                Err(e) => {
-                    error!("error inserting page to DB: {}", e);
-                    continue 'iteration;
+
+            let pages_in_db_set = Pages::find()
+                .filter(pages::Column::TitleId.eq(&title_model.id))
+                .all(&self.app_state.db)
+                .await
+                .map_err(|e| format!("can't find pages in DB: {}", e))?
+                .into_iter()
+                .map(|p| p.title_id)
+                .collect::<HashSet<_>>();
+            let pages_in_db_vec = pages_in_db_set.iter().collect::<Vec<_>>();
+
+            let pages_to_be_insert: Vec<String> = pages_in_file_vec
+                .iter()
+                .filter(|p| !pages_in_db_set.contains(**p))
+                .map(|p| (*p).clone())
+                .collect();
+            if !pages_to_be_insert.is_empty() {
+                let pages_to_be_insert: Vec<pages::ActiveModel> = pages_to_be_insert
+                    .iter()
+                    .map(|p| pages::ActiveModel {
+                        id: Set(Uuid::new_v4().to_string()),
+                        title_id: Set(title_model.id.clone()),
+                        path: Set(p.clone()),
+                        description: Set(title_metadata.get_page_desc(p)),
+                    })
+                    .collect();
+                debug!("pages to be insert: {:?}", pages_to_be_insert);
+                Pages::insert_many(pages_to_be_insert)
+                    .exec(&self.app_state.db)
+                    .await
+                    .map_err(|e| format!("can't insert pages to DB: {}", e))?;
+            }
+
+            let pages_to_be_delete: Vec<&String> = pages_in_db_vec
+                .iter()
+                .filter(|p| !pages_in_file_set.contains(**p))
+                .map(|p| *p)
+                .collect();
+            if !pages_to_be_delete.is_empty() {
+                debug!("pages to be delete: {:?}", pages_to_be_delete);
+                Pages::delete_many()
+                    .filter(pages::Column::TitleId.eq(&title_model.id))
+                    .filter(pages::Column::Path.is_in(pages_to_be_delete))
+                    .exec(&self.app_state.db)
+                    .await
+                    .map_err(|e| format!("can't delete pages in DB: {}", e))?;
+            }
+        }
+
+        'update_pages: for page in pages_in_file_vec {
+            let page_model = match Pages::find()
+                .filter(pages::Column::Path.eq(page))
+                .one(&self.app_state.db)
+                .await
+                .map_err(|e| format!("can't find page in DB: {}", e))?
+            {
+                Some(model) => model,
+                None => {
+                    warn!("can't find page {} in DB, this should not happend", page);
+                    continue 'update_pages;
                 }
             };
-        }
-        /* #endregion */
 
-        /* thumbnail */
-        self.update_thumbnail(&mut title_metadata, &title_id, &title.path)
-            .await?;
-
-        Ok(())
-    }
-
-    async fn update_thumbnail(
-        &self,
-        title_metadata: &mut TitleMetadata,
-        title_id: &str,
-        title_path: &PathBuf,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let thumbnail_model = Thumbnails::find_by_id(title_id)
-            .one(&self.app_state.db)
-            .await
-            .map_err(|e| {
-                error!("error search thumbnail in DB: {}", e);
-                e
-            })?;
-
-        if let Some(thumbnail_model) = thumbnail_model {
-            if Some(thumbnail_model.path) == title_metadata.thumbnail {
-                info!("thumbnail in DB == thumbnail in metadata, skipping");
-                return Ok(());
+            let page_desc = title_metadata.get_page_desc(&page);
+            if page_model.description == page_desc {
+                continue 'update_pages;
             }
+
+            let mut active_page: pages::ActiveModel = page_model.into();
+            active_page.description = Set(page_desc);
+            active_page
+                .update(&self.app_state.db)
+                .await
+                .map_err(|e| format!("can't update page in DB: {}", e))?;
         }
 
-        let _ = Thumbnails::delete_by_id(title_id)
-            .exec(&self.app_state.db)
-            .await
-            .map_err(|e| {
-                error!("error delete thumbnail in DB: {}", e);
-                e
-            })?;
-
-        let thumbnail = title_thumbnail_finder(
-            &self.temp_path,
-            title_path,
-            &title_metadata.thumbnail,
-            &self.blurhash,
-        )
-        .await;
-
-        // write BHResult -> <title>.toml and DB
-        if let Some(thumbnail) = thumbnail {
-            title_metadata.set_thumbnail(thumbnail.file_name.clone());
-            let _ = thumbnails::ActiveModel {
-                id: Set(title_id.to_string()),
-                path: Set(thumbnail.file_name),
-                blurhash: Set(thumbnail.blurhash),
-                ratio: Set(thumbnail.ratio),
-            }
-            .insert(&self.app_state.db)
-            .await
-            .map_err(|e| {
-                error!("error inserting thumbnail to DB: {}", e);
-                e
-            })?;
-        }
-
-        Ok(())
+        Ok(title_model.id)
     }
-}
-
-fn list_files_in_zip(path: &PathBuf) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    let reader = File::open(path).map_err(|e| {
-        error!("error openning title: {}", e);
-        e
-    })?;
-
-    let mut archive = ZipArchive::new(reader)?;
-
-    let mut file_names = Vec::new();
-    for i in 0..archive.len() {
-        let file = archive.by_index(i).map_err(|e| {
-            error!("error reading zip: {}", e);
-            e
-        })?;
-        file_names.push(file.name().to_string());
-    }
-
-    Ok(file_names)
 }
