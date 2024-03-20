@@ -6,7 +6,7 @@ use crate::{
 use murmur3::murmur3_32;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TryIntoModel};
 use std::{collections::HashSet, fs::File};
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 use uuid::Uuid;
 use zip::ZipArchive;
 
@@ -41,7 +41,6 @@ impl Scanner {
                 .ok_or_else(|| "can't get name".to_string()),
         }?;
 
-        let mut file_unchanged = false; // to skip 'insert_delete_pages scope
         let mut is_new = false; // to decide to use SeaORM's insert or update
         let (title_model, mut title_active): (titles::Model, titles::ActiveModel) = 'scoped: {
             let title_file = tokio::fs::read(&scanned_title.path).await?;
@@ -58,9 +57,8 @@ impl Scanner {
 
             if let Some(title_model) = find_by_path {
                 let mut title_active: titles::ActiveModel = title_model.clone().into();
-                match title_model.hash == current_hash {
-                    true => file_unchanged = true,
-                    false => title_active.hash = Set(current_hash),
+                if title_model.hash != current_hash {
+                    title_active.hash = Set(current_hash)
                 }
                 break 'scoped (title_model, title_active);
             }
@@ -72,7 +70,6 @@ impl Scanner {
                 .map_err(|e| format!("can't find by hash: {}", e))?;
 
             if let Some(title_model) = find_by_hash {
-                file_unchanged = true;
                 let mut title_active: titles::ActiveModel = title_model.clone().into();
                 title_active.path = Set(scanned_title.path_lossy());
                 break 'scoped (title_model, title_active);
@@ -174,7 +171,7 @@ impl Scanner {
             }
         }
 
-        let pages_in_file_set: HashSet<String> = {
+        let pages_in_file: HashSet<String> = {
             let reader = File::open(&scanned_title.path)
                 .map_err(|e| format!("can't read title file: {}", e))?;
             let mut archive = ZipArchive::new(reader)?;
@@ -187,86 +184,63 @@ impl Scanner {
                 })
                 .collect::<Result<_, _>>()?
         };
-        let pages_in_file_vec = pages_in_file_set.iter().collect::<Vec<_>>();
 
-        'insert_delete_pages: {
-            if file_unchanged {
-                break 'insert_delete_pages;
-            }
+        let pages_in_db: HashSet<String> = Pages::find()
+            .filter(pages::Column::TitleId.eq(&title_model.id))
+            .all(&self.app_state.db)
+            .await
+            .map_err(|e| format!("can't find pages in DB: {}", e))?
+            .into_iter()
+            .map(|p| p.title_id)
+            .collect();
 
-            let pages_in_db_set = Pages::find()
+        let to_be_delete: Vec<&String> = pages_in_db.difference(&pages_in_file).collect();
+        let to_be_insert: Vec<&String> = pages_in_file.difference(&pages_in_db).collect();
+        let to_be_update: Vec<&String> = pages_in_file.intersection(&pages_in_db).collect();
+
+        for page in to_be_delete {
+            Pages::delete_many()
                 .filter(pages::Column::TitleId.eq(&title_model.id))
-                .all(&self.app_state.db)
+                .filter(pages::Column::Path.eq(page))
+                .exec(&self.app_state.db)
                 .await
-                .map_err(|e| format!("can't find pages in DB: {}", e))?
-                .into_iter()
-                .map(|p| p.title_id)
-                .collect::<HashSet<_>>();
-            let pages_in_db_vec = pages_in_db_set.iter().collect::<Vec<_>>();
-
-            let pages_to_be_insert: Vec<String> = pages_in_file_vec
-                .iter()
-                .filter(|p| !pages_in_db_set.contains(**p))
-                .map(|p| (*p).clone())
-                .collect();
-            if !pages_to_be_insert.is_empty() {
-                let pages_to_be_insert: Vec<pages::ActiveModel> = pages_to_be_insert
-                    .iter()
-                    .map(|p| pages::ActiveModel {
-                        id: Set(Uuid::new_v4().to_string()),
-                        title_id: Set(title_model.id.clone()),
-                        path: Set(p.clone()),
-                        description: Set(title_metadata.get_page_desc(p)),
-                    })
-                    .collect();
-                debug!("pages to be insert: {:?}", pages_to_be_insert);
-                Pages::insert_many(pages_to_be_insert)
-                    .exec(&self.app_state.db)
-                    .await
-                    .map_err(|e| format!("can't insert pages to DB: {}", e))?;
-            }
-
-            let pages_to_be_delete: Vec<&String> = pages_in_db_vec
-                .iter()
-                .filter(|p| !pages_in_file_set.contains(**p))
-                .copied()
-                .collect();
-            if !pages_to_be_delete.is_empty() {
-                debug!("pages to be delete: {:?}", pages_to_be_delete);
-                Pages::delete_many()
-                    .filter(pages::Column::TitleId.eq(&title_model.id))
-                    .filter(pages::Column::Path.is_in(pages_to_be_delete))
-                    .exec(&self.app_state.db)
-                    .await
-                    .map_err(|e| format!("can't delete pages in DB: {}", e))?;
-            }
+                .map_err(|e| format!("can't delete pages in DB: {}", e))?;
         }
 
-        'update_pages: for page in pages_in_file_vec {
-            let page_model = match Pages::find()
+        for page in to_be_insert {
+            let page_desc = title_metadata.get_page_desc(page);
+            let page_active = pages::ActiveModel {
+                id: Set(Uuid::new_v4().to_string()),
+                title_id: Set(title_model.id.clone()),
+                path: Set(page.clone()),
+                description: Set(page_desc),
+            };
+            page_active
+                .insert(&self.app_state.db)
+                .await
+                .map_err(|e| format!("can't insert pages to DB: {}", e))?;
+        }
+
+        for page in to_be_update {
+            let page_model = Pages::find()
                 .filter(pages::Column::Path.eq(page))
                 .one(&self.app_state.db)
                 .await
-                .map_err(|e| format!("can't find page in DB: {}", e))?
-            {
-                Some(model) => model,
-                None => {
-                    warn!("can't find page {} in DB, this should not happend", page);
-                    continue 'update_pages;
+                .map_err(|e| format!("can't find page in DB: {}", e))?;
+
+            if let Some(page_model) = page_model {
+                let page_desc = title_metadata.get_page_desc(page);
+                if page_model.description == page_desc {
+                    continue;
                 }
-            };
 
-            let page_desc = title_metadata.get_page_desc(page);
-            if page_model.description == page_desc {
-                continue 'update_pages;
+                let mut page_active: pages::ActiveModel = page_model.into();
+                page_active.description = Set(page_desc);
+                page_active
+                    .update(&self.app_state.db)
+                    .await
+                    .map_err(|e| format!("can't update page in DB: {}", e))?;
             }
-
-            let mut active_page: pages::ActiveModel = page_model.into();
-            active_page.description = Set(page_desc);
-            active_page
-                .update(&self.app_state.db)
-                .await
-                .map_err(|e| format!("can't update page in DB: {}", e))?;
         }
 
         Ok(title_model.id)
