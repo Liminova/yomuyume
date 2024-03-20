@@ -229,7 +229,7 @@ impl Scanner {
             let pages_to_be_delete: Vec<&String> = pages_in_db_vec
                 .iter()
                 .filter(|p| !pages_in_file_set.contains(**p))
-                .map(|p| *p)
+                .copied()
                 .collect();
             if !pages_to_be_delete.is_empty() {
                 debug!("pages to be delete: {:?}", pages_to_be_delete);
@@ -256,7 +256,7 @@ impl Scanner {
                 }
             };
 
-            let page_desc = title_metadata.get_page_desc(&page);
+            let page_desc = title_metadata.get_page_desc(page);
             if page_model.description == page_desc {
                 continue 'update_pages;
             }
