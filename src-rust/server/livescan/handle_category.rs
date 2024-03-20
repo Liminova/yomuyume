@@ -160,7 +160,9 @@ impl Scanner {
         let titles_count = titles.len();
         let mut processed = 0;
         for title in titles {
-            let _ = self.handle_title(&title, category_id.clone()).await;
+            if let Err(e) = self.handle_title(&title, category_id.clone()).await {
+                error!("can't process title: {}", e);
+            }
 
             processed += 1;
             let progress = processed as f64 / titles_count as f64;
