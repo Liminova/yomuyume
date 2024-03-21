@@ -6,7 +6,7 @@ use crate::{
 use murmur3::murmur3_32;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TryIntoModel};
 use std::{collections::HashSet, fs::File};
-use tracing::{info, warn};
+use tracing::info;
 use uuid::Uuid;
 use zip::ZipArchive;
 
@@ -20,17 +20,7 @@ impl Scanner {
     ) -> Result<TitleId, Box<dyn std::error::Error + Send + Sync>> {
         info!("✅ found title: {}", scanned_title.path.to_string_lossy());
 
-        let mut title_metadata = 'scoped: {
-            let mut path = scanned_title.path.clone();
-            path.set_extension("toml");
-            if !path.exists() {
-                if let Err(e) = File::create(path) {
-                    warn!("can't create metadata file: {}", e);
-                };
-                break 'scoped TitleMetadata::default();
-            }
-            TitleMetadata::from(&path).await
-        };
+        let mut title_metadata = TitleMetadata::from(&scanned_title.path);
 
         let title_name = match title_metadata.title.clone() {
             Some(title) => Ok(title),
