@@ -39,7 +39,7 @@ async function toggleFavorite() {
 	const { message, ok } = await userApi.favorite(id, isFavorite.value ? "DELETE" : "PUT");
 
 	snackbarMessage.value = message ?? "";
-	if (!ok) {
+	if (ok !== true) {
 		return;
 	}
 
@@ -51,7 +51,7 @@ async function toggleBookmark() {
 	const { message, ok } = await userApi.bookmark(id, isBookmark.value ? "DELETE" : "PUT");
 
 	snackbarMessage.value = message ?? "";
-	if (!ok) {
+	if (ok !== true) {
 		return;
 	}
 
@@ -82,7 +82,7 @@ const pageObservers = new IntersectionObserver(
 async function saveProgress(currentPageIndex: number) {
 	const { ok, message } = await userApi.progress(id, currentPageIndex);
 
-	if (!ok) {
+	if (ok !== true) {
 		snackbarMessage.value = message ?? "";
 	}
 }
