@@ -51,7 +51,7 @@ onMounted(() => {
 		>
 			<NavDrawer />
 			<div
-				class="lg:min-w-[0px]"
+				class="lg:min-w-0"
 				:class="
 					globalStore.isNavDrawerLarge
 						? 'lg:max-w-[calc(100vw-360px)]'
