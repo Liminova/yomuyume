@@ -4317,7 +4317,6 @@ dependencies = [
  "time",
  "tokio",
  "toml",
- "toml_edit 0.22.8",
  "tower-http",
  "tracing",
  "tracing-subscriber",

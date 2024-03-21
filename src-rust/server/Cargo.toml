@@ -53,9 +53,9 @@ utoipa-swagger-ui = { version = "5.0.0", features = ["axum"] }
 uuid = { version = "1.4.1", features = ["serde", "v4"] }
 zip = "0.6.6"
 bridge = { version = "*", path = "../bridge" }
-toml_edit = "0.22.6"
 bitcode = "0.5.1"
 wasm-bindgen = "0.2.91"
+toml = "0.8.12"
 
 [dev-dependencies]
 axum-test = "14.0.0"
