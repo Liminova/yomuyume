@@ -25,8 +25,7 @@ impl Scanner {
             path.set_extension("toml");
             debug!("metadata | [path] {:?}", &path);
             path
-        })
-        .await;
+        });
         debug!(
             "metadata | [name] {:?} [description] {:?} [cover] {:?}",
             &category_metadata.name, &category_metadata.description, &category_metadata.cover
