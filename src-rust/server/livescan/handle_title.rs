@@ -164,7 +164,8 @@ impl Scanner {
         let pages_in_file: HashSet<String> = {
             let reader = File::open(&scanned_title.path)
                 .map_err(|e| format!("can't read title file: {}", e))?;
-            let mut archive = ZipArchive::new(reader)?;
+            let mut archive = ZipArchive::new(reader)
+                .map_err(|e| format!("can't read title file as zip: {}", e))?;
             (0..archive.len())
                 .map(|i| {
                     archive
