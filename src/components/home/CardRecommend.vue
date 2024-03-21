@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import "@material/web/chips/assist-chip.js";
 import { homeStore } from "./utils";
-import type { FilterItemServerResponse, TitleServerResponse } from "~/composables/api";
+import type { FilterTitleResponseBody, TagResponseBody } from "~/composables/bridge";
 import ImagePoly from "~/components/ImagePoly.vue";
 import { fileApiUrl, indexApi, utilsApi } from "~/composables/api";
 
 const props = defineProps({
 	previewTitle: {
-		type: Object as () => FilterItemServerResponse,
+		type: Object as () => FilterTitleResponseBody,
 		required: true,
 	},
 	isFirstTitle: { type: Boolean, default: true },
@@ -25,7 +25,7 @@ const cover = {
 const store = homeStore();
 const fullTitle: Ref<TitleServerResponse> = ref({}) as Ref<TitleServerResponse>;
 const titleTagNames = ref<Array<string>>([]);
-const tagList = ref<Array<[number, string]>>([]);
+const tagList = ref<Array<TagResponseBody>>([]);
 
 void (async () => {
 	const tagResp = await utilsApi.tags();
@@ -35,7 +35,7 @@ void (async () => {
 		return;
 	}
 
-	tagList.value = tagResp.data;
+	tagList.value = tagResp.data.data;
 
 	const resp = await indexApi.title(props.previewTitle.id);
 
@@ -46,10 +46,10 @@ void (async () => {
 
 	fullTitle.value = resp.data;
 
-	titleTagNames.value = resp.data.tag_ids.map((tagId) => {
-		const tagName = tagList.value.find((tag) => tag[0] === tagId);
+	titleTagNames.value = Array.from(resp.data.tag_ids).map((tagId: number) => {
+		const tagName = tagList.value.find((tag) => tag.id === tagId);
 
-		return tagName ? tagName[1] : "";
+		return tagName ? tagName.name : "";
 	});
 })();
 
@@ -103,7 +103,7 @@ void (async () => {
 			</div>
 
 			<div class="truncate">
-				{{ props.previewTitle.release_date }}
+				{{ props.previewTitle.release }}
 			</div>
 
 			<div v-if="titleTagNames.includes(`completed`)" class="mb-2" data-theme="dark">
