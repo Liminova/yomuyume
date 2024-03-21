@@ -8,7 +8,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "lint-client": "eslint --fix ./src/**/*.{ts,vue}",
+    "lint-client": "eslint --fix --cache ./src/**/*.{ts,vue}",
     "lint-server": "cargo check && cargo fmt && cargo clippy",
     "lint": "concurrently \"pnpm lint-client\" \"pnpm lint-server\"",
     "dev-client": "nuxt dev",
