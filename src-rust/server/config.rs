@@ -72,7 +72,8 @@ impl Config {
             database_url,
 
             jwt_secret,
-            jwt_maxage: chrono::Duration::days(jwt_maxage_day),
+            jwt_maxage: chrono::Duration::try_days(jwt_maxage_day)
+                .expect("failed to parse jwt_maxage_day"),
 
             smtp_host,
             smtp_port,
