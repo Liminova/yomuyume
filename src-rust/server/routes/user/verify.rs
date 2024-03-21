@@ -41,7 +41,11 @@ pub async fn get_verify(
     let token_claims = TokenClaims {
         sub: user.id,
         iat: now.timestamp() as usize,
-        exp: (now + chrono::Duration::hours(1)).timestamp() as usize,
+        exp: (now
+            + chrono::Duration::try_hours(1).ok_or_else(|| {
+                builder.internal("Failed to generate token. Failed to calculate expiration time.")
+            })?)
+        .timestamp() as usize,
         purpose: Some(TokenClaimsPurpose::VerifyRegister),
     };
     let token = jsonwebtoken::encode(
