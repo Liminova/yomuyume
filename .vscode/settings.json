@@ -11,15 +11,15 @@
         "commands": [
             {
                 "name": "Client lint",
-                "command": "time bun run --bun lint-client"
+                "command": "time pnpm lint-client"
             },
             {
                 "name": "Client dev",
-                "command": "bun run --bun dev-client"
+                "command": "pnpm dev-client"
             },
             {
                 "name": "Client build",
-                "command": "time NODE_ENV=\"production\" bun run --bun build-client"
+                "command": "time NODE_ENV=\"production\" pnpm build-client"
             },
             {
                 "name": "|",
@@ -27,15 +27,15 @@
             },
             {
                 "name": "Server lint",
-                "command": "time bun run lint-server"
+                "command": "time pnpm lint-server"
             },
             {
                 "name": "Server dev",
-                "command": "bun run dev-server"
+                "command": "pnpm dev-server"
             },
             {
                 "name": "Server build",
-                "command": "bun run build-server"
+                "command": "pnpm build-server"
             },
         ]
     },
