@@ -19,7 +19,7 @@ if (localStorage.getItem("theme") !== null) {
 		<div class="relative rounded-s-full">
 			<md-ripple />
 			<button
-				class="theme-toggle-transition size-full rounded-s-full border-y-[1px] border-l-[1px] border-solid border-[color:var(--md-sys-color-outline)] text-[color:var(--md-sys-color-on-surface)]"
+				class="theme-toggle-transition size-full rounded-s-full border-y-DEFAULT border-l-DEFAULT border-solid border-[color:var(--md-sys-color-outline)] text-[color:var(--md-sys-color-on-surface)]"
 				:class="theme === 'dark' ? activeButtonStyle : ''"
 				@click="(theme = 'dark') && changeTheme('dark')"
 			>
@@ -29,7 +29,7 @@ if (localStorage.getItem("theme") !== null) {
 		<div class="relative">
 			<md-ripple />
 			<button
-				class="theme-toggle-transition size-full border-y-[1px] border-l-[1px] border-solid border-[color:var(--md-sys-color-outline)] text-[color:var(--md-sys-color-on-surface)]"
+				class="theme-toggle-transition size-full border-y-DEFAULT border-l-DEFAULT border-solid border-[color:var(--md-sys-color-outline)] text-[color:var(--md-sys-color-on-surface)]"
 				:class="theme === 'auto' ? activeButtonStyle : ''"
 				@click="(theme = 'auto') && changeTheme('auto')"
 			>
@@ -39,7 +39,7 @@ if (localStorage.getItem("theme") !== null) {
 		<div class="relative rounded-e-full">
 			<md-ripple />
 			<button
-				class="theme-toggle-transition size-full rounded-e-full border-[1px] border-solid border-[color:var(--md-sys-color-outline)] text-[color:var(--md-sys-color-on-surface)]"
+				class="theme-toggle-transition size-full rounded-e-full border-DEFAULT border-solid border-[color:var(--md-sys-color-outline)] text-[color:var(--md-sys-color-on-surface)]"
 				:class="theme === 'light' ? activeButtonStyle : ''"
 				@click="(theme = 'light') && changeTheme('light')"
 			>
