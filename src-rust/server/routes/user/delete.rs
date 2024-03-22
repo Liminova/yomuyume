@@ -39,7 +39,7 @@ pub async fn get_delete(
 
     let now = chrono::Utc::now();
     let token_claims = TokenClaims {
-        sub: user.id,
+        sub: user.id.to_string(),
         iat: now.timestamp() as usize,
         exp: (now
             + chrono::Duration::try_hours(1).ok_or_else(|| {
