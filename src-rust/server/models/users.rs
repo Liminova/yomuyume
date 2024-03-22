@@ -2,12 +2,16 @@ use sea_orm::entity::prelude::*;
 use serde::Serialize;
 use utoipa::ToSchema;
 
+use crate::models::prelude::CustomID;
+
+pub type UserID = CustomID;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, ToSchema)]
 #[schema(as = User)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: String,
+    pub id: UserID,
     pub username: String,
     pub email: String,
     pub profile_picture: Option<String>,
