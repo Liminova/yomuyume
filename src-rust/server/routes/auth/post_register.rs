@@ -56,13 +56,12 @@ pub async fn post_register(
         .map_err(|e| builder.internal(format!("Error while hashing password: {}", e)))?
         .to_string();
 
-    let id = uuid::Uuid::new_v4().to_string();
     let username = query.username.to_string();
     let email = query.email.to_string().to_ascii_lowercase();
     let created_at = chrono::Utc::now().to_string();
 
     let user = users::ActiveModel {
-        id: Set(id),
+        id: Set(UserID::new()),
         username: Set(username.clone()),
         email: Set(email),
         created_at: Set(created_at.clone()),
