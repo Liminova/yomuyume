@@ -25,7 +25,7 @@ impl MigrationTrait for Migration {
                     .auto_increment()
                     .primary_key(),
             )
-            .col(ColumnDef::new(Bookmarks::UserId).uuid().not_null())
+            .col(ColumnDef::new(Bookmarks::UserId).string().not_null())
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-bookmark-user_id")
@@ -33,7 +33,7 @@ impl MigrationTrait for Migration {
                     .to(Users::Table, Users::Id)
                     .on_delete(ForeignKeyAction::Cascade),
             )
-            .col(ColumnDef::new(Bookmarks::TitleId).uuid().not_null())
+            .col(ColumnDef::new(Bookmarks::TitleId).string().not_null())
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-bookmark-title_id")

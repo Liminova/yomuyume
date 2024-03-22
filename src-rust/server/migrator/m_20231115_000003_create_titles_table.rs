@@ -17,7 +17,7 @@ impl MigrationTrait for Migration {
         let table = Table::create()
             .table(Titles::Table)
             .if_not_exists()
-            .col(ColumnDef::new(Titles::Id).uuid().not_null().primary_key())
+            .col(ColumnDef::new(Titles::Id).string().not_null().primary_key())
             .col(ColumnDef::new(Titles::Title).string().not_null())
             .col(ColumnDef::new(Titles::CategoryId).string())
             .foreign_key(

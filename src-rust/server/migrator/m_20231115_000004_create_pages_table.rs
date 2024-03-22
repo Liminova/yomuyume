@@ -17,7 +17,7 @@ impl MigrationTrait for Migration {
         let table = Table::create()
             .table(Pages::Table)
             .if_not_exists()
-            .col(ColumnDef::new(Pages::Id).uuid().not_null().primary_key())
+            .col(ColumnDef::new(Pages::Id).string().not_null().primary_key())
             .col(ColumnDef::new(Pages::TitleId).string().not_null())
             .foreign_key(
                 ForeignKey::create()

@@ -17,7 +17,7 @@ impl MigrationTrait for Migration {
             .if_not_exists()
             .col(
                 ColumnDef::new(Categories::Id)
-                    .uuid()
+                    .string()
                     .not_null()
                     .primary_key(),
             )

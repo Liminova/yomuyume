@@ -26,7 +26,7 @@ impl MigrationTrait for Migration {
                     .auto_increment()
                     .primary_key(),
             )
-            .col(ColumnDef::new(TitlesTags::TitleId).uuid().not_null())
+            .col(ColumnDef::new(TitlesTags::TitleId).string().not_null())
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-titletag-title_id")

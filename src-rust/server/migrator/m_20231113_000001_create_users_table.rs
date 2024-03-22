@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
         let table = Table::create()
             .table(Users::Table)
             .if_not_exists()
-            .col(ColumnDef::new(Users::Id).uuid().not_null().primary_key())
+            .col(ColumnDef::new(Users::Id).string().not_null().primary_key())
             .col(ColumnDef::new(Users::Username).string().not_null())
             .col(ColumnDef::new(Users::Email).string().not_null())
             .col(ColumnDef::new(Users::ProfilePicture).string())

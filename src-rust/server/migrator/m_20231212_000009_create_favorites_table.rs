@@ -25,7 +25,7 @@ impl MigrationTrait for Migration {
                     .auto_increment()
                     .primary_key(),
             )
-            .col(ColumnDef::new(Favorites::UserId).uuid().not_null())
+            .col(ColumnDef::new(Favorites::UserId).string().not_null())
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-favorite-user_id")
@@ -33,7 +33,7 @@ impl MigrationTrait for Migration {
                     .to(Users::Table, Users::Id)
                     .on_delete(ForeignKeyAction::Cascade),
             )
-            .col(ColumnDef::new(Favorites::TitleId).uuid().not_null())
+            .col(ColumnDef::new(Favorites::TitleId).string().not_null())
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-favorite-title_id")
