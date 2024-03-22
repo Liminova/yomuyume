@@ -1,13 +1,14 @@
+use std::{collections::HashSet, fs::File};
+
 use super::{scan_category::ScannedTitle, Scanner};
 use crate::{
     livescan::cover_finder::title_cover_finder,
     models::{metadata::TitleMetadata, prelude::*},
 };
+
 use murmur3::murmur3_32;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TryIntoModel};
-use std::{collections::HashSet, fs::File};
 use tracing::info;
-use uuid::Uuid;
 use zip::ZipArchive;
 
 type TitleId = String;
