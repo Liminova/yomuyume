@@ -12,9 +12,18 @@ this monorepo contains the following codebases:
 
 the reference implementation of Yomuyume's frontend.
 
--   `src-rust/` - the Rust/Axum-based backend component.
+-   `src-rust/` - the Rust/Axum-based backend component + Rust->Wasm bridge
 
 this contains all the API calls, along with interfacing with the SQLite database.
+
+## developement
+
+- the server and client can be developed independently, check `package.json` for the available scripts.
+- `pnpm build-bridge` must be run at least once before `pnpm build-client`.
+
+## deployment
+
+follow [deploy](./deploy/README.md) guide
 
 ## license
 
