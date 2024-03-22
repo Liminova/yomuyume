@@ -31,6 +31,9 @@ pub async fn get_title(
 ) -> Result<impl IntoResponse, MyResponse> {
     let builder = MyResponseBuilder::new(header);
 
+    let title_id =
+        CustomID::from(title_id).map_err(|_| builder.bad_request("Invalid title id."))?;
+
     let title = Titles::find_by_id(title_id)
         .one(&data.db)
         .await
