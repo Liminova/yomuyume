@@ -23,10 +23,6 @@ impl CustomID {
         }
         Ok(Self(id))
     }
-
-    pub fn to_str(&self) -> &str {
-        &self.0
-    }
 }
 
 impl serde::Serialize for CustomID {
