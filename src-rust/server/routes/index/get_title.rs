@@ -15,7 +15,6 @@ use axum::{
     Extension,
 };
 use sea_orm::*;
-use uuid::Uuid;
 
 /// Get everything about a title.
 #[utoipa::path(get, path = "/api/index/title/{title_id}", responses(
@@ -26,7 +25,7 @@ use uuid::Uuid;
 ))]
 pub async fn get_title(
     State(data): State<Arc<AppState>>,
-    Path(title_id): Path<Uuid>,
+    Path(title_id): Path<String>,
     header: HeaderMap,
     Extension(user): Extension<users::Model>,
 ) -> Result<impl IntoResponse, MyResponse> {
