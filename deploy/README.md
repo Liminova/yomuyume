@@ -100,8 +100,8 @@ sh generate-client.sh
 | `SMTP_FROM_EMAIL`    | SMTP from email                                        |                              | ⚠️        |
 | `SMTP_FROM_NAME`     | SMTP from name                                         |                              | ⚠️        |
 |                      |                                                        |                              |          |
-| `FFMPEG`             | Path to ffmpeg to transcode                            |                              | ⚠️        |
-| `DJXL`               | Path to djxl                                           |                              | ⚠️        |
+| `FFMPEG_PATH`        | Path to ffmpeg to transcode                            |                              | ⚠️        |
+| `DJXL_PATH`          | Path to djxl                                           |                              | ⚠️        |
 | `TEMP_DIR`           | Path to temporary directory                            | `/tmp`                       |          |
 
 - ⭕ Required
