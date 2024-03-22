@@ -182,7 +182,7 @@ impl Scanner {
             .await
             .map_err(|e| format!("can't find pages in DB: {}", e))?
             .into_iter()
-            .map(|p| p.title_id)
+            .map(|p| p.path)
             .collect();
 
         let to_be_delete: Vec<&String> = pages_in_db.difference(&pages_in_file).collect();
