@@ -140,7 +140,10 @@ impl IntoResponse for MyResponse {
     fn into_response(self) -> Response<Body> {
         let mut headers = HeaderMap::new();
         for (name, value) in self.response_header {
-            headers.insert(name, value.parse().unwrap());
+            match value.parse() {
+                Ok(value) => headers.insert(name, value),
+                Err(_) => continue,
+            };
         }
 
         (self.status_code, headers, self.payload).into_response()
