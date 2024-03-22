@@ -51,8 +51,8 @@ pub async fn put_progress(
 
     progresses::ActiveModel {
         id: NotSet,
-        user_id: Set(user.id.clone()),
-        title_id: Set(title_id.clone()),
+        user_id: Set(user.id),
+        title_id: Set(title_id),
         last_read_at: Set(chrono::Utc::now().to_rfc3339()),
         page: Set(page),
     }
