@@ -67,7 +67,7 @@ pub async fn get_title(
         })
         .into_iter()
         .map(|page| ResponsePage {
-            id: page.id,
+            id: page.id.to_string(),
             format: PathBuf::from(page.path)
                 .extension()
                 .map(|s| s.to_str().unwrap_or(""))
