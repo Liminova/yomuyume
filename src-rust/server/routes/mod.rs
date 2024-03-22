@@ -253,6 +253,13 @@ impl MyResponseBuilder {
     pub fn unauthorized<T: AsRef<str>>(&self, message: T) -> MyResponse {
         self.generic(StatusCode::UNAUTHORIZED, message)
     }
+
+    pub fn bad_id<T: AsRef<str>>(&self, message: T) -> MyResponse {
+        self.generic(
+            StatusCode::BAD_REQUEST,
+            format!("Invalid id: {}", message.as_ref()),
+        )
+    }
 }
 
 fn check_pass(real: &str, input: &String) -> bool {
