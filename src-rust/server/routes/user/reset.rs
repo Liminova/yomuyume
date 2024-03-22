@@ -59,7 +59,7 @@ pub async fn get_reset(
     let token = {
         let now = chrono::Utc::now();
         let token_claims = TokenClaims {
-            sub: user.id.clone(),
+            sub: user.id.to_string(),
             iat: now.timestamp() as usize,
             exp: (now
                 + chrono::Duration::try_hours(1).ok_or_else(|| {
