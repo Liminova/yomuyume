@@ -49,10 +49,13 @@ pub async fn auth(
     .map_err(|_| builder.unauthorized("Invalid token"))?
     .claims;
 
-    let user_id: String = claims
+    let user_id_string: String = claims
         .sub
         .parse()
         .map_err(|_| builder.unauthorized("Invalid token"))?;
+
+    let user_id =
+        UserID::from(user_id_string).map_err(|_| builder.unauthorized("Invalid token"))?;
 
     let user: Option<users::Model> = Users::find_by_id(user_id)
         .one(&data.db)
