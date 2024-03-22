@@ -16,6 +16,8 @@ use sea_orm::{
     ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
 };
 
+use self::titles::TitleID;
+
 #[utoipa::path(put, path = "/api/user/favorite/{id}", responses(
     (status = 200, description = "Add favorite successful", body = GenericResponseBody),
     (status = 400, description = "Bad request", body = GenericResponseBody),
@@ -30,7 +32,9 @@ pub async fn put_favorite(
 ) -> Result<impl IntoResponse, MyResponse> {
     let builder = MyResponseBuilder::new(header);
 
-    let title = Titles::find_by_id(id)
+    let title_id = TitleID::from(id).map_err(|e| builder.bad_id(e))?;
+
+    let title = Titles::find_by_id(title_id)
         .one(&data.db)
         .await
         .map_err(|e| builder.db_error(e))?
@@ -76,7 +80,9 @@ pub async fn put_bookmark(
 ) -> Result<impl IntoResponse, MyResponse> {
     let builder = MyResponseBuilder::new(header);
 
-    let title = Titles::find_by_id(id)
+    let title_id = TitleID::from(id).map_err(|e| builder.bad_id(e))?;
+
+    let title = Titles::find_by_id(title_id)
         .one(&data.db)
         .await
         .map_err(|e| builder.db_error(e))?
@@ -122,11 +128,13 @@ pub async fn delete_favorite(
 ) -> Result<impl IntoResponse, MyResponse> {
     let builder = MyResponseBuilder::new(header);
 
-    let title = Titles::find_by_id(id)
+    let title_id = TitleID::from(id).map_err(|e| builder.bad_id(e))?;
+
+    let title = Titles::find_by_id(&title_id)
         .one(&data.db)
         .await
         .map_err(|e| builder.db_error(e))?
-        .ok_or_else(|| builder.bad_request("Invalid title id."))?;
+        .ok_or_else(|| builder.bad_id(title_id))?;
 
     Favorites::delete_many()
         .filter(
@@ -154,6 +162,8 @@ pub async fn delete_bookmark(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, MyResponse> {
     let builder = MyResponseBuilder::new(header);
+
+    let id = CustomID::from(id).map_err(|e| builder.bad_request(e))?;
 
     let title = Titles::find_by_id(id)
         .one(&data.db)
