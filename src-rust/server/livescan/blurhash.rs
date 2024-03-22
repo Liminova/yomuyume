@@ -7,9 +7,9 @@ use tracing::{debug, error, warn};
 
 #[derive(Debug)]
 pub struct Blurhash {
+    pub temp_dir: PathBuf,
     pub ffmpeg_path: Option<String>,
     pub djxl_path: Option<String>,
-    pub ffmpeg_log_path: Option<String>,
 }
 
 #[derive(Debug, Clone)]
