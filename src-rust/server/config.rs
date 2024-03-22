@@ -57,6 +57,7 @@ impl Config {
         let smtp_from_email = Self::may_get("SMTP_FROM_EMAIL");
         let smtp_from_name = Self::may_get("SMTP_FROM_NAME");
 
+        let ffmpeg_path = Self::may_get("FFMPEG_PATH");
         let djxl_path = Self::may_get("DJXL_PATH");
         let temp_dir = Self::get_env("TEMP_DIR", Some("/tmp"));
 
