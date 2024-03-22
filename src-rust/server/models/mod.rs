@@ -11,4 +11,5 @@ pub mod titles;
 pub mod titles_tags;
 pub mod users;
 
+pub mod types;
 pub mod prelude;
