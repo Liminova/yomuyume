@@ -139,7 +139,7 @@ impl Scanner {
                 .map_err(|e| format!("can't delete cover in DB: {}", e))?;
 
             let cover = title_cover_finder(
-                &self.temp_path,
+                &self.temp_dir,
                 &scanned_title.path,
                 &title_metadata.cover,
                 &self.blurhash,
