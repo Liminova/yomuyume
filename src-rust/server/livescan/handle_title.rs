@@ -17,7 +17,7 @@ impl Scanner {
     pub async fn handle_title(
         &self,
         scanned_title: &ScannedTitle,
-        category_id: String,
+        category_id: &CategoryID,
     ) -> Result<TitleID, Box<dyn std::error::Error + Send + Sync>> {
         info!("✅ found title: {}", scanned_title.path.to_string_lossy());
 
@@ -75,7 +75,7 @@ impl Scanner {
                 date_updated: Set(chrono::Utc::now().timestamp().to_string()),
 
                 title: Set(String::new()),
-                category_id: Set(String::new()),
+                category_id: Set(CategoryID::new()),
                 author: Set(None),
                 description: Set(None),
                 release: Set(None),
@@ -91,7 +91,7 @@ impl Scanner {
         if title_model.title != title_name {
             title_active.title = Set(title_name.clone());
         }
-        if title_model.category_id != category_id {
+        if &title_model.category_id != category_id {
             title_active.category_id = Set(category_id.clone());
         }
         if title_model.author != title_metadata.author {
