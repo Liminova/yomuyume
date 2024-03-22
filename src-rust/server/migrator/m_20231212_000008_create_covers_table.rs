@@ -1,3 +1,4 @@
+use super::m_20231115_000003_create_titles_table::Titles;
 use axum::async_trait;
 use sea_orm_migration::prelude::*;
 
@@ -16,6 +17,13 @@ impl MigrationTrait for Migration {
             .table(Covers::Table)
             .if_not_exists()
             .col(ColumnDef::new(Covers::Id).string().primary_key())
+            .foreign_key(
+                ForeignKey::create()
+                    .name("fk-cover-title_id")
+                    .from(Covers::Table, Covers::Id)
+                    .to(Titles::Table, Titles::Id)
+                    .on_delete(ForeignKeyAction::Cascade),
+            )
             .col(ColumnDef::new(Covers::Path).string().not_null())
             .col(ColumnDef::new(Covers::Blurhash).string().not_null())
             .col(ColumnDef::new(Covers::Ratio).integer().not_null())
