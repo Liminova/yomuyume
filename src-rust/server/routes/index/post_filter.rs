@@ -170,7 +170,7 @@ pub async fn post_filter(
         let (width, height) = calculate_dimension(cover_model.ratio);
 
         resp_data.push(FilterTitleResponseBody {
-            id: title.id,
+            id: title.id.to_string(),
             title: title.title,
             author: title.author,
             category_id: title.category_id,
