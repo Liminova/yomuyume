@@ -1,12 +1,13 @@
 use std::path::PathBuf;
 use tracing::warn;
-use uuid::Uuid;
+
+use crate::models::prelude::CategoryID;
 
 #[derive(Debug)]
 pub struct ScannedCategory {
     pub path: PathBuf,
     pub name: String,
-    pub id: Uuid,
+    pub id: CategoryID,
 }
 
 /// Scanning all categories dirs inside library
@@ -32,7 +33,7 @@ pub async fn scan_library(library_path: &str) -> Vec<ScannedCategory> {
                         .to_str()
                         .unwrap_or_default()
                         .to_string(),
-                    id: Uuid::new_v4(),
+                    id: CategoryID::new(),
                 }),
             }
         }
