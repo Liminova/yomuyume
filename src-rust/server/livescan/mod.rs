@@ -16,7 +16,7 @@ use std::{path::PathBuf, sync::Arc};
 #[derive(Debug)]
 pub struct Scanner {
     pub(super) app_state: Arc<AppState>,
-    pub(super) temp_path: PathBuf,
+    pub(super) temp_dir: PathBuf,
     pub(super) blurhash: Blurhash,
     pub(super) categories: Vec<ScannedCategory>,
 }
@@ -24,18 +24,17 @@ pub struct Scanner {
 impl Scanner {
     pub async fn new(app_state: Arc<AppState>) -> Self {
         let app_state = Arc::clone(&app_state);
-        let temp_path = PathBuf::from(&app_state.env.temp_path.clone());
+        let temp_dir = PathBuf::from(&app_state.env.temp_dir.clone());
         let ffmpeg_path = app_state.env.ffmpeg_path.clone();
         let djxl_path = app_state.env.djxl_path.clone();
-        let ffmpeg_log_path = app_state.env.ffmpeg_log_path.clone();
         let categories = scan_library(&app_state.env.library_path).await;
         Self {
             app_state,
-            temp_path,
+            temp_dir: temp_dir.clone(),
             blurhash: Blurhash {
                 ffmpeg_path,
                 djxl_path,
-                ffmpeg_log_path,
+                temp_dir,
             },
             categories,
         }
