@@ -117,21 +117,22 @@ impl Blurhash {
             .ok()?;
 
         if !output.status.success() {
-            let decode_log = self.ffmpeg_log_path.as_ref();
-            if let Some(decode_log) = decode_log {
-                let err_msg = format!(
-                    "ffmpeg failed with code {}",
-                    output.status.code().unwrap_or(-1)
-                );
-                let err = String::from_utf8(output.stderr)
-                    .map_err(|_| error!("{}", err_msg))
-                    .ok();
+            let decode_log = self.temp_dir.join("ffmpeg_decode.log");
+            let err_msg = format!(
+                "ffmpeg failed with code {}",
+                output.status.code().unwrap_or(-1)
+            );
+            let err = String::from_utf8(output.stderr)
+                .map_err(|_| error!("{}", err_msg))
+                .ok();
 
-                let err_msg = format!("failed to write ffmpeg decode log to {}", decode_log);
-                fs::write(decode_log, err.unwrap_or_default())
-                    .map_err(|_| err_msg)
-                    .ok();
-            }
+            let err_msg = format!(
+                "failed to write ffmpeg decode log to {}",
+                decode_log.to_string_lossy()
+            );
+            fs::write(decode_log, err.unwrap_or_default())
+                .map_err(|_| err_msg)
+                .ok();
         }
 
         image::load_from_memory(&output.stdout)
