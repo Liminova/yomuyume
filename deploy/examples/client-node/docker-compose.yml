@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+    yomuyume-client:
+        container_name: yomuyume-client
+        image: yomuyume-client-node
+        restart: unless-stopped
+        build:
+            context: .
+            dockerfile: client.Dockerfile
+        ports:
+           - "3000:3000"

@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+    yomuyume-server:
+        container_name: yomuyume-server
+        image: yomuyume-server
+        restart: unless-stopped
+        build:
+            context: .
+            dockerfile: server.Dockerfile
+        volumes:
+            - <CHANGE_ME>:/sqlite.db
+            - <CHANGE_ME>:/library
+        ports:
+        - "3000:3000"
+        environment:
+            DATABASE_URL: "sqlite:/sqlite.db?mode=rwc"
+            JWT_SECRET: "secret"
+        networks:
+            - yomuyume-network
+
+    caddy:
+        image: alpine:latest
+        volumes:
+            - ./caddy:/caddy
+            - ./Caddyfile:/Caddyfile
+            - ./yomuyume-client:/srv
+        environment:
+            XDG_CONFIG_HOME: /config
+            XDG_DATA_HOME: /data
+        ports:
+            - 80:80
+            - 443:443
+        networks:
+            - yomuyume-network
+        command: "chmod +x /caddy && /caddy run --config /Caddyfile --adapter caddyfile"
+
+networks:
+    yomuyume-network:
+        name: yomuyume-network
+        external: true

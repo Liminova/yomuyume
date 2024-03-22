@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+    caddy:
+        image: alpine:latest
+        volumes:
+            - ./caddy:/caddy
+            - ./Caddyfile:/Caddyfile
+            - ./yomuyume-client:/srv
+        environment:
+            XDG_CONFIG_HOME: /config
+            XDG_DATA_HOME: /data
+        ports:
+            - 80:80
+            - 443:443
+        command: "chmod +x /caddy && /caddy run --config /Caddyfile --adapter caddyfile"

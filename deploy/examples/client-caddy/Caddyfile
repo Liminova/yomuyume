@@ -1,0 +1,13 @@
+*.example.com {
+    tls {
+        dns <PROVIDER> <PROVIDE_TOKEN>
+    }
+
+    @comic host comic.example.com
+    handle @comic {
+        root * /srv
+        file_server {
+            browse
+        }
+    }
+}

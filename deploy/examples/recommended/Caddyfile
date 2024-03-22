@@ -1,0 +1,35 @@
+*.example.com {
+    tls {
+        dns <PROVIDER> <PROVIDE_TOKEN>
+    }
+
+    @comic host comic.example.com
+    handle @comic {
+        route /api/* {
+            reverse_proxy yomuyume-server:3000
+        }
+        route /swagger {
+            reverse_proxy yomuyume-server:3000
+        }
+        route /swagger/* {
+            reverse_proxy yomuyume-server:3000
+        }
+        route /api-docs {
+            reverse_proxy yomuyume-server:3000
+        }
+        route /api-docs/* {
+            reverse_proxy yomuyume-server:3000
+        }
+        route /redoc {
+            reverse_proxy yomuyume-server:3000
+        }
+        route /redoc/* {
+            reverse_proxy yomuyume-server:3000
+        }
+
+        root * /srv
+        file_server {
+            browse
+        }
+    }
+}
