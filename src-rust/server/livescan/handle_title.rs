@@ -11,14 +11,13 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TryI
 use tracing::info;
 use zip::ZipArchive;
 
-type TitleId = String;
 
 impl Scanner {
     pub async fn handle_title(
         &self,
         scanned_title: &ScannedTitle,
         category_id: String,
-    ) -> Result<TitleId, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<TitleID, Box<dyn std::error::Error + Send + Sync>> {
         info!("✅ found title: {}", scanned_title.path.to_string_lossy());
 
         let mut title_metadata = TitleMetadata::from(&scanned_title.path);
@@ -68,7 +67,7 @@ impl Scanner {
 
             is_new = true;
             let new = titles::ActiveModel {
-                id: Set(Uuid::new_v4().to_string()),
+                id: Set(TitleID::new()),
                 hash: Set(current_hash),
                 path: Set(scanned_title.path_lossy()),
                 date_added: Set(chrono::Utc::now().timestamp().to_string()),
@@ -202,7 +201,7 @@ impl Scanner {
         for page in to_be_insert {
             let page_desc = title_metadata.get_page_desc(page);
             let page_active = pages::ActiveModel {
-                id: Set(Uuid::new_v4().to_string()),
+                id: Set(PageID::new()),
                 title_id: Set(title_model.id.clone()),
                 path: Set(page.clone()),
                 description: Set(page_desc),
