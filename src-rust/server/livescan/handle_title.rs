@@ -200,12 +200,11 @@ impl Scanner {
         }
 
         for page in to_be_insert {
-            let page_desc = title_metadata.get_page_desc(page);
             let page_active = pages::ActiveModel {
                 id: Set(PageID::new()),
                 title_id: Set(title_model.id.clone()),
                 path: Set(page.clone()),
-                description: Set(page_desc),
+                description: Set(title_metadata.get_page_desc(page)),
             };
             page_active
                 .insert(&self.app_state.db)
