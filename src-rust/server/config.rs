@@ -20,7 +20,6 @@ pub struct Config {
     pub temp_path: String,
     pub ffmpeg_path: Option<String>,
 
-    pub sentence_embedding_model_path: Option<String>,
 }
 
 impl Config {
@@ -62,7 +61,6 @@ impl Config {
         let djxl_path = Self::may_get("DJXL_PATH");
         let temp_path = Self::get_env("TEMP_DIR", Some("/tmp"));
 
-        let sentence_embedding_model_path = Self::may_get("SENTENCE_EMBEDDING_MODEL_PATH");
 
         Self {
             library_path,
@@ -85,7 +83,6 @@ impl Config {
             djxl_path,
             temp_path,
 
-            sentence_embedding_model_path,
         }
     }
 }
