@@ -17,9 +17,8 @@ pub struct Config {
     pub smtp_from_name: Option<String>,
 
     pub djxl_path: Option<String>,
-    pub temp_path: String,
     pub ffmpeg_path: Option<String>,
-
+    pub temp_dir: String,
 }
 
 impl Config {
@@ -59,8 +58,7 @@ impl Config {
         let smtp_from_name = Self::may_get("SMTP_FROM_NAME");
 
         let djxl_path = Self::may_get("DJXL_PATH");
-        let temp_path = Self::get_env("TEMP_DIR", Some("/tmp"));
-
+        let temp_dir = Self::get_env("TEMP_DIR", Some("/tmp"));
 
         Self {
             library_path,
@@ -81,8 +79,7 @@ impl Config {
 
             ffmpeg_path,
             djxl_path,
-            temp_path,
-
+            temp_dir,
         }
     }
 }
