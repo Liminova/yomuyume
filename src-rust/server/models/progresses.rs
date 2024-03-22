@@ -1,14 +1,16 @@
 use sea_orm::entity::prelude::*;
 use utoipa::ToSchema;
 
+use crate::models::prelude::{TitleID, UserID};
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, ToSchema)]
 #[schema(as = Progress)]
 #[sea_orm(table_name = "progresses")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    pub user_id: String,
-    pub title_id: String,
+    pub user_id: UserID,
+    pub title_id: TitleID,
     pub last_read_at: String,
     pub page: i64,
 }
