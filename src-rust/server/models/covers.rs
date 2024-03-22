@@ -1,12 +1,14 @@
 use sea_orm::entity::prelude::*;
 use utoipa::ToSchema;
 
+use crate::models::prelude::CustomID;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, ToSchema)]
 #[schema(as = Cover)]
 #[sea_orm(table_name = "covers")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: String,
+    pub id: CustomID,
     pub path: String,
     pub blurhash: String,
     pub ratio: u32,
