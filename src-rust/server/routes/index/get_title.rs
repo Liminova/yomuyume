@@ -142,7 +142,7 @@ pub async fn get_title(
     let (width, height) = calculate_dimension(cover.ratio);
 
     let data = TitleResponseBody {
-        category_id: title.category_id,
+        category_id: title.category_id.to_string(),
         title: title.title,
         author: title.author,
         description: title.description,

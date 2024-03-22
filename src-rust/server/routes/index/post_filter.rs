@@ -173,7 +173,7 @@ pub async fn post_filter(
             id: title.id.to_string(),
             title: title.title,
             author: title.author,
-            category_id: title.category_id,
+            category_id: title.category_id.to_string(),
             release: title.release,
             favorite_count,
             page_count,
