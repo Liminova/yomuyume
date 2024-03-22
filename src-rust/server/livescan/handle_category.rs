@@ -15,7 +15,7 @@ impl Scanner {
     pub async fn handle_category(
         &self,
         category: &ScannedCategory,
-    ) -> Result<String, Box<dyn std::error::Error>> {
+    ) -> Result<CategoryID, Box<dyn std::error::Error>> {
         info!("✅ found category: {}", category.path.to_string_lossy());
 
         /* pre-cleanup to make sure there's no residual temp category */
@@ -33,19 +33,14 @@ impl Scanner {
             &category_metadata.name, &category_metadata.description, &category_metadata.cover
         );
 
-        /* generate ID if needed */
-        let category_id = category_metadata.id.clone().map_or_else(
-            || {
-                let id = Uuid::new_v4().to_string();
+        let category_id = match category_metadata.id {
+            Some(id) => id,
+            None => {
+                let id = CategoryID::new();
                 category_metadata.set_id(id.clone());
-                debug!("id (generated) | {}", &id);
                 id
-            },
-            |id| {
-                debug!("id (metadata) | {}", &id);
-                id
-            },
-        );
+            }
+        };
 
         /* category's name = folder name || metadata */
         let category_name = match category_metadata.name {
