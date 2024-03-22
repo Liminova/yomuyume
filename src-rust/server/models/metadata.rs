@@ -5,6 +5,8 @@ use std::{
 };
 use tracing::{debug, error, info};
 
+use crate::models::prelude::CategoryID;
+
 fn try_read_toml(path: &Path) -> Result<String, String> {
     if !path.exists() {
         if let Err(e) = std::fs::File::create(path) {
@@ -98,7 +100,7 @@ impl TitleMetadata {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CategoryMetadata {
-    pub id: Option<String>,
+    pub id: Option<CategoryID>,
     pub name: Option<String>,
     pub description: Option<String>,
     pub cover: Option<String>,
@@ -130,7 +132,7 @@ impl CategoryMetadata {
     }
 
     /// Save the ID to the metadata file
-    pub fn set_id(&mut self, value: String) {
+    pub fn set_id(&mut self, value: CategoryID) {
         debug!("new id: {}", value);
         self.id = Some(value);
         let toml_string: String = match toml::to_string(self) {
