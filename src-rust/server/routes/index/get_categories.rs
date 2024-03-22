@@ -28,7 +28,7 @@ pub async fn get_categories(
         .map_err(|e| builder.db_error(e))?
         .into_iter()
         .map(|category| CategoryResponse {
-            id: category.id,
+            id: category.id.to_string(),
             name: category.name,
             description: category.description,
         })
