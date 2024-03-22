@@ -36,6 +36,7 @@ pub struct TitleMetadata {
 }
 
 impl TitleMetadata {
+    /// The extension of the metadata file is always .toml
     pub fn from(path: &Path) -> TitleMetadata {
         let path = path.with_extension("toml");
 
