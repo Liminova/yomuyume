@@ -1,13 +1,15 @@
-use super::{scan_library::ScannedCategory, Scanner};
 use crate::{
     constants::cover_filestems,
-    livescan::{cover_finder::cover_finder, scan_category::scan_category},
+    livescan::{
+        cover_finder::cover_finder, scan_category::scan_category, scan_library::ScannedCategory,
+        Scanner,
+    },
     models::{metadata::CategoryMetadata, prelude::*},
 };
+
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use std::path::PathBuf;
 use tracing::{debug, error, info, warn};
-use uuid::Uuid;
 
 impl Scanner {
     pub async fn handle_category(
