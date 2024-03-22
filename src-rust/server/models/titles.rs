@@ -2,7 +2,7 @@ use sea_orm::entity::prelude::*;
 use serde::Serialize;
 use utoipa::ToSchema;
 
-use crate::models::prelude::CustomID;
+use crate::models::prelude::{CategoryID, CustomID};
 
 pub type TitleID = CustomID;
 
@@ -13,7 +13,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: TitleID,
     pub title: String,
-    pub category_id: String,
+    pub category_id: CategoryID,
     pub author: Option<String>,
     pub description: Option<String>,
     pub release: Option<String>,
