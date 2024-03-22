@@ -56,6 +56,7 @@ bridge = { version = "*", path = "../bridge" }
 bitcode = "0.5.1"
 wasm-bindgen = "0.2.91"
 toml = "0.8.12"
+nanoid = "0.4.0"
 
 [dev-dependencies]
 axum-test = "14.0.0"
