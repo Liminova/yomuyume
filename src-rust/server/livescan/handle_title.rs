@@ -11,6 +11,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TryI
 use tracing::info;
 use zip::ZipArchive;
 
+type PagePath = String;
 
 impl Scanner {
     pub async fn handle_title(
@@ -161,7 +162,7 @@ impl Scanner {
             }
         }
 
-        let pages_in_file: HashSet<String> = {
+        let pages_in_file: HashSet<PagePath> = {
             let reader = File::open(&scanned_title.path)
                 .map_err(|e| format!("can't read title file: {}", e))?;
             let mut archive = ZipArchive::new(reader)
@@ -176,7 +177,7 @@ impl Scanner {
                 .collect::<Result<_, _>>()?
         };
 
-        let pages_in_db: HashSet<String> = Pages::find()
+        let pages_in_db: HashSet<PagePath> = Pages::find()
             .filter(pages::Column::TitleId.eq(&title_model.id))
             .all(&self.app_state.db)
             .await
@@ -185,9 +186,9 @@ impl Scanner {
             .map(|p| p.path)
             .collect();
 
-        let to_be_delete: Vec<&String> = pages_in_db.difference(&pages_in_file).collect();
-        let to_be_insert: Vec<&String> = pages_in_file.difference(&pages_in_db).collect();
-        let to_be_update: Vec<&String> = pages_in_file.intersection(&pages_in_db).collect();
+        let to_be_delete: Vec<&PagePath> = pages_in_db.difference(&pages_in_file).collect();
+        let to_be_insert: Vec<&PagePath> = pages_in_file.difference(&pages_in_db).collect();
+        let to_be_update: Vec<&PagePath> = pages_in_file.intersection(&pages_in_db).collect();
 
         for page in to_be_delete {
             Pages::delete_many()
