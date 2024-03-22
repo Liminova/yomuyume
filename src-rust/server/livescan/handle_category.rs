@@ -169,7 +169,7 @@ impl Scanner {
     }
 
     fn cleanup_temp_category(&self, category: &ScannedCategory) {
-        let mut temp_dir_category: PathBuf = PathBuf::from(&self.temp_path);
+        let mut temp_dir_category: PathBuf = PathBuf::from(&self.temp_dir);
         temp_dir_category.push(&category.name);
         let handle = tokio::spawn(async move {
             let _ = tokio::fs::remove_dir_all(&temp_dir_category).await;
