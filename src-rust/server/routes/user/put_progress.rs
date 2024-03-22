@@ -27,6 +27,8 @@ pub async fn put_progress(
 ) -> Result<impl IntoResponse, MyResponse> {
     let builder = MyResponseBuilder::new(header);
 
+    let title_id = TitleID::from(title_id).map_err(|e| builder.bad_id(e))?;
+
     let progress_model = Progresses::find()
         .filter(progresses::Column::TitleId.eq(&title_id))
         .filter(progresses::Column::UserId.eq(&user.id))
