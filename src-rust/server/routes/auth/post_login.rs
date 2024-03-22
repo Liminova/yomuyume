@@ -50,7 +50,7 @@ pub async fn post_login(
 
     let now = chrono::Utc::now();
     let iat = now.timestamp() as usize;
-    let exp = (now + data.env.jwt_maxage).timestamp() as usize;
+    let exp = (now + data.env.jwt_maxage_day).timestamp() as usize;
     let claims = TokenClaims {
         sub: user.id.to_string(),
         exp,
@@ -67,7 +67,7 @@ pub async fn post_login(
 
     let cookie = Cookie::build(("token", token.to_owned()))
         .path("/")
-        .max_age(time::Duration::days(data.env.jwt_maxage.num_days()))
+        .max_age(time::Duration::days(data.env.jwt_maxage_day.num_days()))
         .same_site(SameSite::Lax)
         .http_only(true);
 
