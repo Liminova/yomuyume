@@ -9,9 +9,11 @@ use axum::{
     Json,
 };
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ScanningProgressResponseBody {
     pub scanning_completed: bool,
     pub scanning_progress: f64,
@@ -19,7 +21,7 @@ pub struct ScanningProgressResponseBody {
 
 #[utoipa::path(get, path = "/api/utils/scanning_progress", responses(
     (status = 200, description = "", body = ScanningProgressResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 401, description = "Unauthorized", body = String),
 ))]
 pub async fn get_scanning_progress(
     State(data): State<Arc<AppState>>,

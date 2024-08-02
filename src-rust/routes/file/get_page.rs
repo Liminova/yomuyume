@@ -12,9 +12,9 @@ use zip::ZipArchive;
 
 #[utoipa::path(get, path = "/api/file/page/{page_id}", responses(
     (status = 200, description = "Fetch page successful.", body = Vec<u8>),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
-    (status = 404, description = "Page not found", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 404, description = "Page not found", body = String),
+    (status = 500, description = "Internal server error", body = String),
 ))]
 pub async fn get_page(
     State(data): State<Arc<AppState>>,

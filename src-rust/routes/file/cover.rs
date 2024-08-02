@@ -12,9 +12,9 @@ use zip::ZipArchive;
 
 #[utoipa::path(get, path = "/api/file/cover/{id}", responses(
     (status = 200, description = "Fetch cover successful", body = Vec<u8>),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
-    (status = 404, description = "Cover not found", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 404, description = "Cover not found", body = String),
+    (status = 500, description = "Internal server error", body = String),
 ))]
 pub async fn get_cover(
     State(data): State<Arc<AppState>>,

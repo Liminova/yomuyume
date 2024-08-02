@@ -12,8 +12,8 @@ use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, Q
 
 #[utoipa::path(put, path = "/api/user/progress/{title_id}/{page}", responses(
     (status = 200, description = "Set progress successfully", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
 ))]
 pub async fn put_progress(
     State(data): State<Arc<AppState>>,

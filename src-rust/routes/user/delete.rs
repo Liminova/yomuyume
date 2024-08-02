@@ -17,10 +17,12 @@ use axum::{
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-pub struct DeleteRequest {
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct DeleteRequestBody {
     pub password: String,
 }
 
@@ -29,9 +31,9 @@ pub struct DeleteRequest {
 /// The user will receive an email with a token to confirm the deletion.
 #[utoipa::path(get, path = "/api/user/delete", responses(
     (status = 200, description = "Token sent to user's email", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = String),
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
 ))]
 pub async fn get_delete(
     State(data): State<Arc<AppState>>,
@@ -96,14 +98,14 @@ pub async fn get_delete(
 /// The user will make a request with the token received by email.
 #[utoipa::path(post, path = "/api/user/delete", responses(
     (status = 200, description = "User deleted", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = String),
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
 ))]
 pub async fn post_delete(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
-    Json(query): Json<DeleteRequest>,
+    Json(query): Json<DeleteRequestBody>,
 ) -> Result<Response, AppError> {
     if query.password.is_empty() {
         return Err(AppError::from(anyhow::anyhow!("Password cannot be empty.")));

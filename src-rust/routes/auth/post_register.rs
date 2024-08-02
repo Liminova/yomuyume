@@ -13,10 +13,12 @@ use axum::{
 use rand_core::OsRng;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
-pub struct RegisterRequest {
+#[derive(Debug, Deserialize, Serialize, ToSchema, TS)]
+#[ts(export)]
+pub struct RegisterRequestBody {
     pub username: String,
     pub email: String,
     pub password: String,
@@ -25,12 +27,12 @@ pub struct RegisterRequest {
 /// Register a new user.
 #[utoipa::path(post, path = "api/auth/register", responses(
     (status = 200, description = "Registration successful", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody),
-    (status = 409, description = "A conflict has occurred", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = String),
+    (status = 409, description = "A conflict has occurred", body = String),
 ))]
 pub async fn post_register(
     State(data): State<Arc<AppState>>,
-    query: Json<RegisterRequest>,
+    query: Json<RegisterRequestBody>,
 ) -> Result<Response, AppError> {
     if !email_address::EmailAddress::is_valid(&query.email) {
         return Ok((StatusCode::BAD_REQUEST, "Invalid email.").into_response());

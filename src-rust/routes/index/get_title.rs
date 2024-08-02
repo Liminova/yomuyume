@@ -10,9 +10,11 @@ use axum::{
 };
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ResponsePage {
     pub id: String,
     pub format: String,
@@ -20,7 +22,8 @@ pub struct ResponsePage {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ResponseCover {
     pub blurhash: String,
     pub width: u32,
@@ -28,7 +31,8 @@ pub struct ResponseCover {
     pub format: String,
 }
 
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde_with::skip_serializing_none]
 pub struct TitleResponseBody {
     pub category_id: String,
@@ -51,9 +55,9 @@ pub struct TitleResponseBody {
 /// Get everything about a title.
 #[utoipa::path(get, path = "/api/index/title/{title_id}", responses(
     (status = 200, description = "Fetch title successful", body = TitleResponseBody),
-    (status = 204, description = "No title found for the given id", body = TitleResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody)
+    (status = 204, description = "No title found for the given id", body = String),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn get_title(
     State(app_state): State<Arc<AppState>>,

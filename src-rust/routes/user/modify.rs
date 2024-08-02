@@ -10,10 +10,12 @@ use axum::{
 };
 use sea_orm::{ActiveModelTrait, Set};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-pub struct ModifyRequest {
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct ModifyRequestBody {
     pub username: Option<String>,
     pub email: Option<String>,
     pub password: Option<String>,
@@ -23,14 +25,14 @@ pub struct ModifyRequest {
 /// Modify user information.
 #[utoipa::path(post, path = "/api/user/modify", responses(
     (status = 200, description = "Modify user successful", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody)
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn post_modify(
     State(data): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
-    Json(body): Json<ModifyRequest>,
+    Json(body): Json<ModifyRequestBody>,
 ) -> Result<Response, AppError> {
     let password_in_db = user.password.clone();
     let is_verified = user.is_verified;

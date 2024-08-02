@@ -10,16 +10,19 @@ use axum::{
 };
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct CategoryResponse {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct CategoriesResponseBody {
     pub data: Vec<CategoryResponse>,
 }
@@ -27,7 +30,7 @@ pub struct CategoriesResponseBody {
 /// Get all categories to be displayed on the library page.
 #[utoipa::path(get, path = "/api/index/categories", responses(
     (status = 200, description = "Fetch all categories successful", body = CategoriesResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody)
+    (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn get_categories(State(data): State<Arc<AppState>>) -> Result<Response, AppError> {
     let data = Categories::find()

@@ -74,25 +74,25 @@ use utoipa::{OpenApi, ToSchema};
     ),
     components(schemas(
         // Auth
-        LoginRequest,
+        LoginRequestBody,
         LoginResponseBody,
-        RegisterRequest,
+        RegisterRequestBody,
 
         // User
-        DeleteRequest,
-        ModifyRequest,
-        ResetRequest,
+        DeleteRequestBody,
+        ModifyRequestBody,
+        ResetRequestBody,
 
         // Index
         Categories,
         CategoriesResponseBody,
         TitleResponseBody,
-        FilterRequest,
+        FilterRequestBody,
         FilterResponseBody,
         FilterTitleResponseBody,
 
         // Utils
-        StatusRequest,
+        StatusRequestBody,
         StatusResponseBody,
         TagResponseBody,
         TagsMapResponseBody,

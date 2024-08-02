@@ -13,10 +13,12 @@ use sea_orm::{
     ColumnTrait, Condition, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
 };
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
-pub struct FilterRequest {
+#[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct FilterRequestBody {
     /// Keywords to search for (search in title, description, author, tags)
     pub keywords: Option<Vec<String>>,
     /// Categories to filter by
@@ -35,7 +37,8 @@ pub struct FilterRequest {
     pub sort_order: Option<String>,
 }
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde_with::skip_serializing_none]
 pub struct FilterTitleResponseBody {
     pub id: String,
@@ -54,7 +57,8 @@ pub struct FilterTitleResponseBody {
     pub format: String,
 }
 
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct FilterResponseBody {
     pub data: Vec<FilterTitleResponseBody>,
 }
@@ -65,13 +69,13 @@ pub struct FilterResponseBody {
 #[utoipa::path(post, path = "api/index/filter", responses(
     (status = 200, description = "Fetch all items successful", body = FilterResponseBody),
     (status = 204, description = "Fetch all items successful, but none were found", body = FilterResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody)
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn post_filter(
     State(app_state): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
-    Json(query): Json<FilterRequest>,
+    Json(query): Json<FilterRequestBody>,
 ) -> Result<Response, AppError> {
     let keywords = query.keywords;
     let category_ids = query.category_ids;

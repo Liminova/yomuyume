@@ -19,18 +19,20 @@ use axum::{
 use rand_core::OsRng;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-pub struct ResetRequest {
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct ResetRequestBody {
     pub password: String,
 }
 
 /// Send an email to the user with a token to reset the password.
 #[utoipa::path(get, path = "/api/user/reset", responses(
     (status = 200, description = "Token sent to user's email", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody),
-    (status = 409, description = "A conflict has occurred", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = String),
+    (status = 409, description = "A conflict has occurred", body = String),
 ))]
 pub async fn get_reset(
     State(data): State<Arc<AppState>>,
@@ -113,15 +115,15 @@ pub async fn get_reset(
 /// The user provides the token received by email to confirm the password change.
 #[utoipa::path(post, path = "/api/user/reset", responses(
     (status = 200, description = "Password reset successful", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = String),
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
 ))]
 pub async fn post_reset(
     State(data): State<Arc<AppState>>,
     Extension(purpose): Extension<TokenClaimsPurpose>,
     Extension(user): Extension<users::Model>,
-    Json(query): Json<ResetRequest>,
+    Json(query): Json<ResetRequestBody>,
 ) -> Result<Response, AppError> {
     if purpose != TokenClaimsPurpose::ResetPassword {
         return Ok((StatusCode::BAD_REQUEST, "Invalid request purpose.").into_response());

@@ -20,9 +20,9 @@ use sea_orm::{ActiveModelTrait, Set};
 /// Send a verification email to the user's email address.
 #[utoipa::path(get, path = "/api/user/verify", responses(
     (status = 200, description = "Verification email sent", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = String),
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
 ))]
 pub async fn get_verify(
     State(data): State<Arc<AppState>>,

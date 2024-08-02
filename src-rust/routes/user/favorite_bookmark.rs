@@ -14,9 +14,9 @@ use sea_orm::{
 
 #[utoipa::path(put, path = "/api/user/favorite/{id}", responses(
     (status = 200, description = "Add favorite successful", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody)
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn put_favorite(
     State(data): State<Arc<AppState>>,
@@ -69,9 +69,9 @@ pub async fn put_favorite(
 
 #[utoipa::path(put, path = "/user/favorite/{id}", responses(
     (status = 200, description = "Add bookmark successful", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody)
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn put_bookmark(
     State(data): State<Arc<AppState>>,
@@ -124,9 +124,9 @@ pub async fn put_bookmark(
 
 #[utoipa::path(delete, path = "/api/user/favorite/{id}", responses(
     (status = 200, description = "Delete favorite successful", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody)
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn delete_favorite(
     State(data): State<Arc<AppState>>,
@@ -166,9 +166,9 @@ pub async fn delete_favorite(
 
 #[utoipa::path(delete, path = "/user/favorite/{id}", responses(
     (status = 200, description = "Delete bookmark successful", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
-    (status = 401, description = "Unauthorized", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody)
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn delete_bookmark(
     State(data): State<Arc<AppState>>,

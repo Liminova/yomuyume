@@ -16,15 +16,18 @@ use axum_extra::extract::cookie::{Cookie, SameSite};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
-pub struct LoginRequest {
+#[derive(Debug, Deserialize, Serialize, ToSchema, TS)]
+#[ts(export)]
+pub struct LoginRequestBody {
     pub login: String,
     pub password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, TS)]
+#[ts(export)]
 pub struct LoginResponseBody {
     pub token: String,
 }
@@ -32,12 +35,12 @@ pub struct LoginResponseBody {
 /// Login with username and password and get the JWT token.
 #[utoipa::path(post, path = "/api/auth/login", responses(
     (status = 200, description = "Login successful", body = GenericResponseBody),
-    (status = 500, description = "Internal server error", body = GenericResponseBody),
-    (status = 400, description = "Bad request", body = GenericResponseBody),
+    (status = 500, description = "Internal server error", body = String),
+    (status = 400, description = "Bad request", body = String),
 ))]
 pub async fn post_login(
     State(data): State<Arc<AppState>>,
-    query: Json<LoginRequest>,
+    query: Json<LoginRequestBody>,
 ) -> Result<Response, AppError> {
     // get user from db
     let user = match Users::find()
