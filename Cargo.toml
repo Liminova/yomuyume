@@ -1,12 +1,12 @@
 [package]
-name = "yomuyume-server"
+name = "yomuyume"
 version = "1.0.3"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]
-name = "yomuyume-server"
+name = "yomuyume"
 path = "src-rust/main.rs"
 
 [dependencies]
