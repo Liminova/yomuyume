@@ -12,12 +12,11 @@
     "lint-server": "cargo check && cargo fmt && cargo clippy",
     "lint": "concurrently \"pnpm lint-client\" \"pnpm lint-server\"",
     "dev-client": "nuxt dev",
-    "dev-server": "cargo run -p yomuyume-server",
+    "dev-server": "cargo run -p yomuyume",
     "dev": "concurrently \"pnpm dev-client\" \"pnpm dev-server\"",
     "postinstall": "nuxt prepare",
-    "build-server": "cargo build -p yomuyume-server",
-    "build-client": "nuxt generate",
-    "build-bridge": "sh ./src-rust/build-bridge.sh"
+    "build-server": "cargo build -p yomuyume",
+    "build-client": "nuxt generate"
   },
   "devDependencies": {
     "@biomejs/biome": "1.7.3",
