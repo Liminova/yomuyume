@@ -21,30 +21,30 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.7.3",
-    "@nuxtjs/tailwindcss": "^6.12.0",
-    "@pinia/nuxt": "^0.5.1",
+    "@nuxtjs/tailwindcss": "^6.12.1",
+    "@pinia/nuxt": "^0.5.2",
     "@types/debounce": "^1.2.4",
-    "@types/node": "^20.14.9",
-    "@typescript-eslint/parser": "^7.14.1",
+    "@types/node": "^20.14.14",
+    "@typescript-eslint/parser": "^7.18.0",
     "concurrently": "^8.2.2",
     "czg": "^1.9.4",
     "eslint": "^8.57.0",
     "eslint-plugin-cadence": "github:j1nxie/Cadence",
     "eslint-plugin-nuxt": "^4.0.0",
     "eslint-plugin-tailwindcss": "^3.17.4",
-    "husky": "^9.0.11",
-    "nuxt": "^3.12.2",
-    "sass": "^1.77.6",
-    "vue": "^3.4.30",
+    "husky": "^9.1.4",
+    "nuxt": "^3.12.4",
+    "sass": "^1.77.8",
+    "vue": "^3.4.35",
     "vue-eslint-parser": "^9.4.3",
-    "vue-router": "^4.4.0"
+    "vue-router": "^4.4.2"
   },
   "dependencies": {
     "@material/web": "^1.5.1",
     "debounce": "^2.1.0",
-    "fast-blurhash": "^1.1.2",
+    "fast-blurhash": "^1.1.4",
     "p-debounce": "^4.0.0",
-    "swiper": "^11.1.4",
+    "swiper": "^11.1.9",
     "vite-plugin-wasm": "^3.3.0"
   }
 }
