@@ -174,13 +174,18 @@ async fn main() -> Result<(), DbErr> {
         };
     });
 
-    let scanner_handle = tokio::spawn(async move {
-        let instance = livescan::Scanner::new(app_state.clone());
-        instance.await.run().await.unwrap();
+    let library_scanner_handle = tokio::spawn(async move {
+        if let Err(e) = library_scanner::Scanner::new(app_state.clone())
+            .await
+            .run()
+            .await
+        {
+            error!("scanner error: {}", e);
+        };
     });
 
     let _ = server_handle.await;
-    let _ = scanner_handle.await;
+    let _ = library_scanner_handle.await;
 
     Ok(())
 }
