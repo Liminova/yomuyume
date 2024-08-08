@@ -64,7 +64,7 @@ async fn main() -> Result<(), DbErr> {
     dotenvy::dotenv().ok();
     let config = Config::init();
 
-    let addr_str = format!("{}:{}", config.server_address, config.server_port);
+    // let addr_str = format!("{}:{}", config.server_address, config.server_port);
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
@@ -154,7 +154,10 @@ async fn main() -> Result<(), DbErr> {
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 
-    let addr = addr_str.parse::<SocketAddr>().unwrap();
+    let addr = format!("{}:{}", config.server_address, config.server_port)
+        .parse::<SocketAddr>()
+        .expect("invalid address");
+
     let listener = TcpListener::bind(&addr).await.unwrap();
 
     let server_handle = tokio::spawn(async move {
