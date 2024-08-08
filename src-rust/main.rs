@@ -16,7 +16,7 @@ use sea_orm_migration::prelude::*;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tracing::info;
+use tracing::{debug, error, info};
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
@@ -161,9 +161,9 @@ async fn main() -> Result<(), DbErr> {
     let listener = TcpListener::bind(&addr).await.unwrap();
 
     let server_handle = tokio::spawn(async move {
-        tracing::debug!("listening on: {}", addr);
+        debug!("listening on: {}", addr);
         if let Err(e) = axum::serve(listener, app.into_make_service()).await {
-            tracing::error!("server error: {}", e);
+            error!("server error: {}", e);
         };
     });
 
