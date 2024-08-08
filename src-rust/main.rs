@@ -77,6 +77,10 @@ async fn main() -> Result<(), DbErr> {
         std::process::exit(1)
     }
 
+    if let Err(e) = db.execute_unprepared("PRAGMA journal_mode = WAL;").await {
+        info!("{}", e);
+    }
+
     let schema_manager = SchemaManager::new(&db);
     Migrator::up(&db, None).await?;
     assert!(schema_manager.has_table("users").await?);
