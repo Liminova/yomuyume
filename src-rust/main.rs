@@ -22,7 +22,7 @@ use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
 mod config;
-mod livescan;
+mod library_scanner;
 mod migrator;
 mod models;
 mod routes;
