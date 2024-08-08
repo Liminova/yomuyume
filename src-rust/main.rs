@@ -103,52 +103,58 @@ async fn main() -> Result<(), DbErr> {
         scanning_progress: Mutex::new(0.0),
     });
 
-    let auth_routes = Router::new()
-        .route("/register", post(post_register))
-        .route("/login", post(post_login))
-        .route(
-            "/logout",
-            get(get_logout).route_layer(apply(app_state.clone(), auth)),
-        );
-
-    let utils_routes = Router::new()
-        .route("/tags", get(get_tags))
-        .route("/scanning_progress", get(get_scanning_progress))
-        .layer(apply(app_state.clone(), auth));
-
-    let user_routes = Router::new()
-        .route("/check", get(get_check))
-        .route("/reset", post(post_reset))
-        .route("/delete", get(get_delete).post(post_delete))
-        .route("/verify", get(get_verify).post(post_verify))
-        .route("/modify", post(post_modify))
-        .route("/bookmark/:id", put(put_bookmark).delete(delete_bookmark))
-        .route("/favorite/:id", put(put_favorite).delete(delete_favorite))
-        .route("/progress/:title_id/:page", put(put_progress))
-        .layer(apply(app_state.clone(), auth));
-
-    let index_routes = Router::new()
-        .route("/filter", post(post_filter))
-        .route("/categories", get(get_categories))
-        .route("/title/:title_id", get(get_title))
-        .layer(apply(app_state.clone(), auth));
-
-    let file_routes = Router::new()
-        .route("/page/:page_id", get(get_page))
-        .route("/cover/:title_id", get(get_cover))
-        .layer(apply(app_state.clone(), auth));
-
-    let open_routes = Router::new()
-        .route("/user/reset/:email", get(get_reset))
-        .route("/utils/status", get(get_status).post(post_status));
-
     let app = Router::new()
-        .nest("/api/auth", auth_routes)
-        .nest("/api/index", index_routes)
-        .nest("/api/user", user_routes)
-        .nest("/api/utils", utils_routes)
-        .nest("/api/file", file_routes)
-        .nest("/api", open_routes)
+        .nest(
+            "/api/auth",
+            Router::new()
+                .route("/register", post(post_register))
+                .route("/login", post(post_login))
+                .route(
+                    "/logout",
+                    get(get_logout).route_layer(apply(app_state.clone(), auth)),
+                ),
+        )
+        .nest(
+            "/api/index",
+            Router::new()
+                .route("/filter", post(post_filter))
+                .route("/categories", get(get_categories))
+                .route("/title/:title_id", get(get_title))
+                .layer(apply(app_state.clone(), auth)),
+        )
+        .nest(
+            "/api/user",
+            Router::new()
+                .route("/check", get(get_check))
+                .route("/reset", post(post_reset))
+                .route("/delete", get(get_delete).post(post_delete))
+                .route("/verify", get(get_verify).post(post_verify))
+                .route("/modify", post(post_modify))
+                .route("/bookmark/:id", put(put_bookmark).delete(delete_bookmark))
+                .route("/favorite/:id", put(put_favorite).delete(delete_favorite))
+                .route("/progress/:title_id/:page", put(put_progress))
+                .layer(apply(app_state.clone(), auth)),
+        )
+        .nest(
+            "/api/utils",
+            Router::new()
+                .route("/tags", get(get_tags))
+                .route("/scanning_progress", get(get_scanning_progress))
+                .layer(apply(app_state.clone(), auth)),
+        )
+        .nest(
+            "/api/file",
+            Router::new()
+                .route("/page/:page_id", get(get_page))
+                .route("/cover/:title_id", get(get_cover))
+                .layer(apply(app_state.clone(), auth)),
+        )
+        .nest(
+            "/api",
+            Router::new()
+                .route("/user/reset/:email", get(get_reset))
+                .route("/utils/status", get(get_status).post(post_status)),
+        )
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .layer(TraceLayer::new_for_http())
