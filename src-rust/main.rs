@@ -72,13 +72,10 @@ async fn main() -> Result<(), DbErr> {
         .init();
 
     let db = Database::connect(&config.database_url).await?;
-    let db = match db.get_database_backend() {
-        DbBackend::Sqlite => db,
-        _ => {
-            tracing::error!("we don't support other databases outside of sqlite. exiting.");
-            std::process::exit(1)
-        }
-    };
+    if db.get_database_backend() != DbBackend::Sqlite {
+        error!("we don't support other databases outside of sqlite. exiting.");
+        std::process::exit(1)
+    }
 
     let schema_manager = SchemaManager::new(&db);
     Migrator::up(&db, None).await?;
