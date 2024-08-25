@@ -19,9 +19,7 @@
 		"build-client": "nuxt generate"
 	},
 	"devDependencies": {
-		"@nuxt/eslint": "^0.5.2",
 		"@nuxtjs/tailwindcss": "^6.12.1",
-		"@pinia/nuxt": "^0.5.4",
 		"@types/debounce": "^3.0.0",
 		"@types/node": "^22.5.0",
 		"@typescript-eslint/parser": "^8.2.0",
@@ -38,7 +36,6 @@
 		"vue-eslint-parser": "^9.4.3"
 	},
 	"dependencies": {
-		"@material/web": "^1.5.1",
 		"debounce": "^2.1.0",
 		"fast-blurhash": "^1.1.4",
 		"p-debounce": "^4.0.0",
