@@ -6,37 +6,7 @@
         ".vscode/css_custom_data.json"
     ],
     "typescript.tsdk": "node_modules/typescript/lib",
-    "actionButtons": {
-        "loadNpmCommands": false,
-        "commands": [
-            {
-                "name": "Client lint",
-                "command": "time pnpm lint-client"
-            },
-            {
-                "name": "Client dev",
-                "command": "pnpm dev-client"
-            },
-            {
-                "name": "Client build",
-                "command": "time NODE_ENV=\"production\" pnpm build-client"
-            },
-            {
-                "name": "|",
-                "command": ""
-            },
-            {
-                "name": "Server lint",
-                "command": "time pnpm lint-server"
-            },
-            {
-                "name": "Server dev",
-                "command": "pnpm dev-server"
-            },
-            {
-                "name": "Server build",
-                "command": "pnpm build-server"
-            },
-        ]
+    "explorer.fileNesting.patterns": {
+        "package.json": "pnpm-lock.yaml, .eslint*, Cargo*, *.json, *.js, *.ts",
     },
 }
