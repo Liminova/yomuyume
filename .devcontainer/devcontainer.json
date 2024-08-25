@@ -1,0 +1,42 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/rust
+{
+	"name": "Yomuyume",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/rust:1-1-bookworm",
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "lts",
+			"nvmVersion": "latest"
+		}
+	},
+	// Use 'mounts' to make the cargo cache persistent in a Docker Volume.
+	"mounts": [
+		{
+			"source": "cargo-cache",
+			"target": "/usr/local/cargo",
+			"type": "volume"
+		}
+	],
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [
+		3000,
+		3001
+	],
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "bash .devcontainer/postinstall.sh",
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"rust-lang.rust-analyzer",
+				"bradlc.vscode-tailwindcss",
+				"Vue.volar",
+				"fill-labs.dependi"
+			]
+		}
+	},
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
