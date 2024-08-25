@@ -1,7 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import wasm from "vite-plugin-wasm";
-
 const baseUrl = process.env.BASE_URL ?? "/";
+
 
 function addBaseUrl(path_: string): string {
 	const path = path_.startsWith("/") ? path_ : `/${path_}`;
@@ -73,15 +72,14 @@ export default defineNuxtConfig({
 		},
 	},
 	css: ["~/assets/css/m3/theme.css", "~/assets/scss/index.scss"],
-	modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt"],
+	modules: ["@nuxtjs/tailwindcss"],
 	experimental: {
 		viewTransition: true,
-		typePages: true,
 	},
 	vite: {
-		plugins: [wasm()],
 		build: {
 			target: "esnext",
 		},
 	},
+	compatibilityDate: "2024-08-15"
 });
