@@ -1,5 +1,5 @@
 use axum::async_trait;
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{prelude::*, schema::*};
 
 use super::m_20231115_000002_create_categories_table::Categories;
 
@@ -17,23 +17,28 @@ impl MigrationTrait for Migration {
         let table = Table::create()
             .table(Titles::Table)
             .if_not_exists()
-            .col(ColumnDef::new(Titles::Id).string().not_null().primary_key())
-            .col(ColumnDef::new(Titles::Title).string().not_null())
-            .col(ColumnDef::new(Titles::CategoryId).string())
+            .col(string(Titles::Id).primary_key())
+            .col(string(Titles::Title))
+            .col(string_null(Titles::CategoryId))
             .foreign_key(
                 ForeignKey::create()
                     .name("fk-title-category_id")
                     .from(Titles::Table, Titles::CategoryId)
                     .to(Categories::Table, Categories::Id)
-                    .on_delete(ForeignKeyAction::Cascade),
+                    .on_delete(ForeignKeyAction::SetNull),
             )
-            .col(ColumnDef::new(Titles::Author).string())
-            .col(ColumnDef::new(Titles::Description).string())
-            .col(ColumnDef::new(Titles::Release).date_time())
-            .col(ColumnDef::new(Titles::Hash).string())
-            .col(ColumnDef::new(Titles::Path).string())
-            .col(ColumnDef::new(Titles::DateAdded).date_time())
-            .col(ColumnDef::new(Titles::DateUpdated).date_time())
+            .col(string_null(Titles::Author))
+            .col(string_null(Titles::Description))
+            .col(date_time_null(Titles::Release))
+            .col(string(Titles::Path))
+            .col(string(Titles::ContentFileHash))
+            .col(string(Titles::CoverAndPageDescHash))
+            .col(string_null(Titles::CoverPath))
+            .col(string_null(Titles::CoverBlurhash))
+            .col(integer_null(Titles::BlurhashWidth))
+            .col(integer_null(Titles::BlurhashHeight))
+            .col(date_time(Titles::DateAdded))
+            .col(date_time_null(Titles::DateUpdated))
             .to_owned();
         manager.create_table(table).await
     }
@@ -53,8 +58,16 @@ pub enum Titles {
     Author,
     Description,
     Release,
-    Hash,
     Path,
+
+    ContentFileHash,
+    CoverAndPageDescHash,
+
+    CoverPath,
+    CoverBlurhash,
+    BlurhashWidth,
+    BlurhashHeight,
+
     DateAdded,
     DateUpdated,
 }

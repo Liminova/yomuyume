@@ -1,5 +1,5 @@
 use axum::async_trait;
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{prelude::*, schema::*};
 
 use super::{
     m_20231115_000003_create_titles_table::Titles, m_20231116_000005_create_tags_table::Tags,
@@ -16,39 +16,37 @@ impl MigrationName for Migration {
 #[async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let table = Table::create()
-            .table(TitlesTags::Table)
-            .if_not_exists()
-            .col(
-                ColumnDef::new(TitlesTags::Id)
-                    .integer()
-                    .not_null()
-                    .auto_increment()
-                    .primary_key(),
+        manager
+            .create_table(
+                Table::create()
+                    .table(TitlesTags::Table)
+                    .if_not_exists()
+                    .col(pk_auto(TitlesTags::Id))
+                    .col(string(TitlesTags::TitleId))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-titletag-title_id")
+                            .from(TitlesTags::Table, TitlesTags::TitleId)
+                            .to(Titles::Table, Titles::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .col(integer(TitlesTags::TagId))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-titletag-tag_id")
+                            .from(TitlesTags::Table, TitlesTags::TagId)
+                            .to(Tags::Table, Tags::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
             )
-            .col(ColumnDef::new(TitlesTags::TitleId).string().not_null())
-            .foreign_key(
-                ForeignKey::create()
-                    .name("fk-titletag-title_id")
-                    .from(TitlesTags::Table, TitlesTags::TitleId)
-                    .to(Titles::Table, Titles::Id)
-                    .on_delete(ForeignKeyAction::Cascade),
-            )
-            .col(ColumnDef::new(TitlesTags::TagId).integer().not_null())
-            .foreign_key(
-                ForeignKey::create()
-                    .name("fk-titletag-tag_id")
-                    .from(TitlesTags::Table, TitlesTags::TagId)
-                    .to(Tags::Table, Tags::Id)
-                    .on_delete(ForeignKeyAction::Cascade),
-            )
-            .to_owned();
-        manager.create_table(table).await
+            .await
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let table = Table::drop().table(TitlesTags::Table).to_owned();
-        manager.drop_table(table).await
+        manager
+            .drop_table(Table::drop().table(TitlesTags::Table).to_owned())
+            .await
     }
 }
 

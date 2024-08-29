@@ -1,5 +1,5 @@
 use axum::async_trait;
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{prelude::*, schema::*};
 
 use super::{
     m_20231113_000001_create_users_table::Users, m_20231115_000003_create_titles_table::Titles,
@@ -16,44 +16,39 @@ impl MigrationName for Migration {
 #[async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let table = Table::create()
-            .table(Progresses::Table)
-            .if_not_exists()
-            .col(
-                ColumnDef::new(Progresses::Id)
-                    .integer()
-                    .auto_increment()
-                    .primary_key(),
+        manager
+            .create_table(
+                Table::create()
+                    .table(Progresses::Table)
+                    .if_not_exists()
+                    .col(pk_auto(Progresses::Id))
+                    .col(string(Progresses::UserId))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-progress-user_id")
+                            .from(Progresses::Table, Progresses::UserId)
+                            .to(Users::Table, Users::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .col(string(Progresses::TitleId))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-progress-title_id")
+                            .from(Progresses::Table, Progresses::TitleId)
+                            .to(Titles::Table, Titles::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .col(date_time(Progresses::LastReadAt))
+                    .col(integer(Progresses::Page))
+                    .to_owned(),
             )
-            .col(ColumnDef::new(Progresses::UserId).string().not_null())
-            .foreign_key(
-                ForeignKey::create()
-                    .name("fk-progress-user_id")
-                    .from(Progresses::Table, Progresses::UserId)
-                    .to(Users::Table, Users::Id)
-                    .on_delete(ForeignKeyAction::Cascade),
-            )
-            .col(ColumnDef::new(Progresses::TitleId).string().not_null())
-            .foreign_key(
-                ForeignKey::create()
-                    .name("fk-progress-title_id")
-                    .from(Progresses::Table, Progresses::TitleId)
-                    .to(Titles::Table, Titles::Id)
-                    .on_delete(ForeignKeyAction::Cascade),
-            )
-            .col(
-                ColumnDef::new(Progresses::LastReadAt)
-                    .date_time()
-                    .not_null(),
-            )
-            .col(ColumnDef::new(Progresses::Page).integer().not_null())
-            .to_owned();
-        manager.create_table(table).await
+            .await
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let table = Table::drop().table(Progresses::Table).to_owned();
-        manager.drop_table(table).await
+        manager
+            .drop_table(Table::drop().table(Progresses::Table).to_owned())
+            .await
     }
 }
 

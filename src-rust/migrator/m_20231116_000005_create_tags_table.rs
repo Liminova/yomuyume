@@ -1,5 +1,5 @@
 use axum::async_trait;
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{prelude::*, schema::*};
 
 pub struct Migration;
 
@@ -12,24 +12,22 @@ impl MigrationName for Migration {
 #[async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let table = Table::create()
-            .table(Tags::Table)
-            .if_not_exists()
-            .col(
-                ColumnDef::new(Tags::Id)
-                    .integer()
-                    .not_null()
-                    .auto_increment()
-                    .primary_key(),
+        manager
+            .create_table(
+                Table::create()
+                    .table(Tags::Table)
+                    .if_not_exists()
+                    .col(pk_auto(Tags::Id))
+                    .col(string(Tags::Name).unique_key())
+                    .to_owned(),
             )
-            .col(ColumnDef::new(Tags::Name).string().not_null().unique_key())
-            .to_owned();
-        manager.create_table(table).await
+            .await
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let table = Table::drop().table(Tags::Table).to_owned();
-        manager.drop_table(table).await
+        manager
+            .drop_table(Table::drop().table(Tags::Table).to_owned())
+            .await
     }
 }
 

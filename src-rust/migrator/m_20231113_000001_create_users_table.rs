@@ -1,5 +1,5 @@
 use axum::async_trait;
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{prelude::*, schema::*};
 
 pub struct Migration;
 
@@ -12,24 +12,27 @@ impl MigrationName for Migration {
 #[async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let table = Table::create()
-            .table(Users::Table)
-            .if_not_exists()
-            .col(ColumnDef::new(Users::Id).string().not_null().primary_key())
-            .col(ColumnDef::new(Users::Username).string().not_null())
-            .col(ColumnDef::new(Users::Email).string().not_null())
-            .col(ColumnDef::new(Users::ProfilePicture).string())
-            .col(ColumnDef::new(Users::CreatedAt).date_time().not_null())
-            .col(ColumnDef::new(Users::UpdatedAt).date_time().not_null())
-            .col(ColumnDef::new(Users::Password).string().not_null())
-            .col(ColumnDef::new(Users::IsVerified).boolean().not_null())
-            .to_owned();
-        manager.create_table(table).await
+        manager
+            .create_table(
+                Table::create()
+                    .table(Users::Table)
+                    .col(string(Users::Id).primary_key())
+                    .col(string_uniq(Users::Username))
+                    .col(string_uniq(Users::Email))
+                    .col(string_null(Users::ProfilePicture))
+                    .col(date_time(Users::CreatedAt))
+                    .col(date_time(Users::UpdatedAt))
+                    .col(string(Users::Password))
+                    .col(boolean(Users::IsVerified))
+                    .to_owned(),
+            )
+            .await
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let table = Table::drop().table(Users::Table).to_owned();
-        manager.drop_table(table).await
+        manager
+            .drop_table(Table::drop().table(Users::Table).to_owned())
+            .await
     }
 }
 

@@ -1,5 +1,5 @@
 use axum::async_trait;
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::{prelude::*, schema::*};
 
 pub struct Migration;
 
@@ -12,19 +12,21 @@ impl MigrationName for Migration {
 #[async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let table = Table::create()
-            .table(Categories::Table)
-            .if_not_exists()
-            .col(
-                ColumnDef::new(Categories::Id)
-                    .string()
-                    .not_null()
-                    .primary_key(),
+        manager
+            .create_table(
+                Table::create()
+                    .table(Categories::Table)
+                    .if_not_exists()
+                    .col(string(Categories::Name).primary_key())
+                    .col(string(Categories::Name))
+                    .col(string_null(Categories::Description))
+                    .col(string_null(Categories::CoverPath))
+                    .col(string_null(Categories::CoverBlurhash))
+                    .col(integer_null(Categories::CoverWidth))
+                    .col(integer_null(Categories::CoverHeight))
+                    .to_owned(),
             )
-            .col(ColumnDef::new(Categories::Name).string().not_null())
-            .col(ColumnDef::new(Categories::Description).string())
-            .to_owned();
-        manager.create_table(table).await
+            .await
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -39,4 +41,8 @@ pub enum Categories {
     Id,
     Name,
     Description,
+    CoverPath,
+    CoverBlurhash,
+    CoverWidth,
+    CoverHeight,
 }
