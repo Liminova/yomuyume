@@ -49,15 +49,11 @@ pub struct Config {
     pub smtp_from_email: Option<String>,
     pub smtp_from_name: Option<String>,
 
-    pub djxl_path: Option<String>,
-    pub ffmpeg_path: Option<String>,
-
     // Internal variables
     pub cover_filestems: Vec<&'static str>,
-    pub native_img_formats: Vec<&'static str>,
-    pub extended_img_formats: Vec<&'static str>,
     pub blurhash_dimension_cap: f32,
     pub ratio_percision: u32,
+    pub supported_img_formats: Vec<&'static str>,
 }
 
 impl Config {
@@ -96,13 +92,10 @@ impl Config {
             smtp_from_email: Self::may_get("SMTP_FROM_EMAIL"),
             smtp_from_name: Self::may_get("SMTP_FROM_NAME"),
 
-            ffmpeg_path: Self::may_get("FFMPEG_PATH"),
-            djxl_path: Self::may_get("DJXL_PATH"),
-
             cover_filestems: vec!["cover", "thumbnail", "folder"],
-            native_img_formats: vec!["png", "jpg", "jpeg", "gif", "bmp", "tiff", "tif", "webp"],
-            extended_img_formats: vec![
-                "png", "jpg", "jpeg", "gif", "bmp", "tiff", "tif", "webp", "jxl", "avif",
+
+            supported_img_formats: vec![
+                "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
             ],
             blurhash_dimension_cap: 20.0,
             ratio_percision: 1000,
