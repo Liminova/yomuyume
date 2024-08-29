@@ -51,8 +51,6 @@ pub struct Config {
 
     // Internal variables
     pub cover_filestems: Vec<&'static str>,
-    pub blurhash_dimension_cap: f32,
-    pub ratio_percision: u32,
     pub supported_img_formats: Vec<&'static str>,
 }
 
@@ -97,8 +95,6 @@ impl Config {
             supported_img_formats: vec![
                 "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
             ],
-            blurhash_dimension_cap: 20.0,
-            ratio_percision: 1000,
         }
     }
 
