@@ -18,9 +18,14 @@ pub struct Model {
     pub category_id: Option<CategoryID>,
     pub author: Option<String>,
     pub description: Option<String>,
-    pub hash: String,
     pub release: Option<DateTime<Utc>>,
     pub path: String,
+
+    pub content_file_hash: String,
+    /// hashes of the "cover" and "descriptions" fields in the metadata file,
+    /// to avoid re-scan the content file and Pages table if they haven't changed
+    pub cover_and_page_desc_hash: String,
+
     pub date_added: DateTime<Utc>,
     pub date_updated: Option<DateTime<Utc>>,
 }
