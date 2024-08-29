@@ -72,8 +72,6 @@ async fn main() -> Result<(), DbErr> {
     dotenvy::dotenv().ok();
     let config = Config::init();
 
-    // let addr_str = format!("{}:{}", config.server_address, config.server_port);
-
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .with_env_filter("sqlx=warn,axum=info,yomuyume_server=debug")
