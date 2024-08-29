@@ -1,6 +1,5 @@
 pub use super::bookmarks::Entity as Bookmarks;
 pub use super::categories::Entity as Categories;
-pub use super::covers::Entity as Covers;
 pub use super::favorites::Entity as Favorites;
 pub use super::pages::Entity as Pages;
 pub use super::progresses::Entity as Progresses;
