@@ -1,8 +1,11 @@
-use crate::{
-    config::Config,
-    migrator::Migrator,
-    routes::{auth, ApiDoc},
-};
+mod config;
+mod library_scanner;
+mod migrator;
+mod models;
+mod routes;
+
+use std::{fmt::Display, net::SocketAddr, sync::Arc};
+
 use axum::{
     http::StatusCode,
     middleware::from_fn_with_state as apply,
@@ -10,10 +13,8 @@ use axum::{
     routing::{get, post, put},
     Router,
 };
-use routes::*;
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
-use std::{net::SocketAddr, sync::Arc};
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::{debug, error, info};
@@ -21,11 +22,12 @@ use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
-mod config;
-mod library_scanner;
-mod migrator;
-mod models;
-mod routes;
+use crate::{
+    config::Config,
+    migrator::Migrator,
+    routes::{auth, ApiDoc},
+};
+use routes::*;
 
 #[derive(Debug)]
 pub struct AppState {
