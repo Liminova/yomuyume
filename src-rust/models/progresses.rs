@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use utoipa::ToSchema;
 
@@ -11,7 +12,7 @@ pub struct Model {
     pub id: i64,
     pub user_id: UserID,
     pub title_id: TitleID,
-    pub last_read_at: String,
+    pub last_read_at: Option<DateTime<Utc>>,
     pub page: i64,
 }
 
