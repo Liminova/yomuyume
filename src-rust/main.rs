@@ -96,7 +96,6 @@ async fn main() -> Result<(), DbErr> {
     assert!(schema_manager.has_table("tags").await?);
     assert!(schema_manager.has_table("titles_tags").await?);
     assert!(schema_manager.has_table("bookmarks").await?);
-    assert!(schema_manager.has_table("covers").await?);
     assert!(schema_manager.has_table("favorites").await?);
     assert!(schema_manager.has_table("progresses").await?);
 
