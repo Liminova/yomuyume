@@ -26,6 +26,12 @@ pub struct Model {
     /// to avoid re-scan the content file and Pages table if they haven't changed
     pub cover_and_page_desc_hash: String,
 
+    // no we don't need a separated table for this
+    pub cover_path: Option<String>,
+    pub cover_blurhash: Option<String>,
+    pub blurhash_width: Option<u8>,
+    pub blurhash_height: Option<u8>,
+
     pub date_added: DateTime<Utc>,
     pub date_updated: Option<DateTime<Utc>>,
 }
