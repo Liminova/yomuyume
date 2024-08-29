@@ -116,20 +116,6 @@ fn check_pass(real: impl AsRef<str>, input: impl AsRef<str>) -> bool {
     }
 }
 
-/// Calculate the (width, height) dimension of the blurhash
-fn calculate_dimension(config: &Config, ratio: u32) -> (u32, u32) {
-    let max_dimension = config.blurhash_dimension_cap;
-    let ratio = ratio as f32 / config.ratio_percision as f32;
-
-    let (width, height) = if ratio >= 1.0 {
-        (max_dimension, max_dimension / ratio) // Landscape
-    } else {
-        (max_dimension * ratio, max_dimension) // Portrait
-    };
-
-    (width as u32, height as u32)
-}
-
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct GenericResponseBody {
     pub message: String,
