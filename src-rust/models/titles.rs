@@ -37,7 +37,7 @@ pub enum Relation {
         from = "Column::CategoryId",
         to = "super::categories::Column::Id",
         on_update = "NoAction",
-        on_delete = "Cascade"
+        on_delete = "SetNull"
     )]
     Categories,
     #[sea_orm(has_many = "super::pages::Entity")]
