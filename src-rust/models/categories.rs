@@ -15,6 +15,12 @@ pub struct Model {
     pub id: CategoryID,
     pub name: String,
     pub description: Option<String>,
+
+    // no we don't need a separated table for this
+    pub cover_path: Option<String>,
+    pub cover_blurhash: Option<String>,
+    pub cover_width: Option<u32>,
+    pub cover_height: Option<u32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
