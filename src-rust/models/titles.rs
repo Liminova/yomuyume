@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use serde::Serialize;
 use utoipa::ToSchema;
@@ -17,11 +18,11 @@ pub struct Model {
     pub category_id: Option<CategoryID>,
     pub author: Option<String>,
     pub description: Option<String>,
-    pub release: Option<String>,
     pub hash: String,
+    pub release: Option<DateTime<Utc>>,
     pub path: String,
-    pub date_added: String,
-    pub date_updated: String,
+    pub date_added: DateTime<Utc>,
+    pub date_updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
