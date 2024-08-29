@@ -44,8 +44,6 @@ pub enum Relation {
     Pages,
     #[sea_orm(has_many = "super::titles_tags::Entity")]
     TitlesTags,
-    #[sea_orm(has_one = "super::covers::Entity")]
-    Covers,
     #[sea_orm(has_many = "super::bookmarks::Entity")]
     Bookmarks,
     #[sea_orm(has_many = "super::favorites::Entity")]
@@ -69,12 +67,6 @@ impl Related<super::pages::Entity> for Entity {
 impl Related<super::titles_tags::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::TitlesTags.def()
-    }
-}
-
-impl Related<super::covers::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Covers.def()
     }
 }
 
