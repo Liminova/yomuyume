@@ -4,6 +4,7 @@ use utoipa::ToSchema;
 
 use crate::models::prelude::{CategoryID, CustomID};
 
+/// Just serve as an alias for [`CustomID`], nothing more.
 pub type TitleID = CustomID;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, ToSchema, Default)]
