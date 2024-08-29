@@ -90,6 +90,8 @@ impl Config {
             smtp_from_email: Self::may_get("SMTP_FROM_EMAIL"),
             smtp_from_name: Self::may_get("SMTP_FROM_NAME"),
 
+            // for the cover image finding stradegy, prioritize
+            // files containing any of these strings
             cover_filestems: vec!["cover", "thumbnail", "folder"],
 
             supported_img_formats: vec![
