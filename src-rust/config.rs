@@ -40,9 +40,6 @@ pub struct Config {
     pub database_url: String,
     pub library_path: String,
 
-    pub jwt_secret: String,
-    pub jwt_maxage_day: chrono::Duration,
-
     pub smtp_host: Option<String>,
     pub smtp_username: Option<String>,
     pub smtp_password: Option<String>,
