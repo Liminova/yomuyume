@@ -34,7 +34,7 @@ pub struct ResponseCover {
 #[ts(export)]
 #[serde_with::skip_serializing_none]
 pub struct TitleResponseBody {
-    pub category_id: String,
+    pub category_id: Option<String>,
     pub title: String,
     pub author: Option<String>,
     pub description: Option<String>,
@@ -48,7 +48,7 @@ pub struct TitleResponseBody {
     pub is_bookmark: Option<bool>,
     pub page_read: Option<i64>,
     pub date_added: String,
-    pub date_updated: String,
+    pub date_updated: Option<String>,
 }
 
 /// Get everything about a title.
