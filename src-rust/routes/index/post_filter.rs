@@ -51,10 +51,9 @@ pub struct FilterTitleResponseBody {
     pub page_read: Option<i64>,
 
     /// Cover
-    pub blurhash: String,
-    pub width: u32,
-    pub height: u32,
-    pub format: String,
+    pub blurhash: Option<String>,
+    pub blurhash_width: Option<u8>,
+    pub blurhash_height: Option<u8>,
 }
 
 #[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
