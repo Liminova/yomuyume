@@ -1,10 +1,12 @@
-pub mod auth;
 pub mod bookmarks;
 pub mod categories;
+pub mod code_delete_account;
+pub mod code_reset_password;
+pub mod code_validate_email;
 pub mod favorites;
-pub mod metadata;
 pub mod pages;
 pub mod progresses;
+pub mod session_tokens;
 pub mod tags;
 pub mod titles;
 pub mod titles_tags;
