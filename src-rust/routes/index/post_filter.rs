@@ -206,16 +206,6 @@ pub async fn post_filter(
         let page_count = find_page_count(&app_state.db, &title.id).await;
         let favorite_count = find_favorite_count(&app_state.db, &title.id).await;
         let page_read = find_page_read(&app_state.db, &title.id, &user.id).await;
-        let cover_model = match Covers::find_by_id(&title.id)
-            .one(&app_state.db)
-            .await
-            .map_err(|e| AppError::from(anyhow::anyhow!("Can't find cover: {}", e)))?
-        {
-            Some(cover) => cover,
-            None => return Ok((StatusCode::NO_CONTENT, "No cover found").into_response()),
-        };
-
-        let (width, height) = calculate_dimension(&app_state.config, cover_model.ratio);
 
         resp_data.push(FilterTitleResponseBody {
             id: title.id.to_string(),
@@ -227,14 +217,9 @@ pub async fn post_filter(
             page_count,
             page_read,
 
-            blurhash: cover_model.blurhash,
-            width,
-            height,
-            format: PathBuf::from(cover_model.path)
-                .extension()
-                .map(|s| s.to_str().unwrap_or(""))
-                .unwrap_or("")
-                .to_ascii_lowercase(),
+            blurhash: title.cover_blurhash,
+            blurhash_width: title.blurhash_width,
+            blurhash_height: title.blurhash_height,
         });
     }
 
