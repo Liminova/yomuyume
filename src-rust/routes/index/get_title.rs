@@ -183,14 +183,9 @@ pub async fn get_title(
             description: title.description,
             release_date: title.release.map(|d| d.to_rfc3339()),
             cover: ResponseCover {
-                blurhash: cover.blurhash,
-                width,
-                height,
-                format: PathBuf::from(cover.path)
-                    .extension()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("")
-                    .to_ascii_lowercase(),
+                blurhash: title.cover_blurhash,
+                width: title.blurhash_width,
+                height: title.blurhash_height,
             },
             tag_ids,
             pages,
