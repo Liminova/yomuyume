@@ -8,10 +8,12 @@ pub mod utils;
 pub use self::{auth::*, file::*, index::*, user::*, utils::*};
 pub use middlewares::auth::auth;
 
-use crate::{config::Config, models::categories::Model as Categories};
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
+use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
+
+use crate::{models::categories::Model as Categories, AppError};
 
 #[derive(OpenApi)]
 #[openapi(
