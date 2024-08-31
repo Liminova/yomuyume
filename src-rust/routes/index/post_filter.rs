@@ -1,7 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use super::{find_favorite_count, find_page_count, find_page_read};
-use crate::{models::prelude::*, routes::calculate_dimension, AppError, AppState};
+use crate::{models::prelude::*, AppError, AppState};
 
 use axum::{
     extract::State,
