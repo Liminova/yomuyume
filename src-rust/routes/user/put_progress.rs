@@ -38,7 +38,7 @@ pub async fn put_progress(
     // Update if exist
     if let Some(progress_model) = progress_model {
         let mut active_model: progresses::ActiveModel = progress_model.into();
-        active_model.last_read_at = Set(chrono::Utc::now().to_rfc3339());
+        active_model.last_read_at = Set(Some(chrono::Utc::now()));
         active_model.page = Set(page);
         active_model
             .update(&data.db)
@@ -49,7 +49,7 @@ pub async fn put_progress(
             id: NotSet,
             user_id: Set(user.id),
             title_id: Set(title_id),
-            last_read_at: Set(chrono::Utc::now().to_rfc3339()),
+            last_read_at: Set(Some(chrono::Utc::now())),
             page: Set(page),
         }
         .insert(&data.db)
