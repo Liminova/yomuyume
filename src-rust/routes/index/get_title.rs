@@ -120,7 +120,7 @@ pub async fn get_title(
         )
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find favorite: {}", e)))?
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find favorite: {}", e)))?
         .map(|_| true);
 
     let is_bookmark = Bookmarks::find()
@@ -131,7 +131,7 @@ pub async fn get_title(
         )
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find bookmark: {}", e)))?
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find bookmark: {}", e)))?
         .map(|_| true);
 
     let page_read = Progresses::find()
@@ -142,14 +142,14 @@ pub async fn get_title(
         )
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find progress: {}", e)))?
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find progress: {}", e)))?
         .map(|p| p.page);
 
     let favorites = match Favorites::find()
         .filter(favorites::Column::TitleId.eq(&title.id))
         .count(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find favorites: {}", e)))?
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find favorites: {}", e)))?
     {
         0 => None,
         n => Some(n as i64),
@@ -159,7 +159,7 @@ pub async fn get_title(
         .filter(bookmarks::Column::TitleId.eq(&title.id))
         .count(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find bookmarks: {}", e)))?
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find bookmarks: {}", e)))?
     {
         0 => None,
         n => Some(n as i64),
@@ -169,7 +169,7 @@ pub async fn get_title(
         .filter(titles_tags::Column::TitleId.eq(&title.id))
         .all(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find tags: {}", e)))?
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find tags: {}", e)))?
         .iter()
         .map(|tag| tag.tag_id)
         .collect::<Vec<_>>();
