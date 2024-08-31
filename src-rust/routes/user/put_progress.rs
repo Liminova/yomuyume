@@ -11,7 +11,7 @@ use axum::{
 use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
 
 #[utoipa::path(put, path = "/api/user/progress/{title_id}/{page}", responses(
-    (status = 200, description = "Set progress successfully", body = GenericResponseBody),
+    (status = 200, description = "Set progress successfully"),
     (status = 400, description = "Bad request", body = String),
     (status = 401, description = "Unauthorized", body = String),
 ))]
