@@ -57,9 +57,5 @@ pub async fn put_progress(
         .map_err(|e| AppError::from(anyhow::anyhow!("Can't insert progress: {}", e)))?;
     }
 
-    Ok((
-        StatusCode::OK,
-        Json(GenericResponseBody::new("Progress set.")),
-    )
-        .into_response())
+    Ok((StatusCode::OK).into_response())
 }
