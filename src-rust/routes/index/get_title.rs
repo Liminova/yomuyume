@@ -73,7 +73,7 @@ pub async fn get_title(
     let title = match Titles::find_by_id(title_id)
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find title: {}", e)))?
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find title: {}", e)))?
     {
         Some(title) => title,
         None => return Ok((StatusCode::NOT_FOUND, "No title found.").into_response()),
