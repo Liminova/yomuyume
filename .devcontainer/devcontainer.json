@@ -43,8 +43,9 @@
 				"rust-lang.rust-analyzer",
 				"bradlc.vscode-tailwindcss",
 				"Vue.volar",
-				"fill-labs.dependi"
-			]
+				"fill-labs.dependi",
+				"maptz.regionfolder"
+			],
 		}
 	}
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
