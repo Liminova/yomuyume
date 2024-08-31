@@ -194,8 +194,8 @@ pub async fn get_title(
             is_favorite,
             is_bookmark,
             page_read,
-            date_added: title.date_added,
-            date_updated: title.date_updated,
+            date_added: title.date_added.to_rfc3339(),
+            date_updated: title.date_updated.map(|d| d.to_rfc3339()),
         }),
     )
         .into_response())
