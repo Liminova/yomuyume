@@ -84,7 +84,7 @@ pub async fn get_title(
         .order_by_asc(pages::Column::Path)
         .all(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find pages: {}", e)))?;
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find pages: {}", e)))?;
 
     // place the cover.path at the front of the Vec<pages::Model>
     // and convert it to Vec<ResponsePage>
