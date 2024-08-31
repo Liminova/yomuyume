@@ -35,7 +35,6 @@ pub async fn put_progress(
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("Can't find progress: {}", e)))?;
 
-    // Update if exist
     if let Some(progress_model) = progress_model {
         let mut active_model: progresses::ActiveModel = progress_model.into();
         active_model.last_read_at = Set(Some(chrono::Utc::now()));
