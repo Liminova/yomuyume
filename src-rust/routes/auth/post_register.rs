@@ -61,7 +61,7 @@ pub async fn post_register(
 
     let username = query.username.to_string();
     let email = query.email.to_string().to_ascii_lowercase();
-    let created_at = chrono::Utc::now().to_string();
+    let created_at = chrono::Utc::now();
 
     let user = users::ActiveModel {
         id: Set(UserID::new()),
