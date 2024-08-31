@@ -14,7 +14,7 @@ use utoipa::ToSchema;
 use crate::{
     models::prelude::*,
     routes::{check_pass, Mailer},
-    AppError, AppState, GenericResponseBody,
+    AppError, AppState,
 };
 
 /// Send a request to delete the user.
@@ -83,11 +83,7 @@ pub async fn get_delete_account(
             &token,
             &app_state.config.app_name,
         ),
-    ).map(|_| Ok((
-        StatusCode::OK,
-        Json(GenericResponseBody::new("Token sent to user's email.")),
-    )
-        .into_response()))?
+    ).map(|_| Ok((StatusCode::OK).into_response()))?
 }
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]

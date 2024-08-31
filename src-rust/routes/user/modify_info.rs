@@ -52,12 +52,12 @@ pub async fn post_modify_info(
         if !is_verified {
             return Ok((
                 StatusCode::UNAUTHORIZED,
-                "User is not verified, cannot change password.",
+                "user is not verified, cannot change password",
             )
                 .into_response());
         }
         if !check_pass(&password_in_db, &password) {
-            return Ok((StatusCode::BAD_REQUEST, "Invalid password.").into_response());
+            return Ok((StatusCode::BAD_REQUEST, "invalid password").into_response());
         }
     }
 
@@ -70,7 +70,7 @@ pub async fn post_modify_info(
         active_user
             .save(&app_state.db)
             .await
-            .map_err(|e| AppError::from(anyhow::anyhow!("Can't modify user: {}", e)))?;
+            .map_err(|e| AppError::from(anyhow::anyhow!("can't modify user: {}", e)))?;
     }
 
     Ok((StatusCode::OK).into_response())
