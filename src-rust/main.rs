@@ -138,7 +138,7 @@ async fn main() -> Result<(), DbErr> {
                 .route("/reset", post(post_reset_password))
                 .route("/delete", get(get_delete_account).post(post_delete_account))
                 .route("/verify", get(get_validate_email).post(post_validate_email))
-                .route("/modify", post(post_modify))
+                .route("/modify", post(post_modify_info))
                 .route("/bookmark/:id", put(put_bookmark).delete(delete_bookmark))
                 .route("/favorite/:id", put(put_favorite).delete(delete_favorite))
                 .route("/progress/:title_id/:page", put(put_progress))

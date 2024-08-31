@@ -29,7 +29,7 @@ pub struct ModifyRequestBody {
     (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Internal server error", body = String)
 ))]
-pub async fn post_modify(
+pub async fn post_modify_info(
     State(app_state): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
     Json(body): Json<ModifyRequestBody>,
