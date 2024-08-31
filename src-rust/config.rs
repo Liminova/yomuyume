@@ -91,12 +91,11 @@ impl Config {
         let semver = env!("CARGO_PKG_VERSION").parse::<semver::Version>();
 
         if let Ok(semver) = semver {
-            let version_name = format!(
+            format!(
                 "{} - {}",
                 semver,
                 VERSION_NAMES[(semver.major + semver.minor - 1) as usize]
-            );
-            version_name
+            )
         } else {
             tracing::warn!(
                 "couldn't parse a semver out of Cargo.toml? defaulting to 0.0.0-unknown."
