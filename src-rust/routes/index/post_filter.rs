@@ -44,7 +44,7 @@ pub struct FilterTitleResponseBody {
     pub id: String,
     pub title: String,
     pub author: Option<String>,
-    pub category_id: String,
+    pub category_id: Option<String>,
     pub release: Option<String>,
     pub favorite_count: Option<i64>,
     pub page_count: i64,
