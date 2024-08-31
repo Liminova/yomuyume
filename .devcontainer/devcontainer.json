@@ -46,6 +46,23 @@
 				"fill-labs.dependi",
 				"maptz.regionfolder"
 			],
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "zsh",
+				"css.customData": [
+					".devcontainer/css_custom_data.json"
+				],
+				"[rust]": {
+					"editor.formatOnSave": true
+				},
+				"typescript.tsdk": "node_modules/typescript/lib",
+				"explorer.fileNesting.patterns": {
+					"*.ts": "${capture}.js",
+					"*.js": "${capture}.js.map, ${capture}.min.js, ${capture}.d.ts",
+					"*.jsx": "${capture}.js",
+					"*.tsx": "${capture}.ts",
+					"package.json": "pnpm-lock.yaml, .eslint*, Cargo*, *.json, *.js, *.ts"
+				}
+			}
 		}
 	}
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
