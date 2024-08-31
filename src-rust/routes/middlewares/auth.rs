@@ -1,20 +1,17 @@
 use std::sync::Arc;
 
-use crate::{
-    models::{auth::TokenClaims, prelude::*},
-    AppError, AppState,
-};
+use crate::{models::prelude::*, AppError, AppState};
 
 use axum::{
     body::Body,
     extract::State,
-    http::{header, Request, StatusCode},
+    http::{Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
-use jsonwebtoken::{decode, DecodingKey, Validation};
 use sea_orm::*;
+use session_tokens::SessionSecret;
 
 pub async fn auth(
     cookie_jar: CookieJar,
@@ -22,56 +19,60 @@ pub async fn auth(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, AppError> {
-    let token = match cookie_jar
-        .get("token")
+    let session_id = match cookie_jar
+        .get("session-id")
         .map(|cookie| cookie.value().to_string())
-        .or_else(|| {
-            req.headers()
-                .get(header::AUTHORIZATION)
-                .and_then(|auth_header| auth_header.to_str().ok())
-                .and_then(|auth_value| {
-                    auth_value
-                        .strip_prefix("Bearer ")
-                        .map(|stripped| stripped.to_owned())
-                })
-        }) {
-        Some(token) => token.to_string(),
-        None => return Ok((StatusCode::UNAUTHORIZED, "No token provided").into_response()),
+        .and_then(|session_id_str| session_id_str.parse::<u64>().ok())
+    {
+        Some(session_id) => session_id,
+        None => {
+            return Ok((StatusCode::UNAUTHORIZED, "no valid session id provided").into_response())
+        }
     };
 
-    let claims = match decode::<TokenClaims>(
-        &token,
-        &DecodingKey::from_secret(data.config.jwt_secret.as_ref()),
-        &Validation::default(),
-    ) {
-        Ok(claims) => claims,
-        Err(e) => return Ok((StatusCode::UNAUTHORIZED, e.to_string()).into_response()),
-    }
-    .claims;
+    let session_secret = match cookie_jar
+        .get("session-secret")
+        .map(|cookie| cookie.value().to_string())
+        .and_then(|raw| SessionSecret::from(raw).ok())
+    {
+        Some(session_secret) => session_secret,
+        None => {
+            return Ok(
+                (StatusCode::UNAUTHORIZED, "no valid session secret provided").into_response(),
+            )
+        }
+    };
 
-    let user_id_string: String = claims
-        .sub
-        .parse()
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't parse user id: {}", e)))?;
-
-    let user_id = UserID::from(user_id_string)
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't parse user id: {}", e)))?;
-
-    match Users::find_by_id(user_id)
+    let session_token = match SessionTokens::find_by_id(session_id)
         .one(&data.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find user: {}", e)))?
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find session token: {}", e)))?
     {
-        Some(user) => {
-            req.extensions_mut().insert(user);
-            req.extensions_mut()
-                .insert(claims.purpose.unwrap_or_default());
-            Ok(next.run(req).await)
-        }
-        None => Ok((
-            StatusCode::UNAUTHORIZED,
-            "The user belonging to this token no longer exists.",
-        )
-            .into_response()),
+        Some(session_token) => session_token,
+        _ => return Ok((StatusCode::UNAUTHORIZED, "session token not found").into_response()),
+    };
+
+    if session_token.session_secret != session_secret {
+        return Ok((StatusCode::UNAUTHORIZED).into_response());
     }
+
+    let user = Users::find_by_id(session_token.user_id)
+        .one(&data.db)
+        .await
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find user: {}", e)))?
+        .ok_or({
+            SessionTokens::delete_by_id(session_id)
+                .exec(&data.db)
+                .await
+                .map_err(|e| {
+                    AppError::from(anyhow::anyhow!("can't delete old session token: {}", e))
+                })?;
+
+            AppError::from(anyhow::anyhow!(
+                "the user belonging to this session token no longer exists"
+            ))
+        })?;
+
+    req.extensions_mut().insert(user);
+    Ok(next.run(req).await)
 }

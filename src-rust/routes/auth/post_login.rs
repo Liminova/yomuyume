@@ -1,23 +1,22 @@
-use std::sync::Arc;
-
-use crate::{
-    models::{auth::TokenClaims, prelude::*},
-    routes::check_pass,
-    AppError, AppState,
-};
+use std::{net::SocketAddr, sync::Arc};
 
 use axum::{
-    extract::State,
-    http::{header, StatusCode},
+    extract::{ConnectInfo, State},
+    http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
 use axum_extra::extract::cookie::{Cookie, SameSite};
-use jsonwebtoken::{encode, EncodingKey, Header};
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::ToSchema;
+
+use crate::{
+    models::{prelude::*, session_tokens::SessionSecret},
+    routes::check_pass,
+    AppError, AppState,
+};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema, TS)]
 #[ts(export)]
@@ -34,15 +33,16 @@ pub struct LoginResponseBody {
 
 /// Login with username and password and get the JWT token.
 #[utoipa::path(post, path = "/api/auth/login", responses(
-    (status = 200, description = "Login successful", body = GenericResponseBody),
+    (status = 200, description = "Login successful"),
     (status = 500, description = "Internal server error", body = String),
     (status = 400, description = "Bad request", body = String),
 ))]
 pub async fn post_login(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     State(data): State<Arc<AppState>>,
     query: Json<LoginRequestBody>,
 ) -> Result<Response, AppError> {
-    // get user from db
     let user = match Users::find()
         .filter(users::Column::Username.eq(&query.login))
         .one(&data.db)
@@ -51,43 +51,65 @@ pub async fn post_login(
     {
         Some(user) => user,
         None => {
-            return Ok((StatusCode::BAD_REQUEST, "Invalid username or password.").into_response())
+            return Ok((StatusCode::BAD_REQUEST, "invalid username or password").into_response())
         }
     };
 
-    // check password
     if !check_pass(&user.password, &query.password) {
-        return Ok((StatusCode::BAD_REQUEST, "Invalid username or password.").into_response());
+        return Ok((StatusCode::BAD_REQUEST, "invalid username or password").into_response());
     }
 
-    // build claims
-    let now = chrono::Utc::now();
-    let claims = TokenClaims {
-        sub: user.id.to_string(),
-        exp: (now + data.config.jwt_maxage_day).timestamp() as usize,
-        iat: now.timestamp() as usize,
-        purpose: None,
+    let ip_address = data
+        .config
+        .reverse_proxy_ip_header
+        .clone()
+        .and_then(|header| {
+            headers
+                .get(&header)
+                .or(headers.get(header.to_ascii_lowercase()))
+        })
+        .and_then(|value| value.to_str().ok())
+        .map(|ip_str| ip_str.to_string())
+        .unwrap_or(addr.ip().to_string());
+
+    let user_agent = headers
+        .get("user-agent")
+        .or(headers.get("User-Agent"))
+        .and_then(|value| value.to_str().ok())
+        .map(|user_agent_str| user_agent_str.to_string());
+
+    let session_secret = SessionSecret::new();
+
+    let session_token = session_tokens::ActiveModel {
+        session_id: NotSet,
+        session_secret: Set(session_secret.clone()),
+        user_id: Set(user.id),
+        created_at: Set(chrono::Utc::now()),
+        user_agent: Set(user_agent),
+        ip_address: Set(ip_address.clone()),
     };
 
-    // generate token
-    let token = encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(data.config.jwt_secret.as_ref()),
-    )
-    .map_err(AppError::from)?;
+    let session_id = SessionTokens::insert(session_token)
+        .exec(&data.db)
+        .await
+        .map_err(AppError::from)?
+        .last_insert_id;
 
-    // build cookie
-    let cookie = Cookie::build(("token", token.to_owned()))
+    let session_id_cookie = Cookie::build(("session-id", session_id.to_string()))
         .path("/")
-        .max_age(time::Duration::days(data.config.jwt_maxage_day.num_days()))
+        .same_site(SameSite::Lax)
+        .http_only(true);
+    let session_secret_cookie = Cookie::build(("session-secret", session_secret.to_string()))
+        .path("/")
         .same_site(SameSite::Lax)
         .http_only(true);
 
     Ok((
         StatusCode::OK,
-        [(header::SET_COOKIE, cookie.to_string())],
-        Json(LoginResponseBody { token }),
+        [
+            (header::SET_COOKIE, session_id_cookie.to_string()),
+            (header::SET_COOKIE, session_secret_cookie.to_string()),
+        ],
     )
         .into_response())
 }

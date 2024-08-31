@@ -1,8 +1,5 @@
 use std::sync::Arc;
 
-use crate::{models::prelude::*, AppError, AppState};
-
-use crate::routes::GenericResponseBody;
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use axum::{
     extract::State,
@@ -16,6 +13,8 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::ToSchema;
 
+use crate::{models::prelude::*, AppError, AppState};
+
 #[derive(Debug, Deserialize, Serialize, ToSchema, TS)]
 #[ts(export)]
 pub struct RegisterRequestBody {
@@ -26,7 +25,7 @@ pub struct RegisterRequestBody {
 
 /// Register a new user.
 #[utoipa::path(post, path = "api/auth/register", responses(
-    (status = 200, description = "Registration successful", body = GenericResponseBody),
+    (status = 200, description = "Registration successful"),
     (status = 500, description = "Internal server error", body = String),
     (status = 409, description = "A conflict has occurred", body = String),
 ))]
@@ -35,7 +34,7 @@ pub async fn post_register(
     query: Json<RegisterRequestBody>,
 ) -> Result<Response, AppError> {
     if !email_address::EmailAddress::is_valid(&query.email) {
-        return Ok((StatusCode::BAD_REQUEST, "Invalid email.").into_response());
+        return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
     }
 
     let email_exists = Users::find()
@@ -47,7 +46,7 @@ pub async fn post_register(
     if email_exists.is_some() {
         return Ok((
             StatusCode::CONFLICT,
-            "An user with this email already exists.",
+            "a user with this email already exists",
         )
             .into_response());
     }
@@ -59,13 +58,13 @@ pub async fn post_register(
     let has_special = password.chars().any(|c| c.is_ascii_punctuation());
     let has_valid_length = password.len() >= 8 && password.len() <= 100;
     if !(has_uppercase && has_lowercase && has_numeric && has_special && has_valid_length) {
-        return Ok((StatusCode::BAD_REQUEST, "Password must be between 8 and 100 characters long and contain at least one uppercase letter, one lowercase letter, one number and one special character.").into_response());
+        return Ok((StatusCode::BAD_REQUEST, "password must be between 8 and 100 characters long and contain at least one uppercase letter, one lowercase letter, one number and one special character").into_response());
     }
 
     let salt = SaltString::generate(&mut OsRng);
     let hashed_password = Argon2::default()
         .hash_password(query.password.as_bytes(), &salt)
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't hash password: {}", e)))?
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't hash password: {}", e)))?
         .to_string();
 
     let username = query.username.to_string();
@@ -85,11 +84,7 @@ pub async fn post_register(
 
     user.insert(&data.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't insert user: {}", e)))?;
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't insert user: {}", e)))?;
 
-    Ok((
-        StatusCode::OK,
-        Json(GenericResponseBody::new("User registered successfully.")),
-    )
-        .into_response())
+    Ok((StatusCode::OK).into_response())
 }
