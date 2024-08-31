@@ -13,3 +13,5 @@ pub use favorite_bookmark::*;
 pub use get_check::*;
 pub use modify::*;
 pub use put_progress::*;
+pub use reset_password::*;
+pub use validate_email::*;
