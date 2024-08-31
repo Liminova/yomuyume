@@ -27,8 +27,6 @@ pub struct StatusResponseBody {
     pub server_time: String,
     /// Current yomuyume version.
     pub version: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Your test string.
     pub echo: Option<String>,
 }
