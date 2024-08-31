@@ -26,8 +26,11 @@ pub async fn put_progress(
     };
 
     let progress_model = Progresses::find()
-        .filter(progresses::Column::TitleId.eq(&title_id))
-        .filter(progresses::Column::UserId.eq(&user.id))
+        .filter(
+            Condition::all()
+                .add(progresses::Column::TitleId.eq(&title_id))
+                .add(progresses::Column::UserId.eq(&user.id)),
+        )
         .one(&data.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("Can't find progress: {}", e)))?;
