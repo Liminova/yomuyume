@@ -1,5 +1,5 @@
-mod cover;
+mod get_cover;
 mod get_page;
 
-pub use cover::*;
+pub use get_cover::*;
 pub use get_page::*;
