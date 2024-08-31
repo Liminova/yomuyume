@@ -25,7 +25,6 @@ pub struct ResponsePage {
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ResponseCover {
-    pub format: String,
     pub blurhash: Option<String>,
     pub width: Option<u8>,
     pub height: Option<u8>,
