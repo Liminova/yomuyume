@@ -116,6 +116,15 @@ fn check_pass(real: impl AsRef<str>, input: impl AsRef<str>) -> bool {
     }
 }
 
+fn hash_pass(input: impl AsRef<str>) -> Result<String, AppError> {
+    let input = input.as_ref().as_bytes();
+
+    Argon2::default()
+        .hash_password(input, &SaltString::generate(&mut OsRng))
+        .map(|hash| hash.to_string())
+        .map_err(|e| anyhow::anyhow!("can't hash password: {}", e).into())
+}
+
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct GenericResponseBody {
     pub message: String,
