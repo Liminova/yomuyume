@@ -40,12 +40,12 @@ pub struct LoginResponseBody {
 pub async fn post_login(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
-    State(data): State<Arc<AppState>>,
+    State(app_state): State<Arc<AppState>>,
     query: Json<LoginRequestBody>,
 ) -> Result<Response, AppError> {
     let user = match Users::find()
         .filter(users::Column::Username.eq(&query.login))
-        .one(&data.db)
+        .one(&app_state.db)
         .await
         .map_err(AppError::from)?
     {
@@ -59,7 +59,7 @@ pub async fn post_login(
         return Ok((StatusCode::BAD_REQUEST, "invalid username or password").into_response());
     }
 
-    let ip_address = data
+    let ip_address = app_state
         .config
         .reverse_proxy_ip_header
         .clone()
@@ -90,7 +90,7 @@ pub async fn post_login(
     };
 
     let session_id = SessionTokens::insert(session_token)
-        .exec(&data.db)
+        .exec(&app_state.db)
         .await
         .map_err(AppError::from)?
         .last_insert_id;

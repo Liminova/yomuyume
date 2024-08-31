@@ -24,10 +24,10 @@ pub struct ScanningProgressResponseBody {
     (status = 401, description = "Unauthorized", body = String),
 ))]
 pub async fn get_scanning_progress(
-    State(data): State<Arc<AppState>>,
+    State(app_state): State<Arc<AppState>>,
 ) -> Result<Response, AppError> {
-    let scanning_complete = data.scanning_complete.lock().await;
-    let scanning_progress = data.scanning_progress.lock().await;
+    let scanning_complete = app_state.scanning_complete.lock().await;
+    let scanning_progress = app_state.scanning_progress.lock().await;
 
     Ok((
         StatusCode::OK,

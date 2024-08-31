@@ -18,7 +18,7 @@ use sea_orm::{
     (status = 401, description = "Unauthorized", body = String),
 ))]
 pub async fn put_progress(
-    State(data): State<Arc<AppState>>,
+    State(app_state): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
     Path((title_id, page)): Path<(String, i64)>,
 ) -> Result<Response, AppError> {
@@ -33,7 +33,7 @@ pub async fn put_progress(
                 .add(progresses::Column::TitleId.eq(&title_id))
                 .add(progresses::Column::UserId.eq(&user.id)),
         )
-        .one(&data.db)
+        .one(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't find progress: {}", e)))?;
 
@@ -42,7 +42,7 @@ pub async fn put_progress(
         active_model.last_read_at = Set(Some(chrono::Utc::now()));
         active_model.page = Set(page);
         active_model
-            .update(&data.db)
+            .update(&app_state.db)
             .await
             .map_err(|e| AppError::from(anyhow::anyhow!("can't update progress: {}", e)))?;
     } else {
@@ -53,7 +53,7 @@ pub async fn put_progress(
             last_read_at: Set(Some(chrono::Utc::now())),
             page: Set(page),
         }
-        .insert(&data.db)
+        .insert(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't insert progress: {}", e)))?;
     }

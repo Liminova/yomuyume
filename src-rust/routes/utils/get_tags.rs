@@ -30,8 +30,8 @@ pub struct TagsMapResponseBody {
     (status = 200, description = "Tags map.", body = TagsMapResponseBody),
     (status = 500, description = "Internal server error.", body = String),
 ))]
-pub async fn get_tags(State(data): State<Arc<AppState>>) -> Result<Response, AppError> {
-    let tags = Tags::find().all(&data.db).await.map_err(AppError::from)?;
+pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response, AppError> {
+    let tags = Tags::find().all(&app_state.db).await.map_err(AppError::from)?;
 
     let data = tags
         .into_iter()

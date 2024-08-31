@@ -30,7 +30,7 @@ pub struct ModifyRequestBody {
     (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn post_modify(
-    State(data): State<Arc<AppState>>,
+    State(app_state): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
     Json(body): Json<ModifyRequestBody>,
 ) -> Result<Response, AppError> {
@@ -68,7 +68,7 @@ pub async fn post_modify(
     if active_user.is_changed() {
         active_user.updated_at = Set(chrono::Utc::now());
         active_user
-            .save(&data.db)
+            .save(&app_state.db)
             .await
             .map_err(|e| AppError::from(anyhow::anyhow!("Can't modify user: {}", e)))?;
     }

@@ -19,7 +19,7 @@ use sea_orm::{
     (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn put_favorite(
-    State(data): State<Arc<AppState>>,
+    State(app_state): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
     Path(id): Path<String>,
 ) -> Result<Response, AppError> {
@@ -29,7 +29,7 @@ pub async fn put_favorite(
     };
 
     let title = match Titles::find_by_id(title_id)
-        .one(&data.db)
+        .one(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("Can't find title: {}", e)))?
     {
@@ -43,7 +43,7 @@ pub async fn put_favorite(
                 .add(favorites::Column::TitleId.eq(&title.id))
                 .add(favorites::Column::UserId.eq(&user.id)),
         )
-        .one(&data.db)
+        .one(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("Can't find favorite: {}", e)))?;
 
@@ -56,7 +56,7 @@ pub async fn put_favorite(
         title_id: Set(title.id),
         user_id: Set(user.id),
     }
-    .insert(&data.db)
+    .insert(&app_state.db)
     .await
     .map_err(|e| AppError::from(anyhow::anyhow!("Can't insert favorite: {}", e)))?;
 
@@ -74,7 +74,7 @@ pub async fn put_favorite(
     (status = 500, description = "Internal server error", body = String)
 ))]
 pub async fn put_bookmark(
-    State(data): State<Arc<AppState>>,
+    State(app_state): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
     Path(id): Path<String>,
 ) -> Result<Response, AppError> {
@@ -84,7 +84,7 @@ pub async fn put_bookmark(
     };
 
     let title = match Titles::find_by_id(title_id)
-        .one(&data.db)
+        .one(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("Can't find title: {}", e)))?
     {
@@ -98,7 +98,7 @@ pub async fn put_bookmark(
                 .add(bookmarks::Column::TitleId.eq(&title.id))
                 .add(bookmarks::Column::UserId.eq(&user.id)),
         )
-        .one(&data.db)
+        .one(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("Can't find bookmark: {}", e)))?;
 
@@ -111,7 +111,7 @@ pub async fn put_bookmark(
         title_id: Set(title.id),
         user_id: Set(user.id),
     }
-    .insert(&data.db)
+    .insert(&app_state.db)
     .await
     .map_err(|e| AppError::from(anyhow::anyhow!("Can't insert bookmark: {}", e)))?;
 

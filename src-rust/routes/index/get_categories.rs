@@ -32,9 +32,9 @@ pub struct CategoriesResponseBody {
     (status = 200, description = "Fetch all categories successful", body = CategoriesResponseBody),
     (status = 500, description = "Internal server error", body = String)
 ))]
-pub async fn get_categories(State(data): State<Arc<AppState>>) -> Result<Response, AppError> {
+pub async fn get_categories(State(app_state): State<Arc<AppState>>) -> Result<Response, AppError> {
     let data = Categories::find()
-        .all(&data.db)
+        .all(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't find categories: {}", e)))?
         .into_iter()

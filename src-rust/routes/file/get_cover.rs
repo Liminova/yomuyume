@@ -17,7 +17,7 @@ use zip::ZipArchive;
     (status = 500, description = "Internal server error", body = String),
 ))]
 pub async fn get_cover(
-    State(data): State<Arc<AppState>>,
+    State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<String>,
 ) -> Result<Response, AppError> {
     let (content_file_path, cover_path) = match Titles::find()
@@ -25,7 +25,7 @@ pub async fn get_cover(
         .columns(vec![titles::Column::Path, titles::Column::CoverPath])
         .filter(titles::Column::Id.eq(title_id))
         .into_tuple::<(String, Option<String>)>()
-        .one(&data.db)
+        .one(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't find title path: {}", e)))?
     {

@@ -17,7 +17,7 @@ use zip::ZipArchive;
     (status = 500, description = "Internal server error", body = String),
 ))]
 pub async fn get_page(
-    State(data): State<Arc<AppState>>,
+    State(app_state): State<Arc<AppState>>,
     Path(page_id): Path<String>,
 ) -> Result<Response, AppError> {
     let (title_id, path_in_content_file) = match Pages::find()
@@ -25,7 +25,7 @@ pub async fn get_page(
         .columns(vec![pages::Column::TitleId, pages::Column::Path])
         .filter(pages::Column::Id.contains(page_id))
         .into_tuple::<(String, String)>()
-        .one(&data.db)
+        .one(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't find page: {}", e)))?
     {
@@ -35,7 +35,7 @@ pub async fn get_page(
 
     let title_in_db = match Titles::find()
         .filter(titles::Column::Id.contains(&title_id))
-        .one(&data.db)
+        .one(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't find title: {}", e)))?
     {

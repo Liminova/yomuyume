@@ -28,7 +28,7 @@ pub struct RegisterRequestBody {
     (status = 409, description = "A conflict has occurred", body = String),
 ))]
 pub async fn post_register(
-    State(data): State<Arc<AppState>>,
+    State(app_state): State<Arc<AppState>>,
     query: Json<RegisterRequestBody>,
 ) -> Result<Response, AppError> {
     if !email_address::EmailAddress::is_valid(&query.email) {
@@ -37,7 +37,7 @@ pub async fn post_register(
 
     let email_exists = Users::find()
         .filter(users::Column::Email.eq(query.email.to_string().to_ascii_lowercase()))
-        .one(&data.db)
+        .one(&app_state.db)
         .await
         .map_err(AppError::from)?;
 
@@ -74,7 +74,7 @@ pub async fn post_register(
         ..Default::default()
     };
 
-    user.insert(&data.db)
+    user.insert(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't insert user: {}", e)))?;
 
