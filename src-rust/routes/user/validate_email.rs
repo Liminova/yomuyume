@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::ToSchema;
 
-use crate::{models::prelude::*, routes::mailer::Mailer, AppError, AppState};
+use crate::{models::prelude::*, routes::Mailer, AppError, AppState};
 
 /// Send a verification email to the user's email address.
 #[utoipa::path(get, path = "/api/user/verify", responses(

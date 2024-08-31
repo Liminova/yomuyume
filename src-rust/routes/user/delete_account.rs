@@ -13,7 +13,7 @@ use utoipa::ToSchema;
 
 use crate::{
     models::prelude::*,
-    routes::{check_pass, mailer::Mailer},
+    routes::{check_pass, Mailer},
     AppError, AppState, GenericResponseBody,
 };
 
