@@ -98,6 +98,10 @@ async fn main() -> Result<(), DbErr> {
     assert!(schema_manager.has_table("bookmarks").await?);
     assert!(schema_manager.has_table("favorites").await?);
     assert!(schema_manager.has_table("progresses").await?);
+    assert!(schema_manager.has_table("session_tokens").await?);
+    assert!(schema_manager.has_table("code_delete_account").await?);
+    assert!(schema_manager.has_table("code_reset_password").await?);
+    assert!(schema_manager.has_table("code_validate_email").await?);
 
     info!("database migrations complete!");
 
@@ -131,9 +135,9 @@ async fn main() -> Result<(), DbErr> {
             "/api/user",
             Router::new()
                 .route("/check", get(get_check))
-                .route("/reset", post(post_reset))
-                .route("/delete", get(get_delete).post(post_delete))
-                .route("/verify", get(get_verify).post(post_verify))
+                .route("/reset", post(post_reset_password))
+                .route("/delete", get(get_delete_account).post(post_delete_account))
+                .route("/verify", get(get_validate_email).post(post_validate_email))
                 .route("/modify", post(post_modify))
                 .route("/bookmark/:id", put(put_bookmark).delete(delete_bookmark))
                 .route("/favorite/:id", put(put_favorite).delete(delete_favorite))
