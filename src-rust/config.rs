@@ -55,17 +55,6 @@ pub struct Config {
 }
 
 impl Config {
-    fn get_env(key: &str, default: Option<&str>) -> String {
-        match default {
-            Some(val) => std::env::var(key).unwrap_or(val.to_string()),
-            None => std::env::var(key).unwrap_or_else(|_| panic!("{} must be set.", key)),
-        }
-    }
-
-    fn may_get(key: &str) -> Option<String> {
-        std::env::var(key).ok()
-    }
-
     pub fn init() -> Self {
         Self {
             app_name: Self::get_env("APP_NAME", Some("Yomuyume")),
