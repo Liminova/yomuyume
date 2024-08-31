@@ -36,7 +36,7 @@ pub async fn get_categories(State(data): State<Arc<AppState>>) -> Result<Respons
     let data = Categories::find()
         .all(&data.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find categories: {}", e)))?
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find categories: {}", e)))?
         .into_iter()
         .map(|category| CategoryResponse {
             id: category.id.to_string(),
