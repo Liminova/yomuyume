@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{models::prelude::*, routes::check_pass, AppError, AppState, GenericResponseBody};
+use crate::{models::prelude::*, routes::check_pass, AppError, AppState};
 
 use axum::{
     extract::State,
@@ -24,7 +24,7 @@ pub struct ModifyRequestBody {
 
 /// Modify user information.
 #[utoipa::path(post, path = "/api/user/modify", responses(
-    (status = 200, description = "Modify user successful", body = GenericResponseBody),
+    (status = 200, description = "Modify user successful"),
     (status = 400, description = "Bad request", body = String),
     (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Internal server error", body = String)
@@ -70,9 +70,5 @@ pub async fn post_modify(
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("Can't modify user: {}", e)))?;
 
-    Ok((
-        StatusCode::OK,
-        Json(GenericResponseBody::new("Modify user successful.")),
-    )
-        .into_response())
+    Ok((StatusCode::OK).into_response())
 }
