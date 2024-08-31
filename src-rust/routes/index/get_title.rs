@@ -174,8 +174,6 @@ pub async fn get_title(
         .map(|tag| tag.tag_id)
         .collect::<Vec<_>>();
 
-    let (width, height) = calculate_dimension(&app_state.config, cover.ratio);
-
     Ok((
         StatusCode::OK,
         Json(TitleResponseBody {
