@@ -10,20 +10,22 @@ use axum::{
 };
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use ts_rs::TS;
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
 #[ts(export)]
+#[skip_serializing_none]
 pub struct ResponsePage {
     pub id: String,
     pub format: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
 #[ts(export)]
+#[skip_serializing_none]
 pub struct ResponseCover {
     pub blurhash: Option<String>,
     pub width: Option<u8>,
@@ -32,7 +34,7 @@ pub struct ResponseCover {
 
 #[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
 #[ts(export)]
-#[serde_with::skip_serializing_none]
+#[skip_serializing_none]
 pub struct TitleResponseBody {
     pub category_id: Option<String>,
     pub title: String,
