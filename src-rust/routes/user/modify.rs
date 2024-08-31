@@ -65,10 +65,13 @@ pub async fn post_modify(
         active_user.password = Set(new_password);
     }
 
-    active_user
-        .save(&data.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't modify user: {}", e)))?;
+    if active_user.is_changed() {
+        active_user.updated_at = Set(chrono::Utc::now());
+        active_user
+            .save(&data.db)
+            .await
+            .map_err(|e| AppError::from(anyhow::anyhow!("Can't modify user: {}", e)))?;
+    }
 
     Ok((StatusCode::OK).into_response())
 }
