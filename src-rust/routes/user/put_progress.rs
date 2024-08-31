@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
-use crate::{models::prelude::*, AppError, AppState, GenericResponseBody};
+use crate::{models::prelude::*, AppError, AppState};
 
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Extension, Json,
+    Extension,
 };
-use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
+};
 
 #[utoipa::path(put, path = "/api/user/progress/{title_id}/{page}", responses(
     (status = 200, description = "Set progress successfully"),
