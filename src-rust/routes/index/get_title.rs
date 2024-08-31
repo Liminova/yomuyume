@@ -91,10 +91,12 @@ pub async fn get_title(
     let pages = pages
         .into_iter()
         .fold(Vec::new(), |mut list, page_model| {
-            if page_model.path == cover.path {
-                list.insert(0, page_model);
-            } else {
-                list.push(page_model);
+            match &title.cover_path {
+                Some(cover_path) => match page_model.path.as_str() == cover_path {
+                    true => list.insert(0, page_model),
+                    false => list.push(page_model),
+                },
+                None => list.push(page_model),
             }
             list
         })
