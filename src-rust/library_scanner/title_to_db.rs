@@ -32,7 +32,7 @@ pub async fn title_to_db(
     // micro optimization, this value is used frequently
     let title_file_path_string = content_file_path.to_string_lossy().to_string();
 
-    let metadata = TitleMetadata::load(&content_file_path)?;
+    let metadata = TitleMetadata::load(content_file_path)?;
 
     // #region - getting up-to-date models
 
@@ -75,7 +75,7 @@ pub async fn title_to_db(
                 active.description = Set(metadata.description.clone());
             }
             if model.release != metadata.release {
-                active.release = Set(metadata.release.clone());
+                active.release = Set(metadata.release);
             }
             if model.content_file_hash != current_content_file_hash {
                 active.content_file_hash = Set(current_content_file_hash.clone());
@@ -98,7 +98,7 @@ pub async fn title_to_db(
                 category_id: Set(Some(category_id.clone())),
                 author: Set(metadata.author.clone()),
                 description: Set(metadata.description.clone()),
-                release: Set(metadata.release.clone()),
+                release: Set(metadata.release),
                 path: Set(title_file_path_string.clone()),
 
                 content_file_hash: Set(current_content_file_hash),
@@ -133,12 +133,12 @@ pub async fn title_to_db(
     }
 
     let mut archive = ZipArchive::new(
-        File::open(&content_file_path)
+        File::open(content_file_path)
             .map_err(|e| AppError::from(anyhow!("can't read content file: {}", e)))?,
     )
     .map_err(|e| AppError::from(anyhow!("can't open content file: {}", e)))?;
 
-    if archive.len() == 0 {
+    if archive.is_empty() {
         return Err(AppError::from(anyhow!("content file is empty")));
     }
 
@@ -177,14 +177,11 @@ pub async fn title_to_db(
     let to_be_insert: Vec<&String> = pages_in_file.difference(&pages_in_db).collect();
     let to_be_insert_models = to_be_insert
         .into_iter()
-        .map(|path| {
-            let page_active = pages::ActiveModel {
-                id: Set(PageID::new()),
-                title_id: Set(newest_title_model.id.clone()),
-                path: Set(path.clone()),
-                description: Set(metadata.get_page_description(path)),
-            };
-            page_active
+        .map(|path| pages::ActiveModel {
+            id: Set(PageID::new()),
+            title_id: Set(newest_title_model.id.clone()),
+            path: Set(path.clone()),
+            description: Set(metadata.get_page_description(path)),
         })
         .collect::<Vec<_>>();
     Pages::insert_many(to_be_insert_models)
@@ -279,7 +276,7 @@ pub async fn title_to_db(
             }
 
             let cover_img: Result<BlurhashResult, String> = archive
-                .by_name(&page_file_name)
+                .by_name(page_file_name)
                 .map_err(|e| format!("can't read cover file from content file: {}", e))
                 .and_then(|mut f| {
                     let mut buf: Vec<u8> = Vec::new();
@@ -319,7 +316,7 @@ pub async fn title_to_db(
     if !valid_cover {
         'scoped: for page_file_name in pages_in_file.iter() {
             let cover_img: Result<BlurhashResult, String> = archive
-                .by_name(&page_file_name)
+                .by_name(page_file_name)
                 .map_err(|e| format!("can't read cover file from content file: {}", e))
                 .and_then(|mut f| {
                     let mut buf: Vec<u8> = Vec::new();
