@@ -161,7 +161,7 @@ async fn main() -> Result<(), DbErr> {
         .nest(
             "/api",
             Router::new()
-                .route("/user/reset/:email", get(get_reset))
+                .route("/user/reset/:email", get(get_reset_password))
                 .route("/utils/status", get(get_status).post(post_status)),
         )
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
