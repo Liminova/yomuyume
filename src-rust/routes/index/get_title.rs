@@ -1,7 +1,5 @@
 use std::{path::PathBuf, sync::Arc};
 
-use crate::{models::prelude::*, routes::calculate_dimension, AppError, AppState};
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -13,6 +11,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use ts_rs::TS;
 use utoipa::ToSchema;
+
+use crate::{models::prelude::*, AppError, AppState};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
 #[ts(export)]
