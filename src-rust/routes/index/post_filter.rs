@@ -82,7 +82,7 @@ pub async fn post_filter(
     let limit = query.limit;
 
     if keywords.is_none() && category_ids.is_none() && tag_ids.is_none() {
-        return Ok((StatusCode::NO_CONTENT, "No title found").into_response());
+        return Ok((StatusCode::NO_CONTENT, "no title found").into_response());
     }
 
     let mut condition = Condition::any();
@@ -111,8 +111,7 @@ pub async fn post_filter(
             .filter(internal_cond)
             .all(&app_state.db)
             .await
-            // .map_err(|e| AppError::from(anyhow::anyhow!("Can't find tags: {}", e)))?;
-            .map_err(|e| AppError::from(anyhow::anyhow!("Can't find tags: {}", e)))?;
+            .map_err(|e| AppError::from(anyhow::anyhow!("can't find tags: {}", e)))?;
         for entity in title_tag_has_tag_id {
             condition = condition.add(titles::Column::Id.eq(entity.title_id));
         }
@@ -125,7 +124,7 @@ pub async fn post_filter(
                 .filter(progresses::Column::Page.gt(0))
                 .all(&app_state.db)
                 .await
-                .map_err(|e| AppError::from(anyhow::anyhow!("Can't find progress: {}", e)))?;
+                .map_err(|e| AppError::from(anyhow::anyhow!("can't find progress: {}", e)))?;
             for entity in progress_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -139,7 +138,7 @@ pub async fn post_filter(
                 .filter(progresses::Column::Page.eq(0))
                 .all(&app_state.db)
                 .await
-                .map_err(|e| AppError::from(anyhow::anyhow!("Can't find progress: {}", e)))?;
+                .map_err(|e| AppError::from(anyhow::anyhow!("can't find progress: {}", e)))?;
             for entity in progress_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -152,7 +151,7 @@ pub async fn post_filter(
                 .filter(bookmarks::Column::UserId.eq(&user.id))
                 .all(&app_state.db)
                 .await
-                .map_err(|e| AppError::from(anyhow::anyhow!("Can't find bookmark: {}", e)))?;
+                .map_err(|e| AppError::from(anyhow::anyhow!("can't find bookmark: {}", e)))?;
             for entity in bookmark_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -165,7 +164,7 @@ pub async fn post_filter(
                 .filter(favorites::Column::UserId.eq(&user.id))
                 .all(&app_state.db)
                 .await
-                .map_err(|e| AppError::from(anyhow::anyhow!("Can't find favorite: {}", e)))?;
+                .map_err(|e| AppError::from(anyhow::anyhow!("can't find favorite: {}", e)))?;
             for entity in favorite_models {
                 condition = condition.add(titles::Column::Id.eq(entity.title_id));
             }
@@ -199,7 +198,7 @@ pub async fn post_filter(
         .order_by(sort_by, sort_order)
         .all(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find titles: {}", e)))?;
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find titles: {}", e)))?;
 
     let mut resp_data: Vec<FilterTitleResponseBody> = vec![];
 
