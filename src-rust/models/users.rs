@@ -16,6 +16,7 @@ pub struct Model {
     pub email: String,
     pub profile_picture: Option<String>,
     pub created_at: String,
+    pub ip_address: String,
     pub updated_at: String,
     pub password: String,
     pub is_verified: bool,
