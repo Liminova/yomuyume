@@ -25,6 +25,7 @@ impl MigrationTrait for Migration {
                     .name("fk-title-category_id")
                     .from(Titles::Table, Titles::CategoryId)
                     .to(Categories::Table, Categories::Id)
+                    .on_update(ForeignKeyAction::NoAction)
                     .on_delete(ForeignKeyAction::SetNull),
             )
             .col(string_null(Titles::Author))
