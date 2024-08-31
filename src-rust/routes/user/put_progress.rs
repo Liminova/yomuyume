@@ -33,7 +33,7 @@ pub async fn put_progress(
         )
         .one(&data.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't find progress: {}", e)))?;
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't find progress: {}", e)))?;
 
     if let Some(progress_model) = progress_model {
         let mut active_model: progresses::ActiveModel = progress_model.into();
@@ -42,7 +42,7 @@ pub async fn put_progress(
         active_model
             .update(&data.db)
             .await
-            .map_err(|e| AppError::from(anyhow::anyhow!("Can't update progress: {}", e)))?;
+            .map_err(|e| AppError::from(anyhow::anyhow!("can't update progress: {}", e)))?;
     } else {
         progresses::ActiveModel {
             id: NotSet,
@@ -53,7 +53,7 @@ pub async fn put_progress(
         }
         .insert(&data.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't insert progress: {}", e)))?;
+        .map_err(|e| AppError::from(anyhow::anyhow!("can't insert progress: {}", e)))?;
     }
 
     Ok((StatusCode::OK).into_response())
