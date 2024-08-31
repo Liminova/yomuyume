@@ -46,6 +46,9 @@ pub struct Config {
     pub smtp_from_email: Option<String>,
     pub smtp_from_name: Option<String>,
 
+    pub reverse_proxy_ip_header: Option<String>,
+    pub developing: bool,
+
     // Internal variables
     pub cover_filestems: Vec<&'static str>,
     pub supported_img_formats: Vec<&'static str>,
