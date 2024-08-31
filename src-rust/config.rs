@@ -1,3 +1,5 @@
+use std::env::var;
+
 const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
     "Story of Eastern Wonderland",
@@ -57,32 +59,28 @@ pub struct Config {
 impl Config {
     pub fn init() -> Self {
         Self {
-            app_name: Self::get_env("APP_NAME", Some("Yomuyume")),
-            server_address: Self::get_env("SERVER_ADDRESS", Some("0.0.0.0")),
-            server_port: Self::get_env("SERVER_PORT", Some("3000"))
+            app_name: var("APP_NAME").unwrap_or_else(|_| "Yomuyume".to_string()),
+            server_address: var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string()),
+            server_port: var("SERVER_PORT")
+                .unwrap_or_else(|_| "3000".to_string())
                 .parse()
                 .unwrap_or(3000),
-            library_path: Self::get_env("LIBRARY_PATH", Some("/library")),
-            database_url: Self::get_env("DATABASE_URL", Some("sqlite:./sqlite.db?mode=rwc")),
+            library_path: var("LIBRARY_PATH").expect("LIBRARY_PATH must be set."),
+            database_url: var("DATABASE_URL")
+                .unwrap_or_else(|_| "sqlite:./sqlite.db?mode=rwc".to_string()),
 
-            jwt_secret: Self::get_env("JWT_SECRET", None),
-            jwt_maxage_day: chrono::Duration::try_days(
-                Self::get_env("JWT_MAXAGE_DAY", Some("30"))
-                    .parse()
-                    .unwrap_or(30),
-            )
-            .expect("JWT_MAXAGE_DAY was not set"),
+            reverse_proxy_ip_header: var("REVERSE_PROXY_IP_HEADER").ok(),
+            developing: var("DEVELOPING").unwrap_or_else(|_| "false".to_string()) == "true",
 
-            smtp_host: Self::may_get("SMTP_HOST"),
-            smtp_username: Self::may_get("SMTP_USERNAME"),
-            smtp_password: Self::may_get("SMTP_PASSWORD"),
-            smtp_from_email: Self::may_get("SMTP_FROM_EMAIL"),
-            smtp_from_name: Self::may_get("SMTP_FROM_NAME"),
+            smtp_host: var("SMTP_HOST").ok(),
+            smtp_username: var("SMTP_USERNAME").ok(),
+            smtp_password: var("SMTP_PASSWORD").ok(),
+            smtp_from_email: var("SMTP_FROM_EMAIL").ok(),
+            smtp_from_name: var("SMTP_FROM_NAME").ok(),
 
             // for the cover image finding stradegy, prioritize
             // files containing any of these strings
             cover_filestems: vec!["cover", "thumbnail", "folder"],
-
             supported_img_formats: vec![
                 "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
             ],
