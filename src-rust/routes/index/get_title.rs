@@ -177,11 +177,11 @@ pub async fn get_title(
     Ok((
         StatusCode::OK,
         Json(TitleResponseBody {
-            category_id: title.category_id.to_string(),
+            category_id: title.category_id.map(|id| id.to_string()),
             title: title.title,
             author: title.author,
             description: title.description,
-            release_date: title.release,
+            release_date: title.release.map(|d| d.to_rfc3339()),
             cover: ResponseCover {
                 blurhash: cover.blurhash,
                 width,
