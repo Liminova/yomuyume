@@ -7,7 +7,7 @@ use axum::{
     Json,
 };
 use axum_extra::extract::cookie::{Cookie, SameSite};
-use sea_orm::{ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::ToSchema;
@@ -80,25 +80,17 @@ pub async fn post_login(
 
     let session_secret = SessionSecret::new();
 
-    let session_token = session_tokens::ActiveModel {
-        session_id: NotSet,
+    session_tokens::ActiveModel {
         session_secret: Set(session_secret.clone()),
         user_id: Set(user.id),
         created_at: Set(chrono::Utc::now()),
         user_agent: Set(user_agent),
         ip_address: Set(ip_address.clone()),
-    };
+    }
+    .insert(&app_state.db)
+    .await
+    .map_err(|e| AppError::from(anyhow::anyhow!("can't insert session token: {}", e)))?;
 
-    let session_id = SessionTokens::insert(session_token)
-        .exec(&app_state.db)
-        .await
-        .map_err(AppError::from)?
-        .last_insert_id;
-
-    let session_id_cookie = Cookie::build(("session-id", session_id.to_string()))
-        .path("/")
-        .same_site(SameSite::Lax)
-        .http_only(true);
     let session_secret_cookie = Cookie::build(("session-secret", session_secret.to_string()))
         .path("/")
         .same_site(SameSite::Lax)
@@ -106,10 +98,7 @@ pub async fn post_login(
 
     Ok((
         StatusCode::OK,
-        [
-            (header::SET_COOKIE, session_id_cookie.to_string()),
-            (header::SET_COOKIE, session_secret_cookie.to_string()),
-        ],
+        [(header::SET_COOKIE, session_secret_cookie.to_string())],
     )
         .into_response())
 }

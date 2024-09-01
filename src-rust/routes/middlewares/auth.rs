@@ -19,17 +19,6 @@ pub async fn auth(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, AppError> {
-    let session_id = match cookie_jar
-        .get("session-id")
-        .map(|cookie| cookie.value().to_string())
-        .and_then(|session_id_str| session_id_str.parse::<u64>().ok())
-    {
-        Some(session_id) => session_id,
-        None => {
-            return Ok((StatusCode::UNAUTHORIZED, "no valid session id provided").into_response())
-        }
-    };
-
     let session_secret = match cookie_jar
         .get("session-secret")
         .map(|cookie| cookie.value().to_string())
@@ -43,7 +32,7 @@ pub async fn auth(
         }
     };
 
-    let session_token = match SessionTokens::find_by_id(session_id)
+    let session_token = match SessionTokens::find_by_id(&session_secret)
         .one(&data.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't find session token: {}", e)))?
@@ -52,16 +41,12 @@ pub async fn auth(
         _ => return Ok((StatusCode::UNAUTHORIZED, "session token not found").into_response()),
     };
 
-    if session_token.session_secret != session_secret {
-        return Ok((StatusCode::UNAUTHORIZED).into_response());
-    }
-
-    let user = Users::find_by_id(session_token.user_id)
+    let user = Users::find_by_id(&session_token.user_id)
         .one(&data.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't find user: {}", e)))?
         .ok_or({
-            SessionTokens::delete_by_id(session_id)
+            SessionTokens::delete_by_id(session_secret)
                 .exec(&data.db)
                 .await
                 .map_err(|e| {

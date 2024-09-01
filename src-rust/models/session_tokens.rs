@@ -11,8 +11,7 @@ pub type SessionSecret = CustomID;
 #[schema(as = Progress)]
 #[sea_orm(table_name = "session_tokens")]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub session_id: u64,
+    #[sea_orm(primary_key, auto_increment = false)]
     pub session_secret: SessionSecret,
     pub user_id: UserID,
     pub created_at: DateTime<Utc>,

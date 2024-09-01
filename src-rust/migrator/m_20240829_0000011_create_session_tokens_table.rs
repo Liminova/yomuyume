@@ -18,8 +18,7 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(SessionTokens::Table)
-                    .col(pk_auto(SessionTokens::SessionId))
-                    .col(string(SessionTokens::SessionSecret))
+                    .col(string(SessionTokens::SessionSecret).primary_key())
                     .col(string(SessionTokens::UserId))
                     .foreign_key(
                         ForeignKey::create()
@@ -47,7 +46,6 @@ impl MigrationTrait for Migration {
 #[derive(Iden)]
 pub enum SessionTokens {
     Table,
-    SessionId,
     SessionSecret,
     UserId,
     CreatedAt,
