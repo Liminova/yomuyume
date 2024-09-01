@@ -67,7 +67,7 @@ pub async fn post_register(
         id: Set(UserID::new()),
         username: Set(username.clone()),
         email: Set(email),
-        created_at: Set(created_at.clone()),
+        created_at: Set(created_at),
         updated_at: Set(created_at),
         password: Set(hash_pass(p)?),
         is_verified: Set(false),
