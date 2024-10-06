@@ -1,65 +1,53 @@
-import newRoute from "./newRoute";
-import { GenericResponseBody, LoginResponseBody } from "~/composables/bridge";
 
 async function login(body: {
 	login: string;
 	password: string;
-}): Promise<{ token?: string; message?: string }> {
-	let res: Response;
+}): Promise<void> {
+	const endpoint = (()=>{
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL("/api/auth/login", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute("/api/auth/login"), {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "bitcode",
-			},
-			body: JSON.stringify(body),
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message };
+		return "/api/auth/login";
+	})()
+
+	const response = await fetch(endpoint, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+		body: JSON.stringify(body),
+	});
+
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	if (res.ok) {
-		const data = LoginResponseBody.from_bitcode(buffer);
-
-		return { token: data?.token };
-	}
-
-	return { message: GenericResponseBody.from_bitcode(buffer).message };
 }
 
 async function register(body: {
 	username: string;
 	email: string;
 	password: string;
-}): Promise<{ ok: boolean; message: string }> {
-	let res: Response;
+}): Promise<void> {
+	const endpoint = (()=>{
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL("/api/auth/register", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute("/api/auth/register"), {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "bitcode",
-			},
-			body: JSON.stringify(body),
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message, ok: false };
+		return "/api/auth/register";
+	})()
+
+	const res = await fetch(endpoint, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+		body: JSON.stringify(body),
+	});
+
+	if (!res.ok) {
+		throw new Error(`[${res.statusText}] ${await res.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	return {
-		ok: res.ok,
-		message: GenericResponseBody.from_bitcode(buffer).message,
-	};
 }
 
-export default {
-	login,
-	register,
-};
+export default { login, register };

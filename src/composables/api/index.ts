@@ -1,37 +1,48 @@
-import newRoute from "./newRoute";
-import type { FilterTitleResponseBody, CategoryResponse } from "~/composables/bridge";
-import {
-	FilterResponseBody,
-	CategoriesResponseBody,
-	GenericResponseBody,
-	TitleResponseBody,
-} from "~/composables/bridge";
 
-async function categories(): Promise<{ data?: Array<CategoryResponse>; message?: string }> {
-	let res: Response;
+export interface CategoriesResponseBody {
+	data: Array<{
+		id: string;
+		name: string;
+		description?: string;
+	}>
+}
 
-	try {
-		res = await fetch(newRoute("/api/index/categories"), {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${globalStore.token}`,
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message };
+async function categories(): Promise<CategoriesResponseBody> {
+	const endpoint = (()=>{
+		if (import.meta.dev) {
+			// @ts-ignore env does exist
+			return new URL("/api/index/categories", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
+
+		return "/api/index/categories";
+	})()
+	const response = await fetch(endpoint, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+	});
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
 
-	const buffer = new Uint8Array(await res.arrayBuffer());
+	return (await response.json()) as CategoriesResponseBody;
+}
 
-	const data = CategoriesResponseBody.from_bitcode(buffer);
+export interface FilterTitleResponseBody {
+	data: Array<{
+		id: string;
+		title: string;
+		author?: string;
+		category_id?: string;
+		release?: string;
+		favorite_count?: number;
+		page_count: number;
+		page_read?: number;
 
-	if (res.ok) {
-		return { data: data?.data };
-	}
-
-	return { message: GenericResponseBody.from_bitcode(buffer).message };
+		blurhash?: string;
+		blurhash_width?: number;
+		blurhash_height?: number;
+	}>
 }
 
 async function filter(body: {
@@ -47,59 +58,75 @@ async function filter(body: {
 
 	sort_by?: string;
 	sort_order?: string;
-}): Promise<{ data?: Array<FilterTitleResponseBody>; message?: string }> {
-	let res: Response;
+}): Promise<FilterTitleResponseBody> {
+	const endpoint = (()=>{
+		if (import.meta.dev) {
+			// @ts-ignore env does exist
+			return new URL("/api/index/filter", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute("/api/index/filter"), {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${globalStore.token}`,
-				Accept: "bitcode",
-			},
-			body: JSON.stringify(body),
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message };
+		return "/api/index/filter";
+	})()
+	const response = await fetch(endpoint, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+		body: JSON.stringify(body),
+	});
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
 
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = FilterResponseBody.from_bitcode(buffer);
-
-	if (res.ok && data !== undefined) {
-		return { data: data.data };
-	}
-
-	return { message: GenericResponseBody.from_bitcode(buffer).message };
+	return (await response.json()) as FilterTitleResponseBody;
 }
 
-async function title(id: string): Promise<{ data?: TitleResponseBody; message?: string }> {
-	let res: Response;
+export interface TitleResponseBody {
+	data?: {
+		category_id?: string;
+		title: string;
+		author?: string;
+		description?: string;
+		release_date_unix_utc_seconds?: number;
 
-	try {
-		res = await fetch(newRoute(`/api/index/title/${id}`), {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${globalStore.token}`,
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message };
+		cover_blurhash?: string;
+		blurhash_width?: number;
+		blurhash_height?: number;
+
+		tag_ids: Array<number>;
+		pages: Array<{
+			id: string;
+			format: string;
+			description?: string;
+		}>
+		favorites?: number;
+		bookmarks?: number;
+		is_favorite?: boolean;
+		is_bookmark?: boolean;
+		page_read?: number;
+		date_added_unix_utc_seconds: number;
+		date_updated_unix_utc_seconds?: number;
+	}
+}
+
+async function title(id: string): Promise<TitleResponseBody> {
+	const endpoint = (()=>{
+		if (import.meta.dev) {
+			// @ts-ignore env does exist
+			return new URL(`/api/index/title/${id}`, import.meta.env.VITE_SERVER_HOSTNAME);
+		}
+
+		return `/api/index/title/${id}`;
+	})()
+	const response = await fetch(endpoint, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+	});
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
 
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = TitleResponseBody.from_bitcode(buffer);
-
-	if (res.ok && data !== undefined) {
-		return { data };
-	}
-
-	return { message: GenericResponseBody.from_bitcode(buffer).message };
+	return (await response.json()) as TitleResponseBody;
 }
 
 export default { categories, filter, title };

@@ -1,57 +1,74 @@
-import newRoute from "./newRoute";
-import { StatusResponseBody, TagsMapResponseBody, GenericResponseBody } from "~/composables/bridge";
+async function status(): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL("/api/utils/status", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-async function status(endpoint: string): Promise<{ data?: StatusResponseBody; message?: string }> {
-	let res: Response;
-
-	try {
-		res = await fetch(new URL("/api/utils/status", endpoint).toString(), {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message };
+		return "/api/utils/status";
+	})()
+	const response = await fetch(endpoint, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+	});
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = StatusResponseBody.from_bitcode(buffer);
-
-	if (res.ok) {
-		return { data };
-	}
-
-	return { message: GenericResponseBody.from_bitcode(buffer).message };
 }
 
-async function tags(): Promise<{ data?: TagsMapResponseBody; message?: string }> {
-	let res: Response;
-
-	try {
-		res = await fetch(newRoute("/api/utils/tags"), {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${globalStore.token}`,
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message };
-	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = TagsMapResponseBody.from_bitcode(buffer);
-
-	if (res.ok) {
-		return { data };
-	}
-
-	return { message: GenericResponseBody.from_bitcode(buffer).message };
+export interface TagsMapResponseBody {
+	data: Array<{
+		id: number;
+		name: string;
+	}>;
 }
 
-export default { status, tags };
+async function tags(): Promise<TagsMapResponseBody> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL("/api/utils/tags", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
+
+		return "/api/utils/tags";
+	})();
+	const response = await fetch(endpoint, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+	});
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
+	}
+
+	return (await response.json()) as TagsMapResponseBody;
+}
+
+export interface ScanningProgressResponseBody {
+	scanning_completed: boolean;
+	scanning_progress: number;
+}
+
+async function scanningProgress(): Promise<ScanningProgressResponseBody> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL("/api/utils/scanning_progress", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
+
+		return "/api/utils/scanning_progress";
+	})();
+	const response = await fetch(endpoint, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+	});
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
+	}
+
+	return (await response.json()) as ScanningProgressResponseBody;
+}
+
+export default { status, tags, scanningProgress };

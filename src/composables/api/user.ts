@@ -1,257 +1,235 @@
-import newRoute from "./newRoute";
-import type { GenericSrvResponse } from "../types";
-import { GenericResponseBody } from "~/composables/bridge";
-
 async function favorite(
 	titleId: string,
 	action: "DELETE" | "PUT"
-): Promise<{ message?: string; ok?: boolean }> {
-	let res: Response;
+): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL(`/api/user/favorite/${titleId}`, import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute(`/api/user/favorite/${titleId}`), {
-			method: action,
-			headers: {
-				Authorization: `Bearer ${globalStore.token}`,
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message, ok: false };
+		return `/api/user/favorite/${titleId}`;
+	})()
+	const response = await fetch(endpoint, {
+		method: action,
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+		body: JSON.stringify({ titleId }),
+	});
+
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = GenericResponseBody.from_bitcode(buffer);
-
-	return {
-		message: data.message,
-		ok: res.ok,
-	};
 }
 
 async function bookmark(
 	titleId: string,
 	action: "DELETE" | "PUT"
-): Promise<{ message?: string; ok?: boolean }> {
-	let res: Response;
+): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL(`/api/user/bookmark/${titleId}`, import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute(`/api/user/bookmark/${titleId}`), {
-			method: action,
-			headers: {
-				Authorization: `Bearer ${globalStore.token}`,
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message, ok: false };
+		return `/api/user/bookmark/${titleId}`;
+	})()
+	const response = await fetch(endpoint, {
+		method: action,
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+		body: JSON.stringify({ titleId }),
+	});
+
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = GenericResponseBody.from_bitcode(buffer);
-
-	return {
-		message: data.message,
-		ok: res.ok,
-	};
 }
 
 async function progress(
 	titleId: string,
 	page: number
-): Promise<{ message?: string; ok?: boolean }> {
-	let res: Response;
+): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL(`/api/user/progress/${titleId}/${page}`, import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute(`/api/user/progress/${titleId}/${page}`), {
-			method: "PUT",
-			headers: {
-				Authorization: `Bearer ${globalStore.token}`,
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message, ok: false };
+		return `/api/user/progress/${titleId}/${page}`;
+	})()
+	const response = await fetch(endpoint, {
+		method: "PUT",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+		body: JSON.stringify({ titleId, page }),
+	});
+
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = GenericResponseBody.from_bitcode(buffer);
-
-	return {
-		message: data.message,
-		ok: res.ok,
-	};
 }
 
-async function resetPassword(email: string): Promise<{ message?: string; ok?: boolean }> {
-	let res: Response;
+/** Send a request to delete the user. */
+async function deleteAccount(): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL(`/api/user/delete`, import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute(`/api/auth/reset/${email}`), {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message, ok: false };
+		return `/api/user/delete`;
+	})()
+	const response = await fetch(endpoint, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+	});
+
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = GenericResponseBody.from_bitcode(buffer);
-
-	return {
-		message: data.message,
-		ok: res.ok,
-	};
 }
 
-async function confirmReset(
-	password: string,
-	token: string
-): Promise<{ message?: string; ok?: boolean }> {
-	let res: Response;
+/** Confirm the deletion of the user. */
+async function deleteAccountConfirm(code: string, password: string): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL("/api/auth/delete", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute(`/api/auth/reset`), {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${token}`,
-				"Content-Type": "application/json",
-				Accept: "bitcode",
-			},
-			body: JSON.stringify({ password }),
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message, ok: false };
+		return "/api/auth/delete";
+	})()
+	const response = await fetch(endpoint, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+		body: JSON.stringify({ code, password }),
+	});
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = GenericResponseBody.from_bitcode(buffer);
-
-	return {
-		message: data.message,
-		ok: res.ok,
-	};
 }
 
-async function deleteAccount(email: string): Promise<{ message?: string; ok?: boolean }> {
-	let res: Response;
+async function resetPassword(email: string): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL(`/api/auth/reset/${email}`, import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute(`/api/auth/delete/${email}`), {
-			method: "DELETE",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message, ok: false };
+		return `/api/auth/reset/${email}`;
+	})()
+	const response = await fetch(endpoint, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+	});
+
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = GenericResponseBody.from_bitcode(buffer);
-
-	return {
-		message: data.message,
-		ok: res.ok,
-	};
 }
 
-async function confirmDelete(token: string): Promise<GenericSrvResponse> {
-	let res: Response;
+async function resetPasswordConfirm(
+	code: string,
+	new_password: string,
+): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL("/api/auth/reset", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute(`/api/auth/delete`), {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${token}`,
-				"Content-Type": "application/json",
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message, ok: false };
+		return "/api/auth/reset";
+	})()
+	const response = await fetch(endpoint, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+		body: JSON.stringify({ code, new_password }),
+	});
+
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = GenericResponseBody.from_bitcode(buffer);
-
-	return {
-		message: data.message,
-		ok: res.ok,
-	};
 }
 
-async function verifyAccount(): Promise<{ message?: string; ok?: boolean }> {
-	let res: Response;
+/** Send a request to verify the email. */
+async function validateEmail(): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL("/api/auth/verify", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute(`/api/auth/verify`), {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${globalStore.token}`,
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message, ok: false };
+		return "/api/auth/verify";
+	})()
+	const response = await fetch(endpoint, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+	});
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
-
-	const buffer = new Uint8Array(await res.arrayBuffer());
-
-	const data = GenericResponseBody.from_bitcode(buffer);
-
-	return {
-		message: data.message,
-		ok: res.ok,
-	};
 }
 
-async function confirmVerification(token: string): Promise<{ message?: string; ok?: boolean }> {
-	let res: Response;
+/** Confirm the verification of the email. */
+async function validateEmailConfirm(token: string): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-ignore env does exist
+			return new URL("/api/auth/verify", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	try {
-		res = await fetch(newRoute(`/api/auth/verify`), {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${token}`,
-				"Content-Type": "application/json",
-				Accept: "bitcode",
-			},
-		});
-	} catch (e) {
-		return { message: (e as { message: string }).message, ok: false };
+		return "/api/auth/verify";
+	})();
+	const response = await fetch(endpoint, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+		body: JSON.stringify({ token }),
+	});
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
 	}
+}
 
-	const buffer = new Uint8Array(await res.arrayBuffer());
+async function modifyInfo(body: {
+	username?: string;
+	email?: string;
+	current_password?: string;
+	new_password?: string;
+}): Promise<void> {
+	const endpoint = (() => {
+		if (import.meta.dev) {
+			// @ts-expect-error env does exist
+			return new URL("/api/user/modify", import.meta.env.VITE_SERVER_HOSTNAME);
+		}
 
-	const data = GenericResponseBody.from_bitcode(buffer);
-
-	return {
-		message: data.message,
-		ok: res.ok,
-	};
+		return "/api/user/modify";
+	})();
+	const response = await fetch(endpoint, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: import.meta.dev ? "include" : "same-origin",
+		body: JSON.stringify(body),
+	});
+	if (!response.ok) {
+		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
+	}
 }
 
 export default {
 	favorite,
 	bookmark,
 	progress,
+	validateEmail,
+	validateEmailConfirm,
 	resetPassword,
-	verifyAccount,
-	confirmVerification,
-	confirmReset,
+	resetPasswordConfirm,
 	deleteAccount,
-	confirmDelete,
+	deleteAccountConfirm,
 };

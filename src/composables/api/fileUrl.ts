@@ -4,7 +4,12 @@
  * @param id the id of the title
  */
 function cover(id: string): string {
-	return new URL(`/api/file/cover/${id}`, globalStore.instanceAddr).toString();
+	if (import.meta.dev) {
+		// @ts-expect-error env does exist
+		return new URL(`/api/file/cover/${id}`, import.meta.env.VITE_SERVER_HOSTNAME).toString();
+	}
+
+	return `/api/file/cover/${id}`;
 }
 
 /**
@@ -13,10 +18,12 @@ function cover(id: string): string {
  * @param id the id of the page
  */
 function page(id: string): string {
-	return new URL(`/api/file/page/${id}`, globalStore.instanceAddr).toString();
+	if (import.meta.dev) {
+		// @ts-expect-error env does exist
+		return new URL(`/api/file/page/${id}`, import.meta.env.VITE_SERVER_HOSTNAME).toString();
+	}
+
+	return `/api/file/page/${id}`;
 }
 
-export default {
-	cover,
-	page,
-};
+export default { cover, page };
