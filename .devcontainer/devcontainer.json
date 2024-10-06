@@ -1,42 +1,39 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/rust
 {
-	"name": "Yomuyume",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/rust:1-1-bookworm",
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	"features": {
-		"ghcr.io/devcontainers/features/node:1": {
-			"version": "lts",
-			"pnpmVersion": "latest",
-			"nvmVersion": "latest"
-		},
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {
-			"moby": true,
-			"azureDnsAutoDetection": true,
-			"installDockerBuildx": true,
-			"installDockerComposeSwitch": true,
-			"version": "latest",
-			"dockerDashComposeVersion": "latest"
-		}
+	"name": "Yomuyume-dev",
+	"build": {
+		"dockerfile": "Dockerfile"
 	},
-	// Use 'mounts' to make the cargo cache persistent in a Docker Volume.
+	// "features": {
+	// 	"ghcr.io/devcontainers/features/docker-in-docker:2": {
+	// 		"moby": true,
+	// 		"azureDnsAutoDetection": true,
+	// 		"installDockerBuildx": true,
+	// 		"installDockerComposeSwitch": true,
+	// 		"version": "latest",
+	// 		"dockerDashComposeVersion": "latest"
+	// 	}
+	// },
 	"mounts": [
 		{
 			"source": "cargo-cache",
 			"target": "/usr/local/cargo",
 			"type": "volume"
+		},
+		{
+			"source": "global-pnpm-store",
+			"target": "/home/vscode/.pnpm-store",
+			"type": "volume"
 		}
 	],
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	"forwardPorts": [
-		3000,
-		3001,
-		5432
+	"runArgs": [
+		"--hostname=devcontainer",
+		"-p",
+		"3000:3000",
+		"-p",
+		"3001:3001",
+		"-p",
+		"5432:5432"
 	],
-	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "bash .devcontainer/postinstall.sh",
-	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -44,7 +41,8 @@
 				"bradlc.vscode-tailwindcss",
 				"Vue.volar",
 				"fill-labs.dependi",
-				"maptz.regionfolder"
+				"maptz.regionfolder",
+				"tamasfe.even-better-toml"
 			],
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "zsh",
@@ -61,10 +59,10 @@
 					"*.jsx": "${capture}.js",
 					"*.tsx": "${capture}.ts",
 					"package.json": "pnpm-lock.yaml, .eslint*, Cargo*, *.json, *.js, *.ts"
-				}
+				},
+				"git.path": "/usr/bin/git"
 			}
 		}
-	}
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	},
+	"postCreateCommand": "bash .devcontainer/postinstall.sh"
 }

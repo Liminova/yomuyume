@@ -1,34 +1,52 @@
 #!/bin/bash
 
 DEVCONTAINER_DIR="/workspaces/yomuyume/.devcontainer"
+MOLD_VERSION="2.34.1"
+DAV1D_VERSION="1.4.3"
 
-sudo apt-get update && sudo apt-get install -y meson ninja-build nasm clang
+npm i -g pnpm
+pnpm config set store-dir /home/vscode/.pnpm-store
+apt-get update && apt-get install -y meson ninja-build nasm clang git zsh pkg-config libssl-dev
 
-# clone dav1d if not exists
-if [ ! -d "./dav1d" ]; then
+if [ ! -f /usr/local/bin/git ]; then
+    if [ ! -f /usr/bin/git ]; then
+        echo "git is not installed"
+        exit 1
+    fi
+    ln -s /usr/bin/git /usr/local/bin/git
+fi
+
+# download dav1d if not exists
+if [ ! -d "./dav1d-$DAV1D_VERSION" ]; then
     cd $DEVCONTAINER_DIR
-    git clone --depth 1 https://code.videolan.org/videolan/dav1d.git
+    curl -L -o dav1d-$DAV1D_VERSION.tar.gz https://code.videolan.org/videolan/dav1d/-/archive/$DAV1D_VERSION/dav1d-$DAV1D_VERSION.tar.gz
+    tar -xvf dav1d-$DAV1D_VERSION.tar.gz
+    rm -f dav1d-$DAV1D_VERSION.tar.gz
 fi
 
 # build dav1d if not built
-if [ ! -d $DEVCONTAINER_DIR/dav1d/build ]; then
-    cd $DEVCONTAINER_DIR/dav1d
+if [ ! -d $DEVCONTAINER_DIR/dav1d-$DAV1D_VERSION/build ]; then
+    cd $DEVCONTAINER_DIR/dav1d-$DAV1D_VERSION
     mkdir build && cd build
     meson setup --default-library=static ..
     ninja
 fi
 
+
 # symlink dav1d
-cd $DEVCONTAINER_DIR/dav1d/build && sudo ninja install
+cd $DEVCONTAINER_DIR/dav1d-$DAV1D_VERSION/build && ninja install
 
 # download and extract mold if not exists
-if [ ! -d $DEVCONTAINER_DIR/mold-2.33.0-x86_64-linux ]; then
+if [ ! -d $DEVCONTAINER_DIR/mold-$MOLD_VERSION-x86_64-linux ]; then
     cd $DEVCONTAINER_DIR
-    wget https://github.com/rui314/mold/releases/download/v2.33.0/mold-2.33.0-x86_64-linux.tar.gz
-    tar -xvf mold-2.33.0-x86_64-linux.tar.gz
-    rm -f mold-2.33.0-x86_64-linux.tar.gz
+    curl -L -o mold-$MOLD_VERSION-x86_64-linux.tar.gz https://github.com/rui314/mold/releases/download/v$MOLD_VERSION/mold-$MOLD_VERSION-x86_64-linux.tar.gz
+    tar -xvf mold-$MOLD_VERSION-x86_64-linux.tar.gz
+    rm -f mold-$MOLD_VERSION-x86_64-linux.tar.gz
 fi
 
 # configure cargo to use mold linker
 rm -f /usr/local/cargo/config.toml
-printf "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/workspaces/yomuyume/.devcontainer/mold-2.33.0-x86_64-linux/bin/mold\"]" > /usr/local/cargo/config.toml
+printf "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/workspaces/yomuyume/.devcontainer/mold-$MOLD_VERSION-x86_64-linux/bin/mold\"]\n" > /usr/local/cargo/config.toml
+
+rm -rf $DEVCONTAINER_DIR/../{node_modules,.nuxt}
+pnpm install
