@@ -1,20 +1,28 @@
 import hagemanto from "eslint-plugin-hagemanto";
 import tailwind from "eslint-plugin-tailwindcss";
-import vue from "eslint-plugin-vue";
 import globals from "globals";
+import withNuxt from './.nuxt/eslint.config.mjs';
 
-export default [
-	{ files: ["src/*.{ts,vue}"] },
-
-	...hagemanto,
-	...tailwind.configs["flat/recommended"],
-	...vue.configs["flat/essential"],
-
+export default withNuxt([
 	{
+		name: "yomuyume/specific",
+		rules: {
+			"tailwindcss/no-custom-classname": "off",
+			"indent": ["error", "tab"],
+			"no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+		}
+	},
+	{ name: "yomuyume/files", files: ["src/**/*.{ts,vue}"] },
+	{ name: "yomuyume/ignores", ignores: ["**/*.d.ts"] },
+]).prepend([
+	...hagemanto({}),
+	...tailwind.configs["flat/recommended"],
+	{
+		name: "yomuyume/language-options",
 		languageOptions: {
 			globals: globals.browser, parserOptions: {
 				project: true, parser: "@typescript-eslint/parser", extraFileExtensions: [".vue"]
 			}
 		}
 	},
-];
+]);

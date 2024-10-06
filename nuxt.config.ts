@@ -72,7 +72,7 @@ export default defineNuxtConfig({
 		},
 	},
 	css: ["~/assets/css/m3/theme.css", "~/assets/scss/index.scss"],
-	modules: ["@nuxtjs/tailwindcss"],
+	modules: ["@nuxtjs/tailwindcss", "@nuxt/eslint"],
 	experimental: {
 		viewTransition: true,
 	},
