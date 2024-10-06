@@ -1,13 +1,13 @@
 use axum::async_trait;
 use sea_orm_migration::{prelude::*, schema::*};
 
-use super::m_20231113_000001_create_users_table::Users;
+use super::m20231113_000001_create_users_table::Users;
 
 pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m_20240829_0000014_create_code_validate_email_table"
+        "m20240829_000013_create_code_validate_email_table"
     }
 }
 
@@ -18,6 +18,7 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(CodeValidateEmail::Table)
+                    .if_not_exists()
                     .col(string_uniq(CodeValidateEmail::UserId).primary_key())
                     .foreign_key(
                         ForeignKey::create()

@@ -2,14 +2,14 @@ use axum::async_trait;
 use sea_orm_migration::{prelude::*, schema::*};
 
 use super::{
-    m_20231113_000001_create_users_table::Users, m_20231115_000003_create_titles_table::Titles,
+    m20231113_000001_create_users_table::Users, m20231115_000003_create_titles_table::Titles,
 };
 
 pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m_20231212_000006_create_bookmarks_table"
+        "m20231212_000006_create_favorites_table"
     }
 }
 
@@ -19,22 +19,22 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Bookmarks::Table)
+                    .table(Favorites::Table)
                     .if_not_exists()
-                    .col(pk_auto(Bookmarks::Id))
-                    .col(string(Bookmarks::UserId))
+                    .col(pk_auto(Favorites::Id))
+                    .col(string(Favorites::UserId))
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-bookmark-user_id")
-                            .from(Bookmarks::Table, Bookmarks::UserId)
+                            .name("fk-favorite-user_id")
+                            .from(Favorites::Table, Favorites::UserId)
                             .to(Users::Table, Users::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
-                    .col(string(Bookmarks::TitleId))
+                    .col(string(Favorites::TitleId))
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-bookmark-title_id")
-                            .from(Bookmarks::Table, Bookmarks::TitleId)
+                            .name("fk-favorite-title_id")
+                            .from(Favorites::Table, Favorites::TitleId)
                             .to(Titles::Table, Titles::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -45,13 +45,13 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Bookmarks::Table).to_owned())
+            .drop_table(Table::drop().table(Favorites::Table).to_owned())
             .await
     }
 }
 
 #[derive(Iden)]
-pub enum Bookmarks {
+pub enum Favorites {
     Table,
     Id,
     UserId,

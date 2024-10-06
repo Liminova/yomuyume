@@ -2,14 +2,14 @@ use axum::async_trait;
 use sea_orm_migration::{prelude::*, schema::*};
 
 use super::{
-    m_20231113_000001_create_users_table::Users, m_20231115_000003_create_titles_table::Titles,
+    m20231113_000001_create_users_table::Users, m20231115_000003_create_titles_table::Titles,
 };
 
 pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m_20231212_000006_create_favorites_table"
+        "m20231212_000009_create_progresses_table"
     }
 }
 
@@ -19,25 +19,27 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Favorites::Table)
+                    .table(Progresses::Table)
                     .if_not_exists()
-                    .col(pk_auto(Favorites::Id))
-                    .col(string(Favorites::UserId))
+                    .col(pk_auto(Progresses::Id))
+                    .col(string(Progresses::UserId))
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-favorite-user_id")
-                            .from(Favorites::Table, Favorites::UserId)
+                            .name("fk-progress-user_id")
+                            .from(Progresses::Table, Progresses::UserId)
                             .to(Users::Table, Users::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
-                    .col(string(Favorites::TitleId))
+                    .col(string(Progresses::TitleId))
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-favorite-title_id")
-                            .from(Favorites::Table, Favorites::TitleId)
+                            .name("fk-progress-title_id")
+                            .from(Progresses::Table, Progresses::TitleId)
                             .to(Titles::Table, Titles::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
+                    .col(date_time(Progresses::LastReadAt))
+                    .col(integer(Progresses::Page))
                     .to_owned(),
             )
             .await
@@ -45,15 +47,17 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Favorites::Table).to_owned())
+            .drop_table(Table::drop().table(Progresses::Table).to_owned())
             .await
     }
 }
 
 #[derive(Iden)]
-pub enum Favorites {
+pub enum Progresses {
     Table,
     Id,
     UserId,
     TitleId,
+    LastReadAt,
+    Page,
 }

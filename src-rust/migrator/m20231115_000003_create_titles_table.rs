@@ -1,13 +1,13 @@
 use axum::async_trait;
 use sea_orm_migration::{prelude::*, schema::*};
 
-use super::m_20231115_000002_create_categories_table::Categories;
+use super::m20231115_000002_create_categories_table::Categories;
 
 pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m_20231115_000003_create_titles_table"
+        "m20231115_000003_create_titles_table"
     }
 }
 

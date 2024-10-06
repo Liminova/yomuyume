@@ -1,13 +1,13 @@
 use axum::async_trait;
 use sea_orm_migration::{prelude::*, schema::*};
 
-use super::m_20231113_000001_create_users_table::Users;
+use super::m20231113_000001_create_users_table::Users;
 
 pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m_20240829_0000013_create_code_reset_password_table"
+        "m20240829_000011_create_code_delete_account_table"
     }
 }
 
@@ -17,18 +17,19 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(CodeResetPassword::Table)
-                    .col(string_uniq(CodeResetPassword::UserId).primary_key())
+                    .table(CodeDeleteAccount::Table)
+                    .if_not_exists()
+                    .col(string_uniq(CodeDeleteAccount::UserId).primary_key())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-pending-code-reset-password-_user-id")
-                            .from(CodeResetPassword::Table, CodeResetPassword::UserId)
+                            .name("fk-code-delete-account-_user-id")
+                            .from(CodeDeleteAccount::Table, CodeDeleteAccount::UserId)
                             .to(Users::Table, Users::Id)
                             .on_update(ForeignKeyAction::NoAction)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
-                    .col(date_time(CodeResetPassword::CreatedAt))
-                    .col(string_uniq(CodeResetPassword::Code))
+                    .col(date_time(CodeDeleteAccount::CreatedAt))
+                    .col(string_uniq(CodeDeleteAccount::Code))
                     .to_owned(),
             )
             .await
@@ -36,13 +37,13 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(CodeResetPassword::Table).to_owned())
+            .drop_table(Table::drop().table(CodeDeleteAccount::Table).to_owned())
             .await
     }
 }
 
 #[derive(Iden)]
-pub enum CodeResetPassword {
+pub enum CodeDeleteAccount {
     Table,
     UserId,
     CreatedAt,

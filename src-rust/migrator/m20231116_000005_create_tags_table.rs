@@ -5,7 +5,7 @@ pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m_20231116_000005_create_tags_table"
+        "m20231116_000005_create_tags_table"
     }
 }
 

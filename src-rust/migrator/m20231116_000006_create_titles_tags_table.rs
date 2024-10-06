@@ -2,14 +2,14 @@ use axum::async_trait;
 use sea_orm_migration::{prelude::*, schema::*};
 
 use super::{
-    m_20231115_000003_create_titles_table::Titles, m_20231116_000005_create_tags_table::Tags,
+    m20231115_000003_create_titles_table::Titles, m20231116_000005_create_tags_table::Tags,
 };
 
 pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m_20231116_000006_create_titles_tags_table"
+        "m20231116_000006_create_titles_tags_table"
     }
 }
 

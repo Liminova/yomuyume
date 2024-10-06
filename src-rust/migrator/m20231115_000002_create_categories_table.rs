@@ -5,7 +5,7 @@ pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m_20231115_000002_create_categories_table"
+        "m20231115_000002_create_categories_table"
     }
 }
 
@@ -17,7 +17,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Categories::Table)
                     .if_not_exists()
-                    .col(string(Categories::Name).primary_key())
+                    .col(string(Categories::Id).primary_key())
                     .col(string(Categories::Name))
                     .col(string_null(Categories::Description))
                     .col(string_null(Categories::CoverPath))
