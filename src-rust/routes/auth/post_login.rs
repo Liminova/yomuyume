@@ -83,6 +83,7 @@ pub async fn post_login(
         created_at: Set(chrono::Utc::now()),
         user_agent: Set(user_agent),
         ip_address: Set(ip_address.clone()),
+        last_used_at: Set(chrono::Utc::now()),
     }
     .insert(&app_state.db)
     .await
