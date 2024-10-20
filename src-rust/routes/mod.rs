@@ -102,14 +102,16 @@ use crate::AppError;
 )]
 pub struct ApiDoc;
 
-/// Check if the password is correct
-fn check_pass(real: impl AsRef<str>, input: impl AsRef<str>) -> bool {
-    match PasswordHash::new(real.as_ref()) {
-        Ok(parsed_hash) => Argon2::default()
-            .verify_password(input.as_ref().as_bytes(), &parsed_hash)
-            .map_or(false, |_| true),
-        Err(_) => false,
-    }
+/// Check if a [`password_input`] after hashing matches a [`password_hash`].
+///
+/// [`password_hash`]: String
+/// [`password_input`]: String
+fn check_pass(password_hash: impl AsRef<str>, password_input: impl AsRef<str>) -> bool {
+    PasswordHash::new(password_hash.as_ref()).map_or(false, |parsed_hash| {
+        Argon2::default()
+            .verify_password(password_input.as_ref().as_bytes(), &parsed_hash)
+            .map_or(false, |_| true)
+    })
 }
 
 fn hash_pass(input: impl AsRef<str>) -> Result<String, AppError> {
