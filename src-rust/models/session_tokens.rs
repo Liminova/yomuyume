@@ -1,14 +1,12 @@
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
-use utoipa::ToSchema;
 
 use crate::models::prelude::{CustomID, UserID};
 
 /// Just serve as an alias for [`CustomID`], nothing more.
 pub type SessionSecret = CustomID;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, ToSchema)]
-#[schema(as = Progress)]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "session_tokens")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]

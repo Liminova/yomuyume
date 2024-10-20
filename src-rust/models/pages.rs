@@ -1,13 +1,10 @@
 use sea_orm::entity::prelude::*;
-use serde::Serialize;
-use utoipa::ToSchema;
 
 use crate::models::prelude::{CustomID, TitleID};
 
 pub type PageID = CustomID;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, ToSchema)]
-#[schema(as = Page)]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "pages")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]

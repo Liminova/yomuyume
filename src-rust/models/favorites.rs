@@ -1,10 +1,8 @@
 use sea_orm::entity::prelude::*;
-use utoipa::ToSchema;
 
 use crate::models::prelude::{TitleID, UserID};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, ToSchema)]
-#[schema(as = Favorite)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "favorites")]
 pub struct Model {
     #[sea_orm(primary_key)]

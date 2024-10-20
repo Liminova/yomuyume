@@ -1,8 +1,6 @@
 use sea_orm::entity::prelude::*;
-use utoipa::ToSchema;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, ToSchema)]
-#[schema(as = Tag)]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "tags")]
 pub struct Model {
     #[sea_orm(primary_key)]

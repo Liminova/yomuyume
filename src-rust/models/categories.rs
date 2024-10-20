@@ -1,14 +1,11 @@
 use sea_orm::entity::prelude::*;
-use serde::Serialize;
-use utoipa::ToSchema;
 
 use crate::models::prelude::CustomID;
 
 /// Just serve as an alias for [`CustomID`], nothing more.
 pub type CategoryID = CustomID;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, ToSchema)]
-#[schema(as = Category)]
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "categories")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
