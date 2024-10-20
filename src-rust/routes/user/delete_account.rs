@@ -1,12 +1,16 @@
 use std::sync::Arc;
 
+use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     Extension, Json,
 };
-use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
+use chrono::{Duration, Utc};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -30,40 +34,52 @@ pub async fn get_delete_account(
 ) -> Result<Response, AppError> {
     let mailer = Mailer::from(&app_state.config)?;
 
-    let token = CustomID::new();
-
-    let code_delete_account_active = if let Some(model) = CodeDeleteAccount::find_by_id(&user.id)
+    let temp_code_model = TempCodes::find()
+        .filter(
+            Condition::all()
+                .add(temp_codes::Column::Purpose.eq(temp_codes::Purpose::DeleteAccount))
+                .add(temp_codes::Column::UserId.eq(&user.id)),
+        )
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find delete account: {}", e)))?
-    {
+        .context("can't find temp code model")?;
+
+    if let Some(ref model) = temp_code_model {
         if model
             .created_at
-            .checked_add_signed(chrono::Duration::minutes(5))
-            .unwrap()
-            .gt(&chrono::Utc::now())
+            .checked_add_signed(Duration::minutes(5))
+            .map(|d| d.gt(&Utc::now()))
+            .unwrap_or(true)
         {
-            return Ok((StatusCode::TOO_MANY_REQUESTS, "too many requests").into_response());
+            return Ok((StatusCode::TOO_MANY_REQUESTS).into_response());
         }
+    }
 
-        let mut active: code_delete_account::ActiveModel = model.into();
-        active.user_id = NotSet;
-        active.code = Set(token.clone());
-        active.created_at = Set(chrono::Utc::now());
-        active
-    } else {
-        code_delete_account::ActiveModel {
-            user_id: Set(user.id),
-            code: Set(token.clone()),
-            created_at: Set(chrono::Utc::now()),
+    let code = CustomID::new();
+    match temp_code_model {
+        Some(model) => {
+            let mut active: temp_codes::ActiveModel = model.into();
+            active.id = NotSet;
+            active.code = Set(code.clone());
+            active.created_at = Set(Utc::now());
+            active
+                .update(&app_state.db)
+                .await
+                .context("can't update temp code model")?;
         }
-    };
-    code_delete_account_active
-        .save(&app_state.db)
-        .await
-        .map_err(|e| {
-            AppError::from(anyhow::anyhow!("can't save CodeDeleteAccount model: {}", e))
-        })?;
+        None => {
+            temp_codes::ActiveModel {
+                id: NotSet,
+                user_id: Set(user.id),
+                code: Set(code.clone()),
+                purpose: Set(temp_codes::Purpose::DeleteAccount),
+                created_at: Set(Utc::now()),
+            }
+            .insert(&app_state.db)
+            .await
+            .context("can't insert temp code model")?;
+        }
+    }
 
     mailer.send(
         &user.username,
@@ -77,7 +93,7 @@ pub async fn get_delete_account(
             Best regards,\n\
             The {} team",
             &user.username,
-            &token,
+            &code,
             &app_state.config.app_name,
         ),
     ).map(|_| Ok((StatusCode::OK).into_response()))?
@@ -102,71 +118,43 @@ pub async fn post_delete_account(
     Extension(user): Extension<users::Model>,
     Json(query): Json<DeleteRequestBody>,
 ) -> Result<Response, AppError> {
-    /* #region - check request */
     if query.password.is_empty() || query.code.is_empty() {
-        return Ok((
-            StatusCode::BAD_REQUEST,
-            "password and token cannot be empty",
-        )
-            .into_response());
+        return Ok((StatusCode::BAD_REQUEST, "password and code cannot be empty").into_response());
+    }
+    if !check_pass(&user.password_hash, &query.password) {
+        return Ok((StatusCode::BAD_REQUEST, "invalid password").into_response());
     }
     let code = match CustomID::from(query.code.clone()) {
         Ok(code) => code,
-        Err(_) => return Ok((StatusCode::BAD_REQUEST, "invalid token").into_response()),
+        Err(_) => return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response()),
     };
-    /* #endregion */
 
-    /* #region - get CodeDeleteAccount, check date and extract UserId */
-    let user_id = match CodeDeleteAccount::find()
-        .filter(code_delete_account::Column::Code.eq(&code))
+    let temp_code_model = match TempCodes::find()
+        .filter(
+            Condition::all()
+                .add(temp_codes::Column::Code.eq(&code))
+                .add(temp_codes::Column::Purpose.eq(temp_codes::Purpose::DeleteAccount))
+                .add(temp_codes::Column::UserId.eq(&user.id))
+                .add(temp_codes::Column::CreatedAt.gt(Utc::now() - Duration::minutes(5))),
+        )
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find CodeDeleteAccount model: {}", e)))?
+        .context("can't find temp code model")?
     {
-        Some(model) => {
-            let created_at = model.created_at;
-            let user_id = model.user_id.clone();
-
-            let active: code_delete_account::ActiveModel = model.into();
-            active.delete(&app_state.db).await.map_err(|e| {
-                AppError::from(anyhow::anyhow!(
-                    "can't delete expired CodeDeleteAccount model: {}",
-                    e
-                ))
-            })?;
-
-            if created_at
-                .checked_add_signed(chrono::Duration::minutes(5))
-                .unwrap()
-                .le(&chrono::Utc::now())
-            {
-                return Ok((StatusCode::BAD_REQUEST, "token expired").into_response());
-            }
-
-            user_id
-        }
-        None => return Ok((StatusCode::BAD_REQUEST, "invalid token").into_response()),
+        Some(model) => model,
+        None => return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response()),
     };
-    /* #endregion */
-
-    /* #region - make sure it's come from the same user */
-    if user_id != user.id {
-        return Ok((
-            StatusCode::BAD_REQUEST,
-            "request not come from the same user",
-        )
-            .into_response());
-    }
-    /* #endregion */
-
-    if !check_pass(&user.password, &query.password) {
-        return Ok((StatusCode::BAD_REQUEST, "invalid password").into_response());
-    }
 
     let user: users::ActiveModel = user.into();
     user.delete(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't delete user: {}", e)))?;
+
+    let temp_code_active: temp_codes::ActiveModel = temp_code_model.into();
+    temp_code_active
+        .delete(&app_state.db)
+        .await
+        .context("can't delete temp code model")?;
 
     Ok((StatusCode::OK).into_response())
 }

@@ -1,13 +1,17 @@
 use std::sync::Arc;
 
+use anyhow::{anyhow, Context};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
+use chrono::{Duration, Utc};
 use email_address::EmailAddress;
-use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -33,68 +37,81 @@ pub async fn get_reset_password(
     }
     let mailer = Mailer::from(&app_state.config)?;
 
-    let user = match Users::find()
+    let user_model = match Users::find()
         .filter(users::Column::Email.eq(email.to_string().to_ascii_lowercase()))
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find user {}", e)))?
+        .context("can't find user")?
     {
-        Some(user) => user,
+        Some(u) => u,
         None => return Ok((StatusCode::BAD_REQUEST, "user not found").into_response()),
     };
-    if !user.is_verified {
+
+    if user_model.verified_at.is_none() {
         return Ok((StatusCode::BAD_REQUEST, "user is not verified").into_response());
     }
 
-    let token = CustomID::new();
-
-    let code_reset_pass_active = if let Some(model) = CodeResetPassword::find_by_id(&user.id)
+    let temp_code_model = TempCodes::find()
+        .filter(
+            Condition::all()
+                .add(temp_codes::Column::Purpose.eq(temp_codes::Purpose::ResetPassword))
+                .add(temp_codes::Column::UserId.eq(&user_model.id)),
+        )
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find reset password: {}", e)))?
-    {
+        .context("can't find temp code model")?;
+
+    if let Some(ref model) = temp_code_model {
         if model
             .created_at
-            .checked_add_signed(chrono::Duration::minutes(5))
-            .unwrap()
-            .gt(&chrono::Utc::now())
+            .checked_add_signed(Duration::minutes(5))
+            .map(|d| d.gt(&Utc::now()))
+            .unwrap_or(true)
         {
-            return Ok((StatusCode::TOO_MANY_REQUESTS, "too many requests").into_response());
+            return Ok((StatusCode::TOO_MANY_REQUESTS).into_response());
         }
+    }
 
-        let mut active: code_reset_password::ActiveModel = model.into();
-        active.user_id = NotSet;
-        active.code = Set(token.clone());
-        active.created_at = Set(chrono::Utc::now());
-        active
-    } else {
-        code_reset_password::ActiveModel {
-            user_id: Set(user.id),
-            code: Set(token.clone()),
-            created_at: Set(chrono::Utc::now()),
+    let code = CustomID::new();
+    match temp_code_model {
+        Some(model) => {
+            let mut active: temp_codes::ActiveModel = model.into();
+            active.id = NotSet;
+            active.code = Set(code.clone());
+            active.created_at = Set(Utc::now());
+            active
+                .update(&app_state.db)
+                .await
+                .context("can't update temp code model")?;
         }
-    };
-    code_reset_pass_active
-        .save(&app_state.db)
-        .await
-        .map_err(|e| {
-            AppError::from(anyhow::anyhow!("can't save CodeResetPassword model: {}", e))
-        })?;
+        None => {
+            temp_codes::ActiveModel {
+                id: NotSet,
+                user_id: Set(user_model.id),
+                code: Set(code.clone()),
+                purpose: Set(temp_codes::Purpose::ResetPassword),
+                created_at: Set(Utc::now()),
+            }
+            .insert(&app_state.db)
+            .await
+            .context("can't insert temp code model")?;
+        }
+    }
 
     mailer
         .send(
-            &user.username,
-            &user.email,
+            &user_model.username,
+            &user_model.email,
             format!("{} - Reset your password", &app_state.config.app_name),
             format!(
                 "Hello, {}!\n\n\
-                You have requested to reset your password. Please copy the following token into the app to continue:\n\n\
+                You have requested to reset your password. Please copy the following code into the app to continue:\n\n\
                 {}\n\n\
                 If you did not request to reset your password, please ignore this email.\n\n\
                 Best regards,\n\
                 The {} team",
-                &user.username,
-                &token,
+                &user_model.username,
+                &code,
                 &app_state.config.app_name,
             ),
         )
@@ -118,78 +135,48 @@ pub async fn post_reset_password(
     State(app_state): State<Arc<AppState>>,
     Json(query): Json<ResetRequestBody>,
 ) -> Result<Response, AppError> {
-    /* #region - check request */
     if query.new_password.is_empty() || query.code.is_empty() {
-        return Ok((
-            StatusCode::BAD_REQUEST,
-            "password and token cannot be empty",
-        )
-            .into_response());
+        return Ok((StatusCode::BAD_REQUEST, "password and code cannot be empty").into_response());
     }
     let code = match CustomID::from(query.code.clone()) {
         Ok(code) => code,
-        Err(_) => return Ok((StatusCode::BAD_REQUEST, "invalid token").into_response()),
+        Err(_) => return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response()),
     };
-    /* #endregion */
 
-    /* #region get CodeResetModel, check date, and get the user_id */
-    let user_id = match CodeResetPassword::find()
-        .filter(code_reset_password::Column::Code.eq(&code))
+    let temp_code_model = match TempCodes::find()
+        .filter(
+            Condition::all()
+                .add(temp_codes::Column::Purpose.eq(temp_codes::Purpose::ResetPassword))
+                .add(temp_codes::Column::Code.eq(&code))
+                .add(temp_codes::Column::CreatedAt.gt(Utc::now() - Duration::minutes(5))),
+        )
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find CodeResetPassword model: {}", e)))?
+        .context("can't find temp code model")?
     {
-        Some(model) => {
-            let created_at = model.created_at;
-            let user_id = model.user_id.clone();
-
-            let active: code_reset_password::ActiveModel = model.into();
-            active.delete(&app_state.db).await.map_err(|e| {
-                AppError::from(anyhow::anyhow!(
-                    "can't delete expired CodeResetPassword model: {}",
-                    e
-                ))
-            })?;
-
-            if created_at
-                .checked_add_signed(chrono::Duration::minutes(5))
-                .unwrap()
-                .le(&chrono::Utc::now())
-            {
-                return Ok((StatusCode::BAD_REQUEST, "token expired").into_response());
-            }
-
-            user_id
-        }
-        None => return Ok((StatusCode::BAD_REQUEST, "invalid token").into_response()),
+        Some(model) => model,
+        None => return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response()),
     };
-    /* #endregion */
 
-    let user_model = match Users::find_by_id(&user_id)
+    let user_model = Users::find_by_id(&temp_code_model.user_id)
         .one(&app_state.db)
         .await
-        .map_err(|e| {
-            AppError::from(anyhow::anyhow!(
-                "can't get User model from CodeResetPassword model: {}",
-                e
-            ))
-        })? {
-        Some(model) => model,
-        None => {
-            return Ok((
-                StatusCode::BAD_REQUEST,
-                "password reset request made by a deleted user",
-            )
-                .into_response());
-        }
-    };
+        .context("can't find user")?
+        .ok_or_else(|| anyhow!("user not found"))?;
 
     let mut user_active: users::ActiveModel = user_model.into();
-    user_active.password = Set(hash_pass(query.new_password)?);
+    user_active.password_hash = Set(hash_pass(query.new_password)?);
+    user_active.updated_at = Set(Some(Utc::now()));
     user_active
-        .save(&app_state.db)
+        .update(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't save user: {}", e)))?;
+        .context("can't update user")?;
+
+    let temp_code_active: temp_codes::ActiveModel = temp_code_model.into();
+    temp_code_active
+        .delete(&app_state.db)
+        .await
+        .context("can't delete temp code model")?;
 
     Ok((StatusCode::OK).into_response())
 }

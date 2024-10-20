@@ -1,12 +1,16 @@
 use std::sync::Arc;
 
+use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     Extension, Json,
 };
-use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
+use chrono::{Duration, Utc};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -24,44 +28,61 @@ pub async fn get_validate_email(
     State(app_state): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,
 ) -> Result<Response, AppError> {
-    if user.is_verified {
-        return Ok((StatusCode::BAD_REQUEST, "user is already verified").into_response());
+    if let Some(ref verified_at) = user.verified_at {
+        return Ok((
+            StatusCode::BAD_REQUEST,
+            format!("user is already verified at {}.", verified_at),
+        )
+            .into_response());
     }
     let mailer = Mailer::from(&app_state.config)?;
 
-    let code = CustomID::new();
-    let code_validate_email_active = match CodeValidateEmail::find_by_id(&user.id)
+    let temp_code_model = TempCodes::find()
+        .filter(
+            Condition::all()
+                .add(temp_codes::Column::Purpose.eq(temp_codes::Purpose::ValidateEmail))
+                .add(temp_codes::Column::UserId.eq(&user.id)),
+        )
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find verify email: {}", e)))?
-    {
-        Some(model) => {
-            if model
-                .created_at
-                .checked_add_signed(chrono::Duration::minutes(5))
-                .unwrap()
-                .gt(&chrono::Utc::now())
-            {
-                return Ok((StatusCode::TOO_MANY_REQUESTS, "too many requests").into_response());
-            }
-            let mut active: code_validate_email::ActiveModel = model.into();
-            active.user_id = NotSet;
-            active.code = Set(code.clone());
-            active.created_at = Set(chrono::Utc::now());
-            active
+        .context("can't find temp code model")?;
+
+    if let Some(ref model) = temp_code_model {
+        if model
+            .created_at
+            .checked_add_signed(Duration::minutes(5))
+            .map(|d| d.gt(&Utc::now()))
+            .unwrap_or(true)
+        {
+            return Ok((StatusCode::TOO_MANY_REQUESTS).into_response());
         }
-        None => code_validate_email::ActiveModel {
-            user_id: Set(user.id),
-            code: Set(code.clone()),
-            created_at: Set(chrono::Utc::now()),
-        },
-    };
-    code_validate_email_active
-        .save(&app_state.db)
-        .await
-        .map_err(|e| {
-            AppError::from(anyhow::anyhow!("can't save CodeValidateEmail model: {}", e))
-        })?;
+    }
+
+    let code = CustomID::new();
+    match temp_code_model {
+        Some(model) => {
+            let mut active: temp_codes::ActiveModel = model.into();
+            active.id = NotSet;
+            active.code = Set(code.clone());
+            active.created_at = Set(Utc::now());
+            active
+                .update(&app_state.db)
+                .await
+                .context("can't update temp code model")?;
+        }
+        None => {
+            temp_codes::ActiveModel {
+                id: NotSet,
+                user_id: Set(user.id),
+                code: Set(code.clone()),
+                purpose: Set(temp_codes::Purpose::ValidateEmail),
+                created_at: Set(Utc::now()),
+            }
+            .insert(&app_state.db)
+            .await
+            .context("can't insert temp code model")?;
+        }
+    }
 
     mailer
         .send(
@@ -99,64 +120,49 @@ pub async fn post_validate_email(
     Extension(user): Extension<users::Model>,
     Json(query): Json<ValidateEmailRequestBody>,
 ) -> Result<Response, AppError> {
-    /* #region - check request */
-    if user.is_verified {
-        return Ok((StatusCode::BAD_REQUEST, "User is already verified.").into_response());
+    if let Some(ref verified_at) = user.verified_at {
+        return Ok((
+            StatusCode::BAD_REQUEST,
+            format!("user is already verified at {}.", verified_at),
+        )
+            .into_response());
     }
     if query.code.is_empty() {
         return Ok((StatusCode::BAD_REQUEST, "token must not be empty").into_response());
     }
-    /* #endregion */
+    let code = match CustomID::from(query.code.clone()) {
+        Ok(code) => code,
+        Err(_) => return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response()),
+    };
 
-    /* #region - get CodeValidateEmail, check date, and get the user_id */
-    let user_id = match CodeValidateEmail::find()
-        .filter(code_validate_email::Column::Code.eq(&query.code))
+    let temp_code_model = match TempCodes::find()
+        .filter(
+            Condition::all()
+                .add(temp_codes::Column::Purpose.eq(temp_codes::Purpose::ValidateEmail))
+                .add(temp_codes::Column::UserId.eq(&user.id))
+                .add(temp_codes::Column::Code.eq(&code))
+                .add(temp_codes::Column::CreatedAt.gt(Utc::now() - Duration::minutes(5))),
+        )
         .one(&app_state.db)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find CodeValidateEmail model: {}", e)))?
+        .context("can't find temp code model")?
     {
-        Some(model) => {
-            let created_at = model.created_at;
-            let user_id = model.user_id.clone();
-
-            let active: code_validate_email::ActiveModel = model.into();
-            active.delete(&app_state.db).await.map_err(|e| {
-                AppError::from(anyhow::anyhow!(
-                    "can't delete expired CodeValidateEmail model: {}",
-                    e
-                ))
-            })?;
-
-            if created_at
-                .checked_add_signed(chrono::Duration::minutes(5))
-                .unwrap()
-                .le(&chrono::Utc::now())
-            {
-                return Ok((StatusCode::BAD_REQUEST, "token expired").into_response());
-            }
-
-            user_id
-        }
-        None => return Ok((StatusCode::BAD_REQUEST, "invalid token").into_response()),
+        Some(model) => model,
+        None => return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response()),
     };
-    /* #endregion */
 
-    /* #region - make sure it's come from the same user */
-    if user_id != user.id {
-        return Ok((
-            StatusCode::BAD_REQUEST,
-            "request not come from the same user",
-        )
-            .into_response());
-    };
-    /* #endregion */
-
-    let mut active: users::ActiveModel = user.into();
-    active.is_verified = Set(true);
-    active
+    let mut user_active: users::ActiveModel = user.into();
+    user_active.verified_at = Set(Some(chrono::Utc::now()));
+    user_active
         .update(&app_state.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("Can't save user: {}", e)))?;
+
+    let temp_code_active: temp_codes::ActiveModel = temp_code_model.into();
+    temp_code_active
+        .delete(&app_state.db)
+        .await
+        .context("can't delete temp code model")?;
 
     Ok((StatusCode::OK).into_response())
 }
