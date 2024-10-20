@@ -23,7 +23,7 @@ impl MigrationTrait for Migration {
                     .col(string(SessionTokens::UserId))
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-session-token_user-id")
+                            .name("fk-session-token-user_id")
                             .from(SessionTokens::Table, SessionTokens::UserId)
                             .to(Users::Table, Users::Id)
                             .on_update(ForeignKeyAction::NoAction)
