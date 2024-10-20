@@ -1,4 +1,6 @@
-use std::env::var;
+use std::{env::var, path::PathBuf};
+
+use tracing::warn;
 
 const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
@@ -34,13 +36,25 @@ const VERSION_NAMES: [&str; 31] = [
     "Unfinished Dream of All Living Ghost",
 ];
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum MetadataFileLocation {
+    /// MUST be <content-file-or-dir-name>.toml
+    NextToContent,
+    /// Any of [`Config::possible_index_filestems`].toml
+    InsideContent,
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub app_name: String,
-    pub server_address: String,
     pub library_path: PathBuf,
+
+    pub listen_address: String,
     pub server_port: u16,
     pub database_url: String,
+    pub title_metadata_file_location: MetadataFileLocation,
+    pub category_metadata_file_location: MetadataFileLocation,
+    pub reverse_proxy_ip_header: Option<String>,
 
     pub smtp_host: Option<String>,
     pub smtp_username: Option<String>,
@@ -48,29 +62,62 @@ pub struct Config {
     pub smtp_from_email: Option<String>,
     pub smtp_from_name: Option<String>,
 
-    pub reverse_proxy_ip_header: Option<String>,
-    pub developing: bool,
-
     // Internal variables
-    pub cover_filestems: Vec<&'static str>,
+    pub possible_index_filestems: Vec<&'static str>,
     pub supported_img_formats: Vec<&'static str>,
 }
 
 impl Config {
     pub fn init() -> Self {
+        let library_path = PathBuf::from(var("LIBRARY_PATH").expect("LIBRARY_PATH must be set."));
+        if !library_path.exists() {
+            panic!("LIBRARY_PATH must be set and exist.");
+        }
+        if !library_path.is_dir() {
+            panic!("LIBRARY_PATH must be point to a directory.");
+        }
+
         Self {
             app_name: var("APP_NAME").unwrap_or_else(|_| "Yomuyume".to_string()),
-            server_address: var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string()),
+            library_path,
+            listen_address: var("LISTEN_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string()),
             server_port: var("SERVER_PORT")
                 .unwrap_or_else(|_| "3000".to_string())
                 .parse()
                 .unwrap_or(3000),
-            library_path: var("LIBRARY_PATH").expect("LIBRARY_PATH must be set."),
             database_url: var("DATABASE_URL")
                 .unwrap_or_else(|_| "sqlite:./sqlite.db?mode=rwc".to_string()),
-
+            title_metadata_file_location: match var("TITLE_METADATA_FILE_LOCATION") {
+                Ok(s) => match s.as_str() {
+                    "next_to_content" => MetadataFileLocation::NextToContent,
+                    "inside_content" => MetadataFileLocation::InsideContent,
+                    _ => {
+                        warn!("TITLE_METADATA_FILE_LOCATION must be \"next_to_content\" or \"inside_content\", defaulting to \"next_to_content\"");
+                        MetadataFileLocation::NextToContent
+                    }
+                },
+                Err(_) => {
+                    warn!(
+                        "can't get TITLE_METADATA_FILE_LOCATION, defaulting to \"next_to_content\""
+                    );
+                    MetadataFileLocation::NextToContent
+                }
+            },
+            category_metadata_file_location: match var("CATEGORY_METADATA_FILE_LOCATION") {
+                Ok(s) => match s.as_str() {
+                    "next_to_content" => MetadataFileLocation::NextToContent,
+                    "inside_content" => MetadataFileLocation::InsideContent,
+                    _ => {
+                        warn!("CATEGORY_METADATA_FILE_LOCATION must be \"next_to_content\" or \"inside_content\", defaulting to \"next_to_content\"");
+                        MetadataFileLocation::InsideContent
+                    }
+                },
+                Err(_) => {
+                    warn!("can't get CATEGORY_METADATA_FILE_LOCATION, defaulting to \"next_to_content\"");
+                    MetadataFileLocation::InsideContent
+                }
+            },
             reverse_proxy_ip_header: var("REVERSE_PROXY_IP_HEADER").ok(),
-            developing: var("DEVELOPING").unwrap_or_else(|_| "false".to_string()) == "true",
 
             smtp_host: var("SMTP_HOST").ok(),
             smtp_username: var("SMTP_USERNAME").ok(),
@@ -78,9 +125,7 @@ impl Config {
             smtp_from_email: var("SMTP_FROM_EMAIL").ok(),
             smtp_from_name: var("SMTP_FROM_NAME").ok(),
 
-            // for the cover image finding stradegy, prioritize
-            // files containing any of these strings
-            cover_filestems: vec!["cover", "thumbnail", "folder"],
+            possible_index_filestems: vec!["cover", "thumbnail", "folder", "index", "_"],
             supported_img_formats: vec![
                 "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
             ],
