@@ -10,8 +10,7 @@ pub use middlewares::auth::auth;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use rand_core::OsRng;
-use serde::{Deserialize, Serialize};
-use utoipa::{OpenApi, ToSchema};
+use utoipa::OpenApi;
 
 use crate::AppError;
 
