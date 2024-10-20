@@ -16,7 +16,7 @@ use axum::{
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
 use tokio::{net::TcpListener, sync::Mutex};
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
@@ -165,7 +165,6 @@ async fn main() -> Result<(), DbErr> {
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 
     let addr = format!("{}:{}", config.server_address, config.server_port)
