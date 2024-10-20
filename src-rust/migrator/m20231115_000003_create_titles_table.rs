@@ -31,7 +31,7 @@ impl MigrationTrait for Migration {
             .col(string_null(Titles::Author))
             .col(string_null(Titles::Description))
             .col(date_time_null(Titles::Release))
-            .col(string(Titles::Path))
+            .col(string_uniq(Titles::Path))
             .col(string(Titles::ContentFileHash))
             .col(string(Titles::CoverAndPageDescHash))
             .col(string_null(Titles::CoverPath))
