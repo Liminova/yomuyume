@@ -22,10 +22,10 @@ impl MigrationTrait for Migration {
                     .col(string_uniq(Users::Email))
                     .col(string_null(Users::ProfilePicture))
                     .col(date_time(Users::CreatedAt))
-                    .col(string(Users::IpAddress))
                     .col(date_time(Users::UpdatedAt))
                     .col(string(Users::Password))
                     .col(boolean(Users::IsVerified))
+                    .col(string_null(Users::IpAddress))
                     .to_owned(),
             )
             .await
