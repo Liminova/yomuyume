@@ -21,17 +21,15 @@ pub fn encode(decoded_img: &DynamicImage) -> Result<BlurhashResult> {
         (width / scale, height / scale)
     };
 
-    let encoded = blurhash::encode(
-        components_x,
-        components_y,
-        width,
-        height,
-        &decoded_img.to_rgba8().into_vec(),
-    )
-    .map_err(|err| format!("can't encode blurhash: {}", err))?;
-
     Ok(BlurhashResult {
-        blurhash: encoded,
+        blurhash: blurhash::encode(
+            components_x,
+            components_y,
+            width,
+            height,
+            &decoded_img.to_rgba8().into_vec(),
+        )
+        .context("can't encode image to blurhash")?,
         small_width: width as u8,
         small_height: height as u8,
     })
