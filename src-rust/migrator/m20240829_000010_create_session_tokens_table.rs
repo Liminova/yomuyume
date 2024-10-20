@@ -30,6 +30,7 @@ impl MigrationTrait for Migration {
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .col(date_time(SessionTokens::CreatedAt))
+                    .col(date_time(SessionTokens::LastUsedAt))
                     .col(string_null(SessionTokens::UserAgent))
                     .col(string(SessionTokens::Code))
                     .to_owned(),
@@ -50,6 +51,7 @@ pub enum SessionTokens {
     SessionSecret,
     UserId,
     CreatedAt,
+    LastUsedAt,
     UserAgent,
     Code,
 }
