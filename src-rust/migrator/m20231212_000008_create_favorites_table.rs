@@ -41,6 +41,17 @@ impl MigrationTrait for Migration {
                     .col(date_time(Favorites::CreatedAt))
                     .to_owned(),
             )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx-favorites-user_id-title_id")
+                    .table(Favorites::Table)
+                    .col(Favorites::UserId)
+                    .col(Favorites::TitleId)
+                    .to_owned(),
+            )
             .await
     }
 

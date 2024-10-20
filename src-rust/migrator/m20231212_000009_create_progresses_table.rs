@@ -42,6 +42,17 @@ impl MigrationTrait for Migration {
                     .col(integer(Progresses::Page))
                     .to_owned(),
             )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx-progresses-user_id-title_id")
+                    .table(Progresses::Table)
+                    .col(Progresses::UserId)
+                    .col(Progresses::TitleId)
+                    .to_owned(),
+            )
             .await
     }
 

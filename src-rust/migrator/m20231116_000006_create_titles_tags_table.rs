@@ -40,6 +40,17 @@ impl MigrationTrait for Migration {
                     )
                     .to_owned(),
             )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx-titletags-title_id-tag_id")
+                    .table(TitlesTags::Table)
+                    .col(TitlesTags::TitleId)
+                    .col(TitlesTags::TagId)
+                    .to_owned(),
+            )
             .await
     }
 

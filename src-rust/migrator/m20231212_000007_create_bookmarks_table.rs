@@ -41,6 +41,17 @@ impl MigrationTrait for Migration {
                     .col(date_time(Bookmarks::CreatedAt))
                     .to_owned(),
             )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx-bookmarks-user_id-title_id")
+                    .table(Bookmarks::Table)
+                    .col(Bookmarks::UserId)
+                    .col(Bookmarks::TitleId)
+                    .to_owned(),
+            )
             .await
     }
 
