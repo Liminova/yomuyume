@@ -38,6 +38,7 @@ impl MigrationTrait for Migration {
                             .to(Titles::Table, Titles::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
+                    .col(date_time(Favorites::CreatedAt))
                     .to_owned(),
             )
             .await
@@ -56,4 +57,5 @@ pub enum Favorites {
     Id,
     UserId,
     TitleId,
+    CreatedAt,
 }
