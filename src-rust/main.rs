@@ -3,6 +3,7 @@ mod library_scanner;
 mod migrator;
 mod models;
 mod routes;
+mod utils;
 
 use std::{fmt::Display, net::SocketAddr, sync::Arc};
 
@@ -26,46 +27,9 @@ use crate::{
     config::Config,
     migrator::Migrator,
     routes::{auth, ApiDoc},
+    utils::*,
 };
 use routes::*;
-
-#[derive(Debug)]
-pub struct AppState {
-    db: DatabaseConnection,
-    config: Config,
-    scanning_complete: Mutex<bool>,
-    scanning_progress: Mutex<f64>,
-}
-
-#[derive(Debug)]
-pub struct AppError(anyhow::Error);
-// Tell axum how to convert `AppError` into a response.
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("something went wrong: {}", self.0),
-        )
-            .into_response()
-    }
-}
-
-impl Display for AppError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:#}", self.0)
-    }
-}
-
-// This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
-// `Result<_, AppError>`. That way you don't need to do that manually.
-impl<E> From<E> for AppError
-where
-    E: Into<anyhow::Error>,
-{
-    fn from(err: E) -> Self {
-        Self(err.into())
-    }
-}
 
 #[tokio::main]
 async fn main() -> Result<(), DbErr> {
