@@ -18,9 +18,9 @@ use crate::{
 
 /// Send a request to delete the user.
 ///
-/// The user will receive an email with a token to confirm the deletion.
+/// The user will receive an email with a code to confirm the deletion.
 #[utoipa::path(get, path = "/api/user/delete", responses(
-    (status = 200, description = "Token sent to user's email"),
+    (status = 200, description = "code sent to user's email"),
     (status = 400, description = "Bad request", body = String),
     (status = 401, description = "Unauthorized", body = String),
     (status = 429, description = "Too many requests", body = String),
@@ -73,7 +73,7 @@ pub async fn get_delete_account(
         format!("{} - Delete your password", &app_state.config.app_name),
         format!(
             "Hello, {}!\n\n\
-            // You have requested to delete your account. Please copy the following token into the app to continue:\n\n\
+            // You have requested to delete your account. Please copy the following code into the app to continue:\n\n\
             {}\n\n\
             If you did not request to delete your account, please ignore this email.\n\n\
             Best regards,\n\
@@ -93,7 +93,7 @@ pub struct DeleteRequestBody {
 
 /// Confirm the deletion of the user.
 ///
-/// The user will make a request with the token received by email.
+/// The user will make a request with the code received by email.
 #[utoipa::path(post, path = "/api/user/delete", responses(
     (status = 200, description = "User deleted"),
     (status = 400, description = "Bad request", body = String),

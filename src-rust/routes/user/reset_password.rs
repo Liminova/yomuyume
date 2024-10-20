@@ -17,9 +17,9 @@ use crate::{
     AppError, AppState,
 };
 
-/// Send an email to the user with a token to reset the password.
+/// Send an email to the user with a code to reset the password.
 #[utoipa::path(get, path = "/api/user/reset", responses(
-    (status = 200, description = "Token sent to user's email"),
+    (status = 200, description = "code sent to user's email"),
     (status = 400, description = "Bad request", body = String),
     (status = 429, description = "Too many requests", body = String),
     (status = 500, description = "Internal server error", body = String),
@@ -107,7 +107,7 @@ pub struct ResetRequestBody {
     pub new_password: String,
 }
 
-/// The user provides the token received by email to confirm the password change.
+/// The user provides the code received by email to confirm the password change.
 #[utoipa::path(post, path = "/api/user/reset", responses(
     (status = 200, description = "Password reset successful"),
     (status = 500, description = "Internal server error", body = String),
