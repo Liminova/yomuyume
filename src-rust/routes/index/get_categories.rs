@@ -10,19 +10,16 @@ use axum::{
 };
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct CategoryResponse {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct CategoriesResponseBody {
     pub data: Vec<CategoryResponse>,
 }

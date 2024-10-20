@@ -9,11 +9,9 @@ use axum::{
     Json,
 };
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct ScanningProgressResponseBody {
     pub scanning_completed: bool,
     pub scanning_progress: f64,

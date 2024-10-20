@@ -10,18 +10,15 @@ use axum::{
 };
 use chrono::Local;
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use utoipa::{IntoParams, ToSchema};
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, IntoParams, TS)]
-#[ts(export)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, IntoParams)]
 pub struct StatusRequestBody {
     ///  A test string to test your request body.
     pub echo: Option<String>,
 }
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct StatusResponseBody {
     /// Current local server time.
     pub server_time: String,

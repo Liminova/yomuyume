@@ -9,13 +9,11 @@ use axum::{
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use ts_rs::TS;
 use utoipa::ToSchema;
 
 use crate::{models::prelude::*, AppError, AppState};
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct ResponsePage {
     pub id: String,
@@ -32,8 +30,7 @@ pub struct ResponseCover {
     pub height: Option<u8>,
 }
 
-#[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, ToSchema, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct TitleResponseBody {
     pub category_id: Option<String>,

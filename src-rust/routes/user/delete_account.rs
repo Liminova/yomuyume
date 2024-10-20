@@ -8,7 +8,6 @@ use axum::{
 };
 use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use utoipa::ToSchema;
 
 use crate::{
@@ -86,8 +85,7 @@ pub async fn get_delete_account(
     ).map(|_| Ok((StatusCode::OK).into_response()))?
 }
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct DeleteRequestBody {
     pub code: String,
     pub password: String,

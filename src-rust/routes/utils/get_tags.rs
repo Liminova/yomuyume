@@ -10,18 +10,15 @@ use axum::{
 };
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct TagResponseBody {
     pub id: u32,
     pub name: String,
 }
 
-#[derive(Debug, ToSchema, Clone, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, ToSchema, Clone, Serialize, Deserialize)]
 pub struct TagsMapResponseBody {
     pub data: Vec<TagResponseBody>,
 }

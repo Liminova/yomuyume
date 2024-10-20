@@ -9,7 +9,6 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use utoipa::ToSchema;
 
 use crate::{
@@ -18,15 +17,13 @@ use crate::{
     AppError, AppState,
 };
 
-#[derive(Debug, Deserialize, Serialize, ToSchema, TS)]
-#[ts(export)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct LoginRequestBody {
     pub login: String,
     pub password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, TS)]
-#[ts(export)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LoginResponseBody {
     pub token: String,
 }

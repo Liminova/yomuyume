@@ -13,11 +13,9 @@ use sea_orm::{
     ColumnTrait, Condition, EntityTrait, Order, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
 };
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct FilterRequestBody {
     /// Keywords to search for (search in title, description, author, tags)
     pub keywords: Option<Vec<String>>,
@@ -37,8 +35,7 @@ pub struct FilterRequestBody {
     pub sort_order: Option<String>,
 }
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 #[serde_with::skip_serializing_none]
 pub struct FilterTitleResponseBody {
     pub id: String,
@@ -56,8 +53,7 @@ pub struct FilterTitleResponseBody {
     pub blurhash_height: Option<u8>,
 }
 
-#[derive(Debug, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct FilterResponseBody {
     pub data: Vec<FilterTitleResponseBody>,
 }

@@ -8,13 +8,11 @@ use axum::{
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use utoipa::ToSchema;
 
 use crate::{models::prelude::*, routes::hash_pass, AppError, AppState};
 
-#[derive(Debug, Deserialize, Serialize, ToSchema, TS)]
-#[ts(export)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct RegisterRequestBody {
     pub username: String,
     pub email: String,

@@ -10,11 +10,9 @@ use axum::{
 };
 use sea_orm::{ActiveModelTrait, Set};
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct ModifyRequestBody {
     pub username: Option<String>,
     pub email: Option<String>,
