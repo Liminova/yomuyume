@@ -52,7 +52,7 @@ pub async fn post_login(
         }
     };
 
-    if !check_pass(&user.password, &query.password) {
+    if !check_pass(&user.password_hash, &query.password) {
         return Ok((StatusCode::BAD_REQUEST, "invalid username or password").into_response());
     }
 
