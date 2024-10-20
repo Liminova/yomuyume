@@ -30,5 +30,8 @@ logs
 .eslintcache
 *.db
 
-.devcontainer/dav1d
-.devcontainer/mold-2.33.0-x86_64-linux
+.devcontainer/dav1d*
+.devcontainer/mold*
+*.zip
+/library
+sqlite*
