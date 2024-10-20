@@ -22,10 +22,10 @@ impl MigrationTrait for Migration {
                     .col(string_uniq(Users::Email))
                     .col(string_null(Users::ProfilePicture))
                     .col(date_time(Users::CreatedAt))
-                    .col(boolean(Users::IsVerified))
                     .col(string_null(Users::IpAddress))
                     .col(date_time_null(Users::UpdatedAt))
                     .col(string(Users::PasswordHash))
+                    .col(date_time_null(Users::VerifiedAt))
                     .to_owned(),
             )
             .await
@@ -48,6 +48,6 @@ pub enum Users {
     CreatedAt,
     IpAddress,
     UpdatedAt,
-    IsVerified,
     PasswordHash,
+    VerifiedAt,
 }
