@@ -29,6 +29,7 @@ pub struct TitleResponseBody {
     pub author: Option<String>,
     pub description: Option<String>,
     pub release_date: Option<String>,
+
     pub cover_blurhash: Option<String>,
     pub blurhash_width: Option<u8>,
     pub blurhash_height: Option<u8>,
