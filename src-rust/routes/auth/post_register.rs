@@ -66,7 +66,7 @@ pub async fn post_register(
         username: Set(username.clone()),
         email: Set(email),
         created_at: Set(created_at),
-        password: Set(hash_pass(p)?),
+        password_hash: Set(hash_pass(p)?),
         ..Default::default()
     };
 
