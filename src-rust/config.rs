@@ -38,9 +38,9 @@ const VERSION_NAMES: [&str; 31] = [
 pub struct Config {
     pub app_name: String,
     pub server_address: String,
+    pub library_path: PathBuf,
     pub server_port: u16,
     pub database_url: String,
-    pub library_path: String,
 
     pub smtp_host: Option<String>,
     pub smtp_username: Option<String>,
