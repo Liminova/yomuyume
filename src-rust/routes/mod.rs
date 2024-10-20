@@ -100,10 +100,6 @@ use crate::{models::categories::Model as Categories, AppError};
         TagsMapResponseBody,
         TitleResponseBody,
         ScanningProgressResponseBody,
-
-
-        // Other
-        GenericResponseBody,
     ))
 )]
 pub struct ApiDoc;
@@ -125,17 +121,4 @@ fn hash_pass(input: impl AsRef<str>) -> Result<String, AppError> {
         .hash_password(input, &SaltString::generate(&mut OsRng))
         .map(|hash| hash.to_string())
         .map_err(|e| anyhow::anyhow!("can't hash password: {}", e).into())
-}
-
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
-pub struct GenericResponseBody {
-    pub message: String,
-}
-
-impl GenericResponseBody {
-    pub fn new<T: ToString>(message: T) -> Self {
-        Self {
-            message: message.to_string(),
-        }
-    }
 }
