@@ -21,7 +21,7 @@ pub struct Model {
     pub content_file_hash: String,
     /// Hash value of the "cover" and "descriptions" fields in the metadata file,
     /// to avoid re-scan the content file and Pages table if they haven't changed
-    pub cover_and_page_desc_hash: String,
+    pub cover_and_page_desc_hash: u32,
 
     // no we don't need a separated table for this
     pub cover_path: Option<String>,
