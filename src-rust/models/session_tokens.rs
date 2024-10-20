@@ -13,6 +13,7 @@ pub struct Model {
     pub session_secret: SessionSecret,
     pub user_id: UserID,
     pub created_at: DateTime<Utc>,
+    pub last_used_at: DateTime<Utc>,
     pub user_agent: Option<String>,
     pub ip_address: String,
 }
