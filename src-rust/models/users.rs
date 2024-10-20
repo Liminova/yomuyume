@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 
 use crate::models::prelude::CustomID;
@@ -14,10 +15,11 @@ pub struct Model {
     pub email: String,
     pub password_hash: String,
     pub profile_picture: Option<String>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
     pub ip_address: String,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
     pub is_verified: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub last_used_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
