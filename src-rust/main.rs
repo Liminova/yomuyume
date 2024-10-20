@@ -1,20 +1,18 @@
-mod config;
 mod library_scanner;
 mod migrator;
 mod models;
 mod routes;
 mod utils;
 
-use std::{fmt::Display, net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 
+use anyhow::Result;
 use axum::{
-    http::StatusCode,
     middleware::from_fn_with_state as apply,
-    response::{IntoResponse, Response},
     routing::{get, post, put},
     Router,
 };
-use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr};
+use sea_orm::{ConnectionTrait, Database, DbBackend, DbErr};
 use sea_orm_migration::prelude::*;
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::trace::TraceLayer;
@@ -24,7 +22,6 @@ use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    config::Config,
     migrator::Migrator,
     routes::{auth, ApiDoc},
     utils::*,
