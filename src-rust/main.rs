@@ -99,9 +99,6 @@ async fn main() -> Result<(), DbErr> {
     assert!(schema_manager.has_table("favorites").await?);
     assert!(schema_manager.has_table("progresses").await?);
     assert!(schema_manager.has_table("session_tokens").await?);
-    assert!(schema_manager.has_table("code_delete_account").await?);
-    assert!(schema_manager.has_table("code_reset_password").await?);
-    assert!(schema_manager.has_table("code_validate_email").await?);
 
     info!("database migrations complete!");
 

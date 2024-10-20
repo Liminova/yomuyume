@@ -11,9 +11,6 @@ mod m20231212_000007_create_bookmarks_table;
 mod m20231212_000008_create_favorites_table;
 mod m20231212_000009_create_progresses_table;
 mod m20240829_000010_create_session_tokens_table;
-mod m20240829_000011_create_code_delete_account_table;
-mod m20240829_000012_create_code_reset_password_table;
-mod m20240829_000013_create_code_validate_email_table;
 
 pub struct Migrator;
 
@@ -31,9 +28,6 @@ impl MigratorTrait for Migrator {
             Box::new(m20231212_000008_create_favorites_table::Migration),
             Box::new(m20231212_000009_create_progresses_table::Migration),
             Box::new(m20240829_000010_create_session_tokens_table::Migration),
-            Box::new(m20240829_000011_create_code_delete_account_table::Migration),
-            Box::new(m20240829_000012_create_code_reset_password_table::Migration),
-            Box::new(m20240829_000013_create_code_validate_email_table::Migration),
         ]
     }
 }
