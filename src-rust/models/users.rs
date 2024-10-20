@@ -16,10 +16,10 @@ pub struct Model {
     pub password_hash: String,
     pub profile_picture: Option<String>,
     pub ip_address: String,
-    pub is_verified: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
     pub last_used_at: Option<DateTime<Utc>>,
+    pub verified_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
