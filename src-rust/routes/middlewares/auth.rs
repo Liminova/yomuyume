@@ -41,7 +41,7 @@ pub async fn auth(
         _ => return Ok((StatusCode::UNAUTHORIZED, "session token not found").into_response()),
     };
 
-    let user = Users::find_by_id(&session_token.user_id)
+    let user_model = Users::find_by_id(&session_token.user_id)
         .one(&data.db)
         .await
         .map_err(|e| AppError::from(anyhow::anyhow!("can't find user: {}", e)))?
@@ -58,6 +58,6 @@ pub async fn auth(
             ))
         })?;
 
-    req.extensions_mut().insert(user);
+    req.extensions_mut().insert(user_model);
     Ok(next.run(req).await)
 }
