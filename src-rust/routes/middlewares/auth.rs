@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{models::prelude::*, AppError, AppState};
 
+use anyhow::Context;
 use axum::{
     body::Body,
     extract::State,
