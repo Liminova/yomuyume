@@ -21,15 +21,6 @@ pub struct ResponsePage {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, TS)]
-#[ts(export)]
-#[skip_serializing_none]
-pub struct ResponseCover {
-    pub blurhash: Option<String>,
-    pub width: Option<u8>,
-    pub height: Option<u8>,
-}
-
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct TitleResponseBody {
@@ -39,6 +30,10 @@ pub struct TitleResponseBody {
     pub description: Option<String>,
     pub release_date: Option<String>,
     pub cover: ResponseCover,
+    pub cover_blurhash: Option<String>,
+    pub blurhash_width: Option<u8>,
+    pub blurhash_height: Option<u8>,
+
     pub tag_ids: Vec<u32>,
     pub pages: Vec<ResponsePage>,
     pub favorites: Option<i64>,
@@ -179,11 +174,9 @@ pub async fn get_title(
             author: title.author,
             description: title.description,
             release_date: title.release.map(|d| d.to_rfc3339()),
-            cover: ResponseCover {
-                blurhash: title.cover_blurhash,
-                width: title.blurhash_width,
-                height: title.blurhash_height,
-            },
+            cover_blurhash: title.cover_blurhash,
+            blurhash_width: title.blurhash_width,
+            blurhash_height: title.blurhash_height,
             tag_ids,
             pages,
             favorites,
