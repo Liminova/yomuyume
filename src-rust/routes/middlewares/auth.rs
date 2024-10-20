@@ -58,6 +58,20 @@ pub async fn auth(
             ))
         })?;
 
+    let last_used_at = user_model
+        .last_used_at
+        .clone()
+        .unwrap_or("1970-01-01 00:00:00".parse().unwrap_or_default());
+    let mut user_active_model: users::ActiveModel = user_model.clone().into();
+    let now = chrono::Utc::now();
+    if now - last_used_at < chrono::Duration::minutes(2) {
+        user_active_model.last_used_at = Set(Some(chrono::Utc::now()));
+        user_active_model
+            .update(&data.db)
+            .await
+            .context("can't update last_used_at")?;
+    }
+
     req.extensions_mut().insert(user_model);
     Ok(next.run(req).await)
 }
