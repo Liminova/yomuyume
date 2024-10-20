@@ -13,7 +13,7 @@ use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use utoipa::{OpenApi, ToSchema};
 
-use crate::{models::categories::Model as Categories, AppError};
+use crate::AppError;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -86,7 +86,6 @@ use crate::{models::categories::Model as Categories, AppError};
         ResetRequestBody,
 
         // Index
-        Categories,
         CategoriesResponseBody,
         TitleResponseBody,
         FilterRequestBody,
