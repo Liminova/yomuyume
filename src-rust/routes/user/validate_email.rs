@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 
 use crate::{models::prelude::*, routes::Mailer, AppError, AppState};
 
-/// Send a verification email to the user's email address.
+/// Send an email to the user with a code to validate their email address.
 #[utoipa::path(get, path = "/api/user/verify", responses(
     (status = 200, description = "Verification email sent"),
     (status = 400, description = "Bad request", body = String),
@@ -87,7 +87,7 @@ pub struct ValidateEmailRequestBody {
     pub code: String,
 }
 
-/// The user provides the token received by email.
+/// The user provides the code received by email to verify their email address.
 #[utoipa::path(post, path = "/api/user/verify", responses(
     (status = 200, description = "Account verification successful"),
     (status = 400, description = "Bad request", body = String),
