@@ -19,7 +19,7 @@ pub struct Model {
     pub path: String,
 
     pub content_file_hash: String,
-    /// hashes of the "cover" and "descriptions" fields in the metadata file,
+    /// Hash value of the "cover" and "descriptions" fields in the metadata file,
     /// to avoid re-scan the content file and Pages table if they haven't changed
     pub cover_and_page_desc_hash: String,
 
