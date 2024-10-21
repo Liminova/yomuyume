@@ -61,7 +61,6 @@ pub async fn auth(
 
     let last_used_at = user_model
         .last_used_at
-        .clone()
         .unwrap_or("1970-01-01 00:00:00".parse().unwrap_or_default());
     let mut user_active_model: users::ActiveModel = user_model.clone().into();
     let now = chrono::Utc::now();
