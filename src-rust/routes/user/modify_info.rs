@@ -42,7 +42,7 @@ pub async fn post_modify_info(
 
     if let Some(email) = body.email {
         active_user.email = Set(email);
-        active_user.is_verified = Set(false);
+        active_user.verified_at = Set(None);
     }
 
     if let Some(password) = body.password {
