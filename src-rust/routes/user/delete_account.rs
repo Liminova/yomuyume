@@ -109,7 +109,7 @@ pub struct DeleteRequestBody {
 #[utoipa::path(post, path = "/api/user/delete", responses(
     (status = 200, description = "User deleted"),
     (status = 400, description = "Bad request", body = String),
-    (status = 401, description = "Unauthorized", body = String),
+    (status = 401, description = "Unauthorized"),
     (status = 429, description = "Too many requests", body = String),
     (status = 500, description = "Internal server error", body = String),
 ))]
