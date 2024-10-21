@@ -45,8 +45,8 @@ if [ ! -d $DEVCONTAINER_DIR/mold-$MOLD_VERSION-x86_64-linux ]; then
 fi
 
 # configure cargo to use mold linker
-rm -f /usr/local/cargo/config.toml
-printf "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/workspaces/yomuyume/.devcontainer/mold-$MOLD_VERSION-x86_64-linux/bin/mold\"]\n" > /usr/local/cargo/config.toml
+rm -f /root/cargo/config.toml
+printf "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/workspaces/yomuyume/.devcontainer/mold-$MOLD_VERSION-x86_64-linux/bin/mold\"]\n" > /root/cargo/config.toml
 
 rm -rf $DEVCONTAINER_DIR/../{node_modules,.nuxt}
 pnpm install
