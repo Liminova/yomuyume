@@ -63,7 +63,7 @@ pub async fn post_modify_info(
     }
 
     if active_user.is_changed() {
-        active_user.updated_at = Set(chrono::Utc::now());
+        active_user.updated_at = Set(Some(chrono::Utc::now()));
         active_user
             .save(&app_state.db)
             .await
