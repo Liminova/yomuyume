@@ -24,7 +24,7 @@ use lettre::{
     Message, SmtpTransport, Transport,
 };
 
-use crate::{config::Config, AppError};
+use crate::{AppError, Config};
 
 pub struct Mailer {
     sender: Mailbox,
