@@ -5,8 +5,8 @@ use axum::{
 
 /// Check if the token in the request header/cookie is valid.
 #[utoipa::path(get, path = "/api/user/check", responses(
-    (status = 401, description = "Unauthorized", body = String),
     (status = 200, description = "Cookies valid"),
+    (status = 401, description = "Unauthorized"),
 ))]
 pub async fn get_check() -> Response {
     (StatusCode::OK).into_response()
