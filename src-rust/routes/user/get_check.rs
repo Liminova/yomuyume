@@ -1,9 +1,6 @@
-use crate::GenericResponseBody;
-
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 
 /// Check if the token in the request header/cookie is valid.
