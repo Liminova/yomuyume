@@ -32,19 +32,15 @@ pub async fn post_modify_info(
     Extension(user): Extension<users::Model>,
     Json(body): Json<ModifyRequestBody>,
 ) -> Result<Response, AppError> {
-
     let current_password_hash = user.password_hash.clone();
     let mut active_user: users::ActiveModel = user.into();
-
     if let Some(username) = body.username {
         active_user.username = Set(username);
     }
-
     if let Some(email) = body.email {
         active_user.email = Set(email);
         active_user.verified_at = Set(None);
     }
-
     match (body.current_password, body.new_password) {
         (None, Some(_)) => {
             return Ok((
