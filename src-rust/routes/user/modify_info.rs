@@ -32,7 +32,6 @@ pub async fn post_modify_info(
     Extension(user): Extension<users::Model>,
     Json(body): Json<ModifyRequestBody>,
 ) -> Result<Response, AppError> {
-    let is_verified = user.is_verified;
 
     let current_password_hash = user.password_hash.clone();
     let mut active_user: users::ActiveModel = user.into();
