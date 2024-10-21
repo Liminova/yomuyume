@@ -1,20 +1,13 @@
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
-use anyhow::anyhow;
+use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use murmur3::murmur3_32;
 use toml_edit::DocumentMut;
 use tracing::warn;
 
-use crate::AppError;
-
-/// Metadata for a title parsed from a toml file.
-///
-/// All input strings are trimmed and empty string are removed.
-#[derive(Debug, Clone, Default)]
+/// Just a fancy wrapper for [`toml_edit`]
+#[derive(Debug, Default)]
 pub struct TitleMetadata {
     pub title: String,
     pub author: Option<String>,
@@ -22,49 +15,34 @@ pub struct TitleMetadata {
     pub cover: Option<String>,
     pub release: Option<DateTime<Utc>>,
     pub tags: Vec<String>,
-    /// hashes of the "cover" and "descriptions" fields
-    pub cover_and_page_desc_hash: String,
+    /// if != one in DB, re-scan the content file and check if the
+    /// cover file is valid, and re-assign the pages' descriptions
+    pub cover_and_page_desc_hash: u32,
 
     /// "page file name" -> "description"
     descriptions: HashMap<String, String>,
 
-    pub path: PathBuf,
     document: DocumentMut,
 }
 
 impl TitleMetadata {
-    /// Load (create if not exists) a toml file.
-    pub fn load(path: &Path) -> Result<TitleMetadata, AppError> {
-        let path = path.with_extension("toml");
-
-        // create if not exists
-        if !path.exists() {
-            std::fs::File::create(&path).map_err(|e| {
-                AppError::from(anyhow!(
-                    "TitleMetadata::load: can't create toml file: {}",
-                    e
-                ))
-            })?;
+    pub fn new(title: impl ToString) -> Self {
+        Self {
+            title: title.to_string(),
+            ..Default::default()
         }
+    }
 
-        // load
-        let raw = std::fs::read_to_string(&path).map_err(|e| {
-            AppError::from(anyhow!(
-                "TitleMetadata::load: can't read `{}`: {}",
-                path.display(),
-                e
-            ))
-        })?;
-
+    pub fn parse(
+        raw: impl ToString,
+        backup_title: impl ToString + Display,
+    ) -> Result<TitleMetadata> {
         // parse
         let mut new = TitleMetadata::default();
-        new.document = raw.parse::<DocumentMut>().map_err(|e| {
-            AppError::from(anyhow!(
-                "TitleMetadata::load: can't parse {}: {}",
-                path.display(),
-                e
-            ))
-        })?;
+        new.document = raw.to_string().parse::<DocumentMut>().context(format!(
+            "can't parse to TitleMetadata for \"{}\"",
+            backup_title
+        ))?;
 
         new.title = new
             .document
@@ -72,12 +50,7 @@ impl TitleMetadata {
             .and_then(|s| s.as_str())
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
-            .unwrap_or(
-                path.file_stem()
-                    .map(|s| s.to_string_lossy().to_string())
-                    .filter(|s| !s.is_empty())
-                    .unwrap_or_default(),
-            )
+            .unwrap_or_else(|| backup_title.to_string())
             .to_string();
 
         new.description = new
@@ -108,7 +81,10 @@ impl TitleMetadata {
             .and_then(|s| match s.trim().to_string().parse::<DateTime<Utc>>() {
                 Ok(s) => Some(s),
                 Err(e) => {
-                    warn!("can't parse release date for {}: {}", path.display(), e);
+                    warn!(
+                        "can't parse release date for title \"{}\": {:#}",
+                        new.title, e
+                    );
                     None
                 }
             });
@@ -162,28 +138,20 @@ impl TitleMetadata {
             .map(|(k, v)| format!("{}{}", k, v))
             .collect::<Vec<_>>()
             .join("");
-        cover_and_page_desc.push_str(&new.cover.clone().unwrap_or_default());
+        if let Some(cover) = new.cover.clone() {
+            cover_and_page_desc.push_str(&cover);
+        }
 
-        let cover_and_page_desc_hash = match murmur3_32(&mut &cover_and_page_desc.as_bytes()[..], 0)
-        {
-            Ok(hash) => hash.to_string(),
-            Err(e) => return Err(anyhow!("can't hash: {}", e).into()),
-        };
-
-        new.cover_and_page_desc_hash = cover_and_page_desc_hash;
+        new.cover_and_page_desc_hash = murmur3_32(&mut &cover_and_page_desc.as_bytes()[..], 0)
+            .map_err(|e| {
+                warn!(
+                    "can't hash cover and descriptions attributes for\"{}\": {:#}",
+                    new.title, e
+                )
+            })
+            .unwrap_or_default();
 
         Ok(new)
-    }
-
-    // Save the metadata to the toml file
-    pub fn save(&self) -> Result<(), AppError> {
-        std::fs::write(&self.path, self.document.to_string()).map_err(|e| {
-            AppError::from(anyhow!(
-                "TitleMetadata::save: can't write metadata to {}: {}",
-                self.path.display(),
-                e
-            ))
-        })
     }
 
     pub fn get_page_description(&self, page_file_name: &str) -> Option<String> {
@@ -204,5 +172,11 @@ impl TitleMetadata {
         }
 
         None
+    }
+}
+
+impl Display for TitleMetadata {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.document)
     }
 }
