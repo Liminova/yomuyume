@@ -16,7 +16,7 @@ use utoipa::ToSchema;
 pub struct ModifyRequestBody {
     pub username: Option<String>,
     pub email: Option<String>,
-    pub password: Option<String>,
+    pub current_password: Option<String>,
     pub new_password: Option<String>,
 }
 
