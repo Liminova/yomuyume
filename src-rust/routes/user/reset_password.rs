@@ -25,7 +25,7 @@ use crate::{
 #[utoipa::path(get, path = "/api/user/reset", responses(
     (status = 200, description = "code sent to user's email"),
     (status = 400, description = "Bad request", body = String),
-    (status = 429, description = "Too many requests", body = String),
+    (status = 429, description = "Too many requests"),
     (status = 500, description = "Internal server error", body = String),
 ))]
 pub async fn get_reset_password(
