@@ -45,21 +45,21 @@ pub async fn post_modify_info(
         active_user.verified_at = Set(None);
     }
 
-    if let Some(password) = body.password {
-        if !is_verified {
+    match (body.current_password, body.new_password) {
+        (None, Some(_)) => {
             return Ok((
-                StatusCode::UNAUTHORIZED,
-                "user is not verified, cannot change password",
+                StatusCode::BAD_REQUEST,
+                "current password is required to change password",
             )
                 .into_response());
         }
-        if !check_pass(&password_in_db, &password) {
-            return Ok((StatusCode::BAD_REQUEST, "invalid password").into_response());
+        (Some(current_password), Some(new_password)) => {
+            if !check_pass(&current_password_hash, &current_password) {
+                return Ok((StatusCode::BAD_REQUEST, "invalid current password").into_response());
+            }
+            active_user.password_hash = Set(new_password);
         }
-    }
-
-    if let Some(new_password) = body.new_password {
-        active_user.password = Set(new_password);
+        (_, _) => {}
     }
 
     if active_user.is_changed() {
