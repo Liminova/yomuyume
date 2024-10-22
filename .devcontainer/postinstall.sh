@@ -9,6 +9,8 @@ echo "= pnpm stuffs ="
 echo "==============="
 npm i -g pnpm
 pnpm config set store-dir /home/vscode/.pnpm-store
+rm -rf $DEVCONTAINER_DIR/../{node_modules,.nuxt}
+pnpm install
 
 echo "\n==================="
 echo "= fix git symlink ="
@@ -62,5 +64,3 @@ echo "\n======================================"
 echo "= configure cargo to use mold linker ="
 echo "======================================\n"
 
-rm -rf $DEVCONTAINER_DIR/../{node_modules,.nuxt}
-pnpm install
