@@ -76,9 +76,10 @@ else
     echo "already downloaded mold-$MOLD_VERSION-x86_64-linux"
 fi
 
-rm -f /root/cargo/config.toml
-printf "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/workspaces/yomuyume/.devcontainer/mold-$MOLD_VERSION-x86_64-linux/bin/mold\"]\n" > /root/cargo/config.toml
 echo "\n======================================"
 echo "= configure cargo to use mold linker ="
 echo "======================================\n"
+rm -f /usr/local/cargo/config.toml
+printf "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/workspaces/yomuyume/.devcontainer/mold-$MOLD_VERSION-x86_64-linux/bin/mold\"]\n" > /usr/local/cargo/config.toml
+echo "cargo config created"
 
