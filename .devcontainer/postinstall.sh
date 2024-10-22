@@ -3,8 +3,12 @@
 DEVCONTAINER_DIR="/workspaces/yomuyume/.devcontainer"
 MOLD_VERSION="2.34.1"
 DAV1D_VERSION="1.4.3"
+SEVENZ_VERSION="2408"
+
 DAV1D_MD5=c6fd9302a28d8c8e41e9a658a2be2031
 MOLD_MD5=08d7304ea9f5e232a5c46a45f230b5db
+SEVENZ_TAR_MD5=8908df4bec189cd1f314b54724911a36
+SEVENZ_MD5=c7dce9920aac9217ae6ce2e35f18b985
 
 echo "\n==============="
 echo "= pnpm stuffs ="
@@ -83,3 +87,26 @@ rm -f /usr/local/cargo/config.toml
 printf "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/workspaces/yomuyume/.devcontainer/mold-$MOLD_VERSION-x86_64-linux/bin/mold\"]\n" > /usr/local/cargo/config.toml
 echo "cargo config created"
 
+# 7zip
+echo "\n==============="
+echo "= download 7zz ="
+echo "================\n"
+if [ ! -f $DEVCONTAINER_DIR/7zz ] || [ "$(md5sum $DEVCONTAINER_DIR/7zz | awk '{print $1}')" != "$SEVENZ_MD5" ]; then
+    rm -f /tmp/7z.tar.xz $DEVCONTAINER_DIR/7zz
+    curl -L -o /tmp/7z.tar.xz https://www.7-zip.org/a/7z$SEVENZ_VERSION-linux-x64.tar.xz
+    if [ -f /tmp/7z.tar.xz ]; then
+        if [ "$(md5sum /tmp/7z.tar.xz | awk '{print $1}')" = "$SEVENZ_TAR_MD5" ]; then
+            mkdir -p /tmp/7z && tar -xvf /tmp/7z.tar.xz -C /tmp/7z
+            mv /tmp/7z/7zz $DEVCONTAINER_DIR/7zz
+            rm -rf /tmp/7z2408-linux-x64
+        else
+            echo "7z2408-linux-x64.tar.xz has been modified"
+        fi
+    else
+        echo "7z2408-linux-x64.tar.xz not found"
+    fi
+else
+    echo "7zz already exist in $DEVCONTAINER_DIR"
+fi
+
+echo
