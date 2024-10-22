@@ -6,7 +6,6 @@ DAV1D_VERSION="1.4.3"
 
 npm i -g pnpm
 pnpm config set store-dir /home/vscode/.pnpm-store
-apt-get update && apt-get install -y meson ninja-build nasm clang git zsh pkg-config libssl-dev
 
 if [ ! -f /usr/local/bin/git ]; then
     if [ ! -f /usr/bin/git ]; then
