@@ -18,11 +18,8 @@ pub struct Model {
     pub release: Option<DateTime<Utc>>,
     pub path: String,
 
-    /// Hash value of the "cover" and "descriptions" fields in the metadata file,
-    /// to avoid re-scan the content file and Pages table if they haven't changed
     pub cover_and_page_desc_hash: u32,
 
-    // no we don't need a separated table for this
     pub cover_path: Option<String>,
     pub cover_blurhash: Option<String>,
     pub blurhash_width: Option<u8>,
