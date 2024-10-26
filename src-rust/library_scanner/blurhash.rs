@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use image::{imageops::FilterType::Gaussian, DynamicImage, GenericImageView};
 
 /// Not contains the actual width and height, but the
@@ -28,8 +28,7 @@ pub fn encode(decoded_img: &DynamicImage) -> Result<BlurhashResult> {
             width,
             height,
             &decoded_img.to_rgba8().into_vec(),
-        )
-        .context("can't encode image to blurhash")?,
+        )?,
         small_width: width as u8,
         small_height: height as u8,
     })
