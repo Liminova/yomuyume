@@ -24,6 +24,7 @@ impl MigrationTrait for Migration {
                     .col(string_null(Categories::CoverBlurhash))
                     .col(integer_null(Categories::CoverWidth))
                     .col(integer_null(Categories::CoverHeight))
+                    .col(integer_null(Categories::CoverHash))
                     .to_owned(),
             )
             .await
@@ -45,4 +46,5 @@ pub enum Categories {
     CoverBlurhash,
     CoverWidth,
     CoverHeight,
+    CoverHash,
 }
