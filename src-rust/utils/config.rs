@@ -1,6 +1,5 @@
 use std::{env::var, path::PathBuf};
 
-use tracing::warn;
 pub const SUPPORTED_IMAGE_FORMATS: [&str; 9] = [
     "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
 ];
