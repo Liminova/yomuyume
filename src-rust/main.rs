@@ -147,7 +147,7 @@ async fn main() -> Result<(), DbErr> {
             .run()
             .await
         {
-            error!("scanner error: {}", e);
+            error!("scanner error: {e:?}");
         };
     });
 
