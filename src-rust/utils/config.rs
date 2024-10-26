@@ -54,9 +54,6 @@ pub struct Config {
     pub smtp_password: Option<String>,
     pub smtp_from_email: Option<String>,
     pub smtp_from_name: Option<String>,
-
-    // Internal variables
-    pub possible_index_filestems: Vec<&'static str>,
 }
 
 impl Config {
@@ -86,8 +83,6 @@ impl Config {
             smtp_password: var("SMTP_PASSWORD").ok(),
             smtp_from_email: var("SMTP_FROM_EMAIL").ok(),
             smtp_from_name: var("SMTP_FROM_NAME").ok(),
-
-            possible_index_filestems: vec!["cover", "thumbnail", "folder", "index", "_"],
         }
     }
 
