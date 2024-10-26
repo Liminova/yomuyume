@@ -35,7 +35,7 @@ async fn main() -> Result<(), DbErr> {
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
-        .with_env_filter("sqlx=warn,axum=info,yomuyume_server=debug")
+        .with_env_filter("sqlx=warn,axum=info,yomuyume=debug")
         .init();
 
     let db = Database::connect(&config.database_url).await?;
