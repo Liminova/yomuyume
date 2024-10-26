@@ -77,10 +77,7 @@ async fn main() -> Result<(), DbErr> {
             Router::new()
                 .route("/register", post(post_register))
                 .route("/login", post(post_login))
-                .route(
-                    "/logout",
-                    get(get_logout).route_layer(apply(app_state.clone(), auth)),
-                ),
+                .route("/logout", get(get_logout)),
         )
         .nest(
             "/api/index",
