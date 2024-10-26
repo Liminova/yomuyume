@@ -18,14 +18,13 @@ pub struct Model {
     pub release: Option<DateTime<Utc>>,
     pub path: String,
 
-    pub cover_and_page_desc_hash: u32,
-
     pub cover_path: Option<String>,
     pub cover_blurhash: Option<String>,
     pub blurhash_width: Option<u8>,
     pub blurhash_height: Option<u8>,
 
     pub content_file_hash: u32,
+    pub comic_info_pages_field_hash: u32,
     pub date_added: DateTime<Utc>,
     pub date_updated: Option<DateTime<Utc>>,
 }
