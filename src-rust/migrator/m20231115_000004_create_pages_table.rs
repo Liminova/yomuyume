@@ -29,7 +29,7 @@ impl MigrationTrait for Migration {
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .col(string(Pages::Path))
-                    .col(string(Pages::Description))
+                    .col(string_null(Pages::Description))
                     .to_owned(),
             )
             .await
