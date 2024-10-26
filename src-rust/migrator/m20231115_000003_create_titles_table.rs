@@ -32,11 +32,11 @@ impl MigrationTrait for Migration {
             .col(string_null(Titles::Description))
             .col(date_time_null(Titles::Release))
             .col(string_uniq(Titles::Path))
-            .col(string(Titles::CoverAndPageDescHash))
             .col(string_null(Titles::CoverPath))
             .col(string_null(Titles::CoverBlurhash))
             .col(integer_null(Titles::BlurhashWidth))
             .col(integer_null(Titles::BlurhashHeight))
+            .col(integer(Titles::ComicInfoPagesFieldHash))
             .col(integer(Titles::ContentFileHash))
             .col(date_time(Titles::DateAdded))
             .col(date_time_null(Titles::DateUpdated))
@@ -61,14 +61,13 @@ pub enum Titles {
     Release,
     Path,
 
-    CoverAndPageDescHash,
-
     CoverPath,
     CoverBlurhash,
     BlurhashWidth,
     BlurhashHeight,
 
     ContentFileHash,
+    ComicInfoPagesFieldHash,
     DateAdded,
     DateUpdated,
 }
