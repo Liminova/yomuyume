@@ -18,6 +18,7 @@ pub struct Model {
     pub cover_blurhash: Option<String>,
     pub cover_width: Option<u32>,
     pub cover_height: Option<u32>,
+    pub cover_hash: Option<u32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
