@@ -128,16 +128,19 @@ async fn main() -> Result<(), DbErr> {
         .layer(TraceLayer::new_for_http())
         .with_state(app_state.clone());
 
-    let addr = format!("{}:{}", config.server_address, config.server_port)
-        .parse::<SocketAddr>()
-        .expect("invalid address");
-
-    let listener = TcpListener::bind(&addr).await.unwrap();
-
     let server_handle = tokio::spawn(async move {
-        debug!("listening on: {}", addr);
-        if let Err(e) = axum::serve(listener, app.into_make_service()).await {
-            error!("server error: {}", e);
+        let addr = format!("{}:{}", config.listen_address, config.server_port);
+        debug!("listening on: {addr}");
+
+        if let Err(e) = axum::serve(
+            TcpListener::bind(&addr)
+                .await
+                .expect("can't start tcp listener"),
+            app.into_make_service(),
+        )
+        .await
+        {
+            error!("server error: {e:?}");
         };
     });
 
