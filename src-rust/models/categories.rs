@@ -13,7 +13,6 @@ pub struct Model {
     pub name: String,
     pub description: Option<String>,
 
-    // no we don't need a separated table for this
     pub cover_path: Option<String>,
     pub cover_blurhash: Option<String>,
     pub cover_width: Option<u8>,
