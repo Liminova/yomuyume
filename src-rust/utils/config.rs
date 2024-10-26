@@ -1,6 +1,9 @@
 use std::{env::var, path::PathBuf};
 
 use tracing::warn;
+pub const SUPPORTED_IMAGE_FORMATS: [&str; 9] = [
+    "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
+];
 
 const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
@@ -54,7 +57,6 @@ pub struct Config {
 
     // Internal variables
     pub possible_index_filestems: Vec<&'static str>,
-    pub supported_img_formats: Vec<&'static str>,
 }
 
 impl Config {
@@ -86,9 +88,6 @@ impl Config {
             smtp_from_name: var("SMTP_FROM_NAME").ok(),
 
             possible_index_filestems: vec!["cover", "thumbnail", "folder", "index", "_"],
-            supported_img_formats: vec![
-                "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
-            ],
         }
     }
 
