@@ -29,6 +29,7 @@ pub fn encode(decoded_img: &DynamicImage) -> Result<BlurhashResult> {
             height,
             &decoded_img.to_rgba8().into_vec(),
         )?,
+        // TODO: for some reason these always both 32
         small_width: width as u8,
         small_height: height as u8,
     })
