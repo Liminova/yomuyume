@@ -1,14 +1,14 @@
-use std::{fs::File, io::Read, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
-use crate::{models::prelude::*, AppError, AppState};
-
+use anyhow::Context;
 use axum::{
     extract::{Path, State},
     http::{header, StatusCode},
     response::{IntoResponse, Response},
 };
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect};
-use zip::ZipArchive;
+
+use crate::{models::prelude::*, AppError, AppState, ArchiveFile};
 
 #[utoipa::path(get, path = "/api/file/cover/{id}", responses(
     (status = 200, description = "Fetch cover successful", body = Vec<u8>),
@@ -40,16 +40,10 @@ pub async fn get_cover(
         }
     };
 
-    let mut buffer = Vec::new();
-    ZipArchive::new(
-        File::open(content_file_path)
-            .map_err(|e| AppError::from(anyhow::anyhow!("open content file error: {}", e)))?,
-    )
-    .map_err(|e| AppError::from(anyhow::anyhow!("read content file error: {}", e)))?
-    .by_name(cover_path.as_ref())
-    .map_err(|e| AppError::from(anyhow::anyhow!("get cover file error: {}", e)))?
-    .read_to_end(&mut buffer)
-    .map_err(|e| AppError::from(anyhow::anyhow!("read cover file error: {}", e)))?;
+    let cover_file_buf = ArchiveFile::from(PathBuf::from(content_file_path))
+        .context("can't create ArchiveFile from content file")
+        .and_then(|mut archive_file| archive_file.get_file(&cover_path))
+        .context("can't get cover file from content file")?;
 
     Ok((
         StatusCode::OK,
@@ -64,7 +58,7 @@ pub async fn get_cover(
                     .to_ascii_lowercase()
             ),
         )],
-        buffer,
+        cover_file_buf,
     )
         .into_response())
 }

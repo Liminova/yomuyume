@@ -1,14 +1,14 @@
-use std::{fs::File, io::Read, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
-use crate::{models::prelude::*, AppError, AppState};
-
+use anyhow::Context;
 use axum::{
     extract::{Path, State},
     http::{header, StatusCode},
     response::{IntoResponse, Response},
 };
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect};
-use zip::ZipArchive;
+
+use crate::{models::prelude::*, AppError, AppState, ArchiveFile};
 
 #[utoipa::path(get, path = "/api/file/page/{page_id}", responses(
     (status = 200, description = "Fetch page successful.", body = Vec<u8>),
@@ -43,16 +43,10 @@ pub async fn get_page(
         None => return Ok((StatusCode::NOT_FOUND, "title not found".to_string()).into_response()),
     };
 
-    let mut buffer = Vec::new();
-    ZipArchive::new(
-        File::open(title_in_db.path)
-            .map_err(|e| AppError::from(anyhow::anyhow!("open zip file error: {}", e)))?,
-    )
-    .map_err(|e| AppError::from(anyhow::anyhow!("read zip file error: {}", e)))?
-    .by_name(&path_in_content_file)
-    .map_err(|e| AppError::from(anyhow::anyhow!("get page file error: {}", e)))?
-    .read_to_end(&mut buffer)
-    .map_err(|e| AppError::from(anyhow::anyhow!("read page file error: {}", e)))?;
+    let page_file_buf = ArchiveFile::from(PathBuf::from(title_in_db.path))
+        .context("can't create ArchiveFile from content file")
+        .and_then(|mut archive_file| archive_file.get_file(&path_in_content_file))
+        .context("can't get page file from content file")?;
 
     Ok((
         StatusCode::OK,
@@ -67,7 +61,7 @@ pub async fn get_page(
                     .to_ascii_lowercase()
             ),
         )],
-        buffer,
+        page_file_buf,
     )
         .into_response())
 }
