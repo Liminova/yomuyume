@@ -16,8 +16,8 @@ pub struct Model {
     // no we don't need a separated table for this
     pub cover_path: Option<String>,
     pub cover_blurhash: Option<String>,
-    pub cover_width: Option<u32>,
-    pub cover_height: Option<u32>,
+    pub cover_width: Option<u8>,
+    pub cover_height: Option<u8>,
     pub cover_hash: Option<u32>,
 }
 
