@@ -36,14 +36,6 @@ const VERSION_NAMES: [&str; 31] = [
     "Unfinished Dream of All Living Ghost",
 ];
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum MetadataFileLocation {
-    /// MUST be <content-file-or-dir-name>.toml
-    NextToContent,
-    /// Any of [`Config::possible_index_filestems`].toml
-    InsideContent,
-}
-
 #[derive(Debug, Clone)]
 pub struct Config {
     pub app_name: String,
@@ -52,8 +44,6 @@ pub struct Config {
     pub listen_address: String,
     pub server_port: u16,
     pub database_url: String,
-    pub title_metadata_file_location: MetadataFileLocation,
-    pub category_metadata_file_location: MetadataFileLocation,
     pub reverse_proxy_ip_header: Option<String>,
 
     pub smtp_host: Option<String>,
@@ -87,36 +77,6 @@ impl Config {
                 .unwrap_or(3000),
             database_url: var("DATABASE_URL")
                 .unwrap_or_else(|_| "sqlite:./sqlite.db?mode=rwc".to_string()),
-            title_metadata_file_location: match var("TITLE_METADATA_FILE_LOCATION") {
-                Ok(s) => match s.as_str() {
-                    "next_to_content" => MetadataFileLocation::NextToContent,
-                    "inside_content" => MetadataFileLocation::InsideContent,
-                    _ => {
-                        warn!("TITLE_METADATA_FILE_LOCATION must be \"next_to_content\" or \"inside_content\", defaulting to \"next_to_content\"");
-                        MetadataFileLocation::NextToContent
-                    }
-                },
-                Err(_) => {
-                    warn!(
-                        "can't get TITLE_METADATA_FILE_LOCATION, defaulting to \"next_to_content\""
-                    );
-                    MetadataFileLocation::NextToContent
-                }
-            },
-            category_metadata_file_location: match var("CATEGORY_METADATA_FILE_LOCATION") {
-                Ok(s) => match s.as_str() {
-                    "next_to_content" => MetadataFileLocation::NextToContent,
-                    "inside_content" => MetadataFileLocation::InsideContent,
-                    _ => {
-                        warn!("CATEGORY_METADATA_FILE_LOCATION must be \"next_to_content\" or \"inside_content\", defaulting to \"next_to_content\"");
-                        MetadataFileLocation::InsideContent
-                    }
-                },
-                Err(_) => {
-                    warn!("can't get CATEGORY_METADATA_FILE_LOCATION, defaulting to \"next_to_content\"");
-                    MetadataFileLocation::InsideContent
-                }
-            },
             reverse_proxy_ip_header: var("REVERSE_PROXY_IP_HEADER").ok(),
 
             smtp_host: var("SMTP_HOST").ok(),
