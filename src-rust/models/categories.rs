@@ -10,7 +10,7 @@ pub type CategoryID = CustomID;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: CategoryID,
-    pub name: String,
+    pub name: Option<String>,
     pub description: Option<String>,
 
     pub cover_path: Option<String>,

@@ -18,7 +18,7 @@ impl MigrationTrait for Migration {
                     .table(Categories::Table)
                     .if_not_exists()
                     .col(string(Categories::Id).primary_key())
-                    .col(string(Categories::Name))
+                    .col(string_null(Categories::Name))
                     .col(string_null(Categories::Description))
                     .col(string_null(Categories::CoverPath))
                     .col(string_null(Categories::CoverBlurhash))
