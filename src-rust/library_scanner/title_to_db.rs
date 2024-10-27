@@ -1,360 +1,379 @@
 // NEW AND IMPROVED
 
-use std::{collections::HashSet, fs::File, io::Read, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context, Result};
 use murmur3::murmur3_32;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
-    TryIntoModel,
+    ActiveModelTrait, ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, Set,
+    TransactionTrait,
 };
-use tracing::warn;
-use zip::ZipArchive;
+use tracing::{debug, warn};
+// use zip::ZipArchive;
 
 use crate::{
-    library_scanner::{
-        blurhash::{encode, BlurhashResult},
-        title_metadata::TitleMetadata,
-    },
+    library_scanner::{blurhash::encode, comic_info::ComicInfo},
     models::prelude::*,
-    AppError, AppState,
+    AppState, ArchiveFile, IteratorExt, SUPPORTED_IMAGE_FORMATS,
 };
 
-/// One way sync from title.zip + title.toml -> database
+use super::comic_info::ComicPageType;
+
+/// Upsert a title to the database and return its ID and ComicInfo.
 pub async fn title_to_db(
     app_state: Arc<AppState>,
-    category_id: &CustomID,
+    category_id: Option<CustomID>,
     content_file_path: &PathBuf,
-) -> Result<(TitleID, TitleMetadata), AppError> {
-    if !content_file_path.exists() {
-        return Err(AppError::from(anyhow!("content file not found")));
+) -> Result<(TitleID, ComicInfo)> {
+    '_pre_checks: {
+        if !content_file_path.exists() {
+            return Err(anyhow!("content file not exists"));
+        }
+        if !content_file_path.is_file() {
+            return Err(anyhow!("content file is not a file"));
+        }
+        if !content_file_path
+            .extension()
+            .map(|s| s.to_string_lossy() == "zip")
+            .unwrap_or(false)
+        {
+            return Err(anyhow!("content file is not a zip file"));
+        }
     }
+
     // micro optimization, this value is used frequently
-    let title_file_path_string = content_file_path.to_string_lossy().to_string();
+    let content_file_path_string = content_file_path.to_string_lossy().to_string();
 
-    let metadata = TitleMetadata::load(content_file_path)?;
+    let mut archive_file = ArchiveFile::from(content_file_path.clone())
+        .context("can't create ArchiveFile from content file")?;
 
-    // #region - getting up-to-date models
+    let mut comic_info = archive_file
+        .get_file("CategoryInfo.xml")
+        .context("can't get CategoryInfo.xml in content file")
+        .and_then(|b| String::from_utf8(b).context("can't decode CategoryInfo.xml in content file"))
+        .and_then(|s| ComicInfo::from_str(&s))?;
 
-    // true when
-    // - content file's hash changed
-    // - in metadata file, either "cover" or "descriptions" changed
-    let mut need_scan_content_file = false;
     let current_content_file_hash = {
         let title_file = tokio::fs::read(&content_file_path).await?;
         match murmur3_32(&mut &title_file[..], 0) {
-            Ok(hash) => hash.to_string(),
-            Err(e) => return Err(anyhow!("can't hash content file: {}", e).into()),
+            Ok(hash) => hash,
+            Err(e) => return Err(anyhow!("can't hash content file: {}", e)),
         }
     };
-    let (newest_title_model, mut newest_title_active) = Titles::find()
-        .filter(
-            Condition::any()
-                .add(titles::Column::ContentFileHash.eq(&current_content_file_hash))
-                .add(titles::Column::Path.eq(&title_file_path_string)),
-        )
+    let title_model = Titles::find()
+        .filter(titles::Column::Path.eq(&content_file_path_string))
         .one(&app_state.db)
         .await
-        .map_err(|e| anyhow!("can't find existing title by hash: {}", e))?
-        .map(|model| {
-            let mut active: titles::ActiveModel = model.clone().into();
-            active.id = NotSet;
-            if model.path != title_file_path_string {
-                active.path = Set(title_file_path_string.clone());
-            }
-            if model.title != metadata.title {
-                active.title = Set(metadata.title.clone());
-            }
-            if model.category_id != Some(category_id.clone()) {
-                active.category_id = Set(Some(category_id.clone()));
-            }
-            if model.author != metadata.author {
-                active.author = Set(metadata.author.clone());
-            }
-            if model.description != metadata.description {
-                active.description = Set(metadata.description.clone());
-            }
-            if model.release != metadata.release {
-                active.release = Set(metadata.release);
-            }
-            if model.content_file_hash != current_content_file_hash {
-                active.content_file_hash = Set(current_content_file_hash.clone());
-            }
-            if model.cover_and_page_desc_hash != metadata.cover_and_page_desc_hash {
-                active.cover_and_page_desc_hash = Set(metadata.cover_and_page_desc_hash.clone());
-            }
+        .context("can't find existing title by hash")?;
 
-            let content_hash_changed = model.content_file_hash != current_content_file_hash;
-            let content_related_metadata_hash_changed =
-                model.cover_and_page_desc_hash != metadata.cover_and_page_desc_hash;
-            need_scan_content_file = content_hash_changed || content_related_metadata_hash_changed;
+    if Titles::find()
+        .filter(titles::Column::ContentFileHash.eq(current_content_file_hash))
+        .count(&app_state.db)
+        .await
+        .context("can't count existing title by hash")?
+        > 1
+    {
+        warn!("another title is having the same hash as {content_file_path_string}");
+    }
 
-            Ok((model, active))
-        })
-        .unwrap_or_else(|| {
-            let new_active_model = titles::ActiveModel {
-                id: Set(TitleID::new()),
-                title: Set(metadata.title.clone()),
-                category_id: Set(Some(category_id.clone())),
-                author: Set(metadata.author.clone()),
-                description: Set(metadata.description.clone()),
-                release: Set(metadata.release),
-                path: Set(title_file_path_string.clone()),
+    let title_id = title_model
+        .as_ref()
+        .map(|m| m.id.clone())
+        .unwrap_or(TitleID::new());
 
-                content_file_hash: Set(current_content_file_hash),
-                cover_and_page_desc_hash: Set(metadata.cover_and_page_desc_hash.clone()),
+    let mut active_title_model: titles::ActiveModel = title_model
+        .clone()
+        .map(|m| m.into())
+        .unwrap_or_else(|| titles::ActiveModel {
+            id: Set(title_id.clone()),
+            title: Set(comic_info.title.to_string()),
+            category_id: Set(category_id.clone()),
+            author: Set(comic_info.penciller.clone()),
+            description: Set(comic_info.summary.clone()),
+            // TOOD: put into warning list instead of .ok()
+            release: Set(comic_info.get_release().ok()),
+            path: Set(content_file_path_string.clone()),
 
-                cover_path: Set(None),
-                cover_blurhash: Set(None),
-                blurhash_width: Set(None),
-                blurhash_height: Set(None),
+            cover_path: Set(None),
+            cover_blurhash: Set(None),
+            blurhash_width: Set(None),
+            blurhash_height: Set(None),
 
-                date_added: Set(chrono::Utc::now()),
-                date_updated: Set(None),
-            };
+            content_file_hash: Set(current_content_file_hash),
+            // TODO: handle this properly
+            comic_info_pages_field_hash: Set(comic_info.get_pages_field_hash().ok().unwrap_or(0)),
+            date_added: Set(chrono::Utc::now()),
+            date_updated: Set(None),
+        });
 
-            need_scan_content_file = true;
+    if active_title_model.is_changed() {
+        debug!("title metadata CHANGED for {content_file_path_string}")
+    } else {
+        debug!("title metadata NOT CHANGED for {content_file_path_string}")
+    }
 
-            match new_active_model.clone().try_into_model() {
-                Ok(model) => Ok((model, new_active_model)),
-                Err(e) => Err(AppError::from(anyhow!(
-                    "can't convert new active model to model: {}",
-                    e
-                ))),
-            }
-        })?;
-    // #endregion
+    if let Some(ref title_model) = title_model {
+        if title_model.path != content_file_path_string {
+            active_title_model.path = Set(content_file_path_string.clone());
+        }
+        if title_model.title != comic_info.title.to_string() {
+            active_title_model.title = Set(comic_info.title.to_string());
+        }
+        if title_model.category_id != category_id {
+            active_title_model.category_id = Set(category_id.clone());
+        }
+        if title_model.author != comic_info.penciller.clone() {
+            active_title_model.author = Set(comic_info.penciller.clone());
+        }
+        if title_model.description != comic_info.summary {
+            active_title_model.description = Set(comic_info.summary.clone());
+        }
+        // TOOD: put into warning list instead of .ok()
+        if title_model.release != comic_info.get_release().ok() {
+            active_title_model.release = Set(comic_info.get_release().ok());
+        }
+        if title_model.content_file_hash != current_content_file_hash {
+            active_title_model.content_file_hash = Set(current_content_file_hash);
+        }
+    }
 
-    // #region - return if no need to scan; scan & return if archive empty
+    let need_scan_content_file = {
+        let content_file_hash_changed = title_model
+            .as_ref()
+            .map(|m| m.content_file_hash != current_content_file_hash)
+            .unwrap_or(true);
+        let comic_info_pages_field_hash_changed = title_model
+            .as_ref()
+            .map(|m| {
+                // TODO: handle this properly
+                m.comic_info_pages_field_hash != comic_info.get_pages_field_hash().ok().unwrap_or(0)
+            })
+            .unwrap_or(true);
+        content_file_hash_changed || comic_info_pages_field_hash_changed
+    };
+
+    let txn = app_state.clone().db.begin().await?;
+
     if !need_scan_content_file {
-        metadata.save()?;
-        newest_title_active.save(&app_state.db).await?;
-        return Ok((newest_title_model.id, metadata));
+        if !active_title_model.is_changed() {
+            return Ok((title_id, comic_info));
+        }
+        active_title_model.date_updated = Set(Some(chrono::Utc::now()));
+        if title_model.is_some() {
+            active_title_model
+                .update(&txn)
+                .await
+                .context("can't early update title in database")?;
+        } else {
+            active_title_model
+                .insert(&txn)
+                .await
+                .context("can't early insert title to database")?;
+        }
+        // TODO: write ComicInfo.xml to content file
+        txn.commit()
+            .await
+            .context("can't commit transaction early")?;
+        return Ok((title_id, comic_info));
     }
 
-    let mut archive = ZipArchive::new(
-        File::open(content_file_path)
-            .map_err(|e| AppError::from(anyhow!("can't read content file: {}", e)))?,
-    )
-    .map_err(|e| AppError::from(anyhow!("can't open content file: {}", e)))?;
-
-    if archive.is_empty() {
-        return Err(AppError::from(anyhow!("content file is empty")));
-    }
-
-    // #endregion
-
-    // #region - update Pages table
-    let pages_in_file: HashSet<String> = (0..archive.len())
-        .filter_map(|i| archive.by_index(i).ok().map(|f| f.name().to_string()))
-        .filter(|p| {
-            app_state
-                .config
-                .supported_img_formats
-                .contains(&p.split('.').last().unwrap_or_default())
-        })
-        .collect();
-
-    let pages_in_db: HashSet<String> = Pages::find()
-        .filter(pages::Column::TitleId.eq(newest_title_model.id.clone()))
-        .all(&app_state.db)
+    let pages_in_content_file = archive_file
+        .list_files()
         .await
-        .map_err(|e| anyhow!("can't find pages in DB: {}", e))?
+        .context("can't list files in content file")?
         .into_iter()
-        .map(|p| p.path)
-        .collect();
-
-    let to_be_delete: Vec<&String> = pages_in_db.difference(&pages_in_file).collect();
-    let to_be_delete_condition = Condition::any()
-        .add(pages::Column::TitleId.eq(newest_title_model.id.clone()))
-        .add(pages::Column::Path.is_in(to_be_delete));
-    Pages::delete_many()
-        .filter(to_be_delete_condition)
-        .exec(&app_state.db)
-        .await
-        .map_err(|e| anyhow!("can't delete pages in DB: {}", e))?;
-
-    let to_be_insert: Vec<&String> = pages_in_file.difference(&pages_in_db).collect();
-    let to_be_insert_models = to_be_insert
-        .into_iter()
-        .map(|path| pages::ActiveModel {
-            id: Set(PageID::new()),
-            title_id: Set(newest_title_model.id.clone()),
-            path: Set(path.clone()),
-            description: Set(metadata.get_page_description(path)),
-        })
+        .filter(|p| SUPPORTED_IMAGE_FORMATS.contains_key(p.split('.').last().unwrap_or_default()))
         .collect::<Vec<_>>();
-    Pages::insert_many(to_be_insert_models)
-        .on_empty_do_nothing()
-        .exec(&app_state.db)
-        .await
-        .map_err(|e| anyhow!("can't insert pages to DB: {}", e))?;
 
-    let to_be_update: Vec<&String> = pages_in_file.intersection(&pages_in_db).collect();
-    for page in to_be_update {
-        let page_model = Pages::find()
+    '_validate_cover_page: {
+        // try encode-to-blurhash the configured FrontCover in ComicInfo.toml
+        let mut cover_page_blurhash = comic_info
+            .pages
+            .pages
+            .iter()
+            .find(|p| p.page_type == ComicPageType::FrontCover)
+            .ok_or_else(|| anyhow!("not configured yet"))
+            .and_then(|p| {
+                p.image_path
+                    .as_ref()
+                    .ok_or_else(|| anyhow!("ImagePath attribute is empty"))
+            })
+            .and_then(|path| {
+                archive_file
+                    .get_file(path)
+                    .context("can't extract from content file")
+                    .map(|buf| (buf, path))
+            })
+            .and_then(|(buf, path)| {
+                image::load_from_memory(&buf)
+                    .context("can't decode")
+                    .map(|img| (img, path))
+            })
+            .and_then(|(img, path)| {
+                encode(&img)
+                    .context("can't encode to blurhash")
+                    .map(|blurhash_result| (blurhash_result, path))
+            });
+
+        // try everything else
+        if let Err(ref e) = cover_page_blurhash {
+            warn!("there's a problem with FrontCover page in ComicInfo.xml for {content_file_path_string}: {e:?}");
+
+            cover_page_blurhash = pages_in_content_file.iter().try_find_map(|page_file_name| {
+                archive_file
+                    .get_file(page_file_name)
+                    .context("can't extract from content file")
+                    .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
+                    .and_then(|img| encode(&img).context("can't encode image to blurhash"))
+                    .map(|blurhash_result| (blurhash_result, page_file_name))
+            });
+        }
+
+        match cover_page_blurhash {
+            Ok((blurhash_result, path)) => {
+                if let Some(ref title_model) = title_model {
+                    if title_model.cover_blurhash != Some(blurhash_result.blurhash.clone()) {
+                        active_title_model.cover_blurhash = Set(Some(blurhash_result.blurhash));
+                    }
+                    if title_model.blurhash_width != Some(blurhash_result.small_width) {
+                        active_title_model.blurhash_width = Set(Some(blurhash_result.small_width));
+                    }
+                    if title_model.blurhash_height != Some(blurhash_result.small_height) {
+                        active_title_model.blurhash_height =
+                            Set(Some(blurhash_result.small_height));
+                    }
+                    if title_model.cover_path != Some(path.to_string()) {
+                        active_title_model.cover_path = Set(Some(path.to_string()));
+                    }
+                } else {
+                    active_title_model.cover_blurhash = Set(Some(blurhash_result.blurhash));
+                    active_title_model.blurhash_width = Set(Some(blurhash_result.small_width));
+                    active_title_model.blurhash_height = Set(Some(blurhash_result.small_height));
+                    active_title_model.cover_path = Set(Some(path.to_string()));
+                }
+            }
+            Err(ref e) => {
+                if let Some(ref title_model) = title_model {
+                    if title_model.cover_blurhash.is_some() {
+                        active_title_model.cover_blurhash = Set(None);
+                    }
+                    if title_model.blurhash_width.is_some() {
+                        active_title_model.blurhash_width = Set(None);
+                    }
+                    if title_model.blurhash_height.is_some() {
+                        active_title_model.blurhash_height = Set(None);
+                    }
+                    if title_model.cover_path.is_some() {
+                        active_title_model.cover_path = Set(None);
+                    }
+                } else {
+                    active_title_model.cover_blurhash = Set(None);
+                    active_title_model.blurhash_width = Set(None);
+                    active_title_model.blurhash_height = Set(None);
+                    active_title_model.cover_path = Set(None);
+                }
+                warn!("no cover file for title {content_file_path_string}: {e:?}");
+            }
+        }
+    }
+
+    '_upsert_title_active_and_save_metadata: {
+        if active_title_model.is_changed() {
+            active_title_model.date_updated = Set(Some(chrono::Utc::now()));
+        }
+        if title_model.is_some() {
+            active_title_model
+                .update(&txn)
+                .await
+                .context("can't update title in database")?;
+        } else {
+            active_title_model
+                .insert(&txn)
+                .await
+                .context("can't insert title to database")?;
+        }
+        // TODO: write back metadata to content file
+    }
+
+    '_upsert_pages: {
+        debug!("upserting pages");
+        let pages_in_content_file_active: Vec<pages::ActiveModel> = pages_in_content_file
+            .iter()
+            .map(|p| pages::ActiveModel {
+                id: Set(PageID::new()),
+                title_id: Set(title_id.clone()),
+                path: Set(p.clone()),
+                description: Set(comic_info.get_page_description(p)),
+            })
+            .collect();
+        Pages::insert_many(pages_in_content_file_active)
+            // .on_conflict(
+            //     OnConflict::column(pages::Column::Path)
+            //         .do_nothing()
+            //         .to_owned(),
+            // )
+            // .on_conflict(
+            //     OnConflict::column(pages::Column::TitleId)
+            //         .do_nothing()
+            //         .to_owned(),
+            // )
+            .exec(&txn)
+            .await
+            .context("can't insert pages to DB")?;
+        Pages::delete_many()
             .filter(
                 Condition::all()
-                    .add(pages::Column::TitleId.eq(newest_title_model.id.clone()))
-                    .add(pages::Column::Path.eq(page)),
+                    .add(pages::Column::TitleId.eq(&title_id))
+                    .add(pages::Column::Path.is_not_in(&pages_in_content_file)),
             )
-            .one(&app_state.db)
+            .exec(&txn)
             .await
-            .map_err(|e| anyhow!("can't find page in DB: {}", e))?;
-
-        if let Some(page_model) = page_model {
-            let page_desc = metadata.get_page_description(page);
-            if page_model.description == page_desc {
-                continue;
-            }
-            let mut page_active: pages::ActiveModel = page_model.into();
-            page_active.description = Set(page_desc);
-            page_active
-                .update(&app_state.db)
-                .await
-                .map_err(|e| anyhow!("can't update page in DB: {}", e))?;
-        }
-    }
-    // #endregion
-
-    // #region - validate cover file
-    let mut pages_in_file = pages_in_file;
-    let mut valid_cover = false;
-
-    // try using the configured cover file
-    if let Some(cover) = metadata.cover.clone() {
-        let configured_cover_img: Result<BlurhashResult, String> = pages_in_file
-            .get(&cover)
-            .ok_or_else(|| format!("cover not found in content file: {}", cover))
-            .and_then(|p| {
-                archive
-                    .by_name(p)
-                    .map_err(|e| format!("can't read cover file from content file: {}", e))
-            })
-            .and_then(|mut f| {
-                let mut buf: Vec<u8> = Vec::new();
-                f.read_to_end(&mut buf)
-                    .map_err(|e| format!("can't read cover file from content file: {}", e))?;
-                Ok(buf)
-            })
-            .and_then(|buf| {
-                image::load_from_memory(&buf).map_err(|e| format!("can't decode image: {}", e))
-            })
-            .and_then(|img| encode(&img));
-
-        match configured_cover_img {
-            Ok(blurhash_result) => {
-                valid_cover = true;
-                newest_title_active.cover_blurhash = Set(Some(blurhash_result.blurhash));
-                newest_title_active.blurhash_width = Set(Some(blurhash_result.small_width));
-                newest_title_active.blurhash_height = Set(Some(blurhash_result.small_height));
-            }
-            Err(e) => {
-                pages_in_file.remove(&cover);
-                warn!(
-                    "configured cover file for \"{}\" is invalid: {}",
-                    metadata.title, e
-                );
-            }
-        }
+            .context("can't delete pages in DB")?;
     }
 
-    // try to find file contains any of the `config.cover_filestems` strings
-    if !valid_cover {
-        let mut failed_to_decode: Vec<String> = vec![];
+    // TODO: handle tags
 
-        'scoped: for page_file_name in pages_in_file.iter() {
-            let mut page_file_name_has_the_stem = false;
-            'scoped2: for stem in app_state.config.cover_filestems.iter() {
-                if page_file_name.contains(stem) {
-                    page_file_name_has_the_stem = true;
-                    break 'scoped2;
-                }
-            }
-            if !page_file_name_has_the_stem {
-                continue 'scoped;
-            }
+    txn.commit().await.context("can't commit transaction")?;
 
-            let cover_img: Result<BlurhashResult, String> = archive
-                .by_name(page_file_name)
-                .map_err(|e| format!("can't read cover file from content file: {}", e))
-                .and_then(|mut f| {
-                    let mut buf: Vec<u8> = Vec::new();
-                    f.read_to_end(&mut buf)
-                        .map_err(|e| format!("can't read cover file from content file: {}", e))?;
-                    Ok(buf)
-                })
-                .and_then(|buf| {
-                    image::load_from_memory(&buf).map_err(|e| format!("can't decode image: {}", e))
-                })
-                .and_then(|img| encode(&img));
+    Ok((title_id, comic_info))
+}
 
-            match cover_img {
-                Ok(blurhash_result) => {
-                    newest_title_active.cover_blurhash = Set(Some(blurhash_result.blurhash));
-                    newest_title_active.blurhash_width = Set(Some(blurhash_result.small_width));
-                    newest_title_active.blurhash_height = Set(Some(blurhash_result.small_height));
-                    valid_cover = true;
-                    break 'scoped;
-                }
-                Err(e) => {
-                    failed_to_decode.push(page_file_name.clone());
-                    warn!(
-                        "configured cover file for \"{}\" is invalid: {}",
-                        metadata.title, e
-                    );
-                }
-            }
-        }
+#[cfg(test)]
+mod tests {
+    use sea_orm::{
+        ActiveModelTrait,
+        ActiveValue::{NotSet, Set},
+        ColumnTrait, Database, EntityTrait, QueryFilter,
+    };
+    use sea_orm_migration::MigratorTrait;
 
-        failed_to_decode.iter().for_each(|p| {
-            pages_in_file.remove(p);
-        });
+    use crate::{migrator::Migrator, models::prelude::*};
+
+    #[tokio::test]
+    async fn seaorm_set_always_change_active_model() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        Migrator::up(&db, None).await.unwrap();
+
+        Tags::insert(tags::ActiveModel {
+            id: NotSet,
+            name: Set("favorite".to_string()),
+        })
+        .exec(&db)
+        .await
+        .unwrap();
+
+        let mut active_model: tags::ActiveModel = Tags::find()
+            .filter(tags::Column::Name.eq("favorite"))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap()
+            .into();
+
+        assert!(!(active_model.is_changed()));
+
+        active_model.name = Set("favorite".to_string());
+
+        assert!(active_model.is_changed());
     }
-
-    // last resort, try everything else
-    if !valid_cover {
-        'scoped: for page_file_name in pages_in_file.iter() {
-            let cover_img: Result<BlurhashResult, String> = archive
-                .by_name(page_file_name)
-                .map_err(|e| format!("can't read cover file from content file: {}", e))
-                .and_then(|mut f| {
-                    let mut buf: Vec<u8> = Vec::new();
-                    f.read_to_end(&mut buf)
-                        .map_err(|e| format!("can't read cover file from content file: {}", e))?;
-                    Ok(buf)
-                })
-                .and_then(|buf| {
-                    image::load_from_memory(&buf).map_err(|e| format!("can't decode image: {}", e))
-                })
-                .and_then(|img| encode(&img));
-
-            match cover_img {
-                Ok(blurhash_result) => {
-                    newest_title_active.cover_blurhash = Set(Some(blurhash_result.blurhash));
-                    newest_title_active.blurhash_width = Set(Some(blurhash_result.small_width));
-                    newest_title_active.blurhash_height = Set(Some(blurhash_result.small_height));
-                    valid_cover = true;
-                    break 'scoped;
-                }
-                Err(e) => {
-                    warn!(
-                        "configured cover file for \"{}\" is invalid: {}",
-                        metadata.title, e
-                    );
-                }
-            }
-        }
-    }
-
-    // gave up
-    if !valid_cover {
-        warn!("can't find a valid cover file for \"{}\"", metadata.title);
-    }
-    // #endregion
-
-    metadata.save()?;
-    newest_title_active.save(&app_state.db).await?;
-
-    Ok((newest_title_model.id, metadata))
 }
