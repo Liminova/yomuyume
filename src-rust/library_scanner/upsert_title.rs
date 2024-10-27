@@ -14,13 +14,14 @@ use tracing::{debug, warn};
 use crate::{
     library_scanner::{blurhash::encode, comic_info::ComicInfo},
     models::prelude::*,
+    types::custom_id::CustomID,
     AppState, ArchiveFile, IteratorExt, SUPPORTED_IMAGE_FORMATS,
 };
 
 use super::comic_info::ComicPageType;
 
 /// Upsert a title to the database and return its ID and ComicInfo.
-pub async fn title_to_db(
+pub async fn upsert_title(
     app_state: Arc<AppState>,
     category_id: Option<CustomID>,
     content_file_path: &PathBuf,

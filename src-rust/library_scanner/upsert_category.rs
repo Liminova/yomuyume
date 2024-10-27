@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// Upsert a category to the database and return its ID.
-pub async fn category_to_db(
+pub async fn upsert_category(
     app_state: Arc<AppState>,
     category_dir_path: &Path,
 ) -> Result<CategoryID> {

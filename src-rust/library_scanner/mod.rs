@@ -1,8 +1,8 @@
 pub mod blurhash;
 mod category_info;
-mod category_to_db;
 mod comic_info;
-mod title_to_db;
+mod upsert_category;
+mod upsert_title;
 
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
@@ -11,8 +11,8 @@ use async_recursion::async_recursion;
 use tracing::debug;
 
 use crate::{models::prelude::*, AppError, AppState};
-use category_to_db::category_to_db;
-use title_to_db::title_to_db;
+use upsert_category::upsert_category;
+use upsert_title::upsert_title;
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -77,7 +77,7 @@ impl Scanner {
                 let category_id = category_path_id_map
                     .entry(category_path.clone())
                     .or_insert(
-                        category_to_db(self.app_state.clone(), &category_path)
+                        upsert_category(self.app_state.clone(), &category_path)
                             .await
                             .context(format!(
                                 "can't insert category to database: {}",
@@ -86,7 +86,7 @@ impl Scanner {
                     )
                     .clone();
 
-                title_to_db(self.app_state.clone(), Some(category_id), &title_path)
+                upsert_title(self.app_state.clone(), Some(category_id), &title_path)
                     .await
                     .context(format!(
                         "can't insert title to database: {}",
@@ -96,7 +96,7 @@ impl Scanner {
                 continue;
             }
 
-            title_to_db(self.app_state.clone(), None, &title_path)
+            upsert_title(self.app_state.clone(), None, &title_path)
                 .await
                 .context(format!(
                     "can't insert title to database: {}",
