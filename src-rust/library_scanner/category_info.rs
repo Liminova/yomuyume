@@ -56,9 +56,9 @@ impl Default for ID {
     }
 }
 
-impl Into<CategoryID> for ID {
-    fn into(self) -> CategoryID {
-        self.id
+impl From<ID> for CategoryID {
+    fn from(val: ID) -> Self {
+        val.id
     }
 }
 
