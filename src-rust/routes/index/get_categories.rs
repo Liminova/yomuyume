@@ -15,7 +15,7 @@ use utoipa::ToSchema;
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct CategoryResponse {
     pub id: String,
-    pub name: String,
+    pub name: Option<String>,
     pub description: Option<String>,
 }
 
