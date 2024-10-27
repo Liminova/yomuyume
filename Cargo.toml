@@ -50,6 +50,7 @@ nanoid = "0.4.0"
 anyhow = "1.0.89"
 memfd-exec = "0.2.1"
 quick-xml = { version = "0.36.2", features = ["async-tokio", "serde", "tokio", "serialize"] }
+phf = { version = "0.11.2", features = ["macros"] }
 
 [dev-dependencies]
 axum-test = "14.0.0"
