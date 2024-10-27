@@ -31,8 +31,8 @@ pub async fn upsert_category(
 
     let mut use_insert = true;
     let mut category_model: Option<categories::Model> = None;
-    if let Some(ref category_id) = category_info.id {
-        if let Some(model) = Categories::find_by_id(category_id)
+    if !category_info.id.is_new() {
+        if let Some(model) = Categories::find_by_id(category_info.id.as_ref())
             .one(&app_state.db)
             .await
             .context("can't find category in database")?
