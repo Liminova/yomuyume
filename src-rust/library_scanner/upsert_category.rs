@@ -1,7 +1,7 @@
 use std::{path::Path, sync::Arc};
 
 use anyhow::{anyhow, Context, Result};
-use quick_xml::{de::from_str, se::to_string};
+use quick_xml::se::to_string;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use tracing::warn;
 
@@ -134,8 +134,8 @@ pub async fn upsert_category(
         } else {
             category_active.update(&app_state.db).await?;
         }
-        let xml = to_string(&category_info)?;
-        std::fs::write(&category_info_path, xml).context("can't write to CategoryInfo.xml")?;
+        std::fs::write(&category_info_path, category_info.to_pretty_string()?)
+            .context("can't write to CategoryInfo.xml")?;
     }
 
     Ok(CategoryID::new())
