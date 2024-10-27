@@ -24,16 +24,10 @@ pub async fn upsert_category(
     }
 
     let category_info_path = category_dir_path.join("CategoryInfo.xml");
-    let category_info = {
-        if !category_info_path.exists() {
-            std::fs::File::create(&category_info_path).context("can't create CategoryInfo.xml")?;
-        }
-        let xml =
-            std::fs::read_to_string(&category_info_path).context("can't read CategoryInfo.xml")?;
-        from_str::<CategoryInfo>(&xml).context("can't parse CategoryInfo.xml")?
-    };
-
-    let category_id = category_info.id.clone().unwrap_or_default();
+    let category_info = CategoryInfo::from_str(
+        &std::fs::read_to_string(&category_info_path).context("can't read CategoryInfo.xml")?,
+    )
+    .context("can't parse CategoryInfo.xml")?;
 
     let mut use_insert = true;
     let mut category_model: Option<categories::Model> = None;
