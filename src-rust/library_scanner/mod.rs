@@ -1,0 +1,109 @@
+pub mod blurhash;
+mod category_info;
+mod category_to_db;
+mod comic_info;
+mod title_to_db;
+
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
+
+use anyhow::{anyhow, Context};
+use async_recursion::async_recursion;
+use tracing::debug;
+
+use crate::{models::prelude::*, AppError, AppState};
+use category_to_db::category_to_db;
+use title_to_db::title_to_db;
+
+#[derive(Debug)]
+pub struct Scanner {
+    app_state: Arc<AppState>,
+}
+
+#[async_recursion]
+async fn read_dir_recursive(path: &PathBuf) -> Result<Vec<PathBuf>, AppError> {
+    let mut files: Vec<PathBuf> = Vec::new();
+    let mut entries = tokio::fs::read_dir(path)
+        .await
+        .map_err(|e| AppError::from(anyhow!("can't read category dir: {}", e)))?;
+    'next_dir: while let Some(entry) = entries.next_entry().await.unwrap_or_default() {
+        let path = entry.path();
+        if path.is_file() {
+            files.push(path);
+            continue 'next_dir;
+        }
+        if path.is_dir() {
+            files.append(&mut read_dir_recursive(&path).await?);
+        }
+    }
+    Ok(files)
+}
+
+impl Scanner {
+    pub async fn new(app_state: Arc<AppState>) -> Self {
+        Self {
+            app_state: Arc::clone(&app_state),
+        }
+    }
+
+    pub async fn run(&self) -> Result<(), AppError> {
+        let files_in_lib = read_dir_recursive(&self.app_state.config.library_path).await?;
+        debug!("found {} files in library", files_in_lib.len());
+
+        let mut category_path_id_map: HashMap<PathBuf, CategoryID> = HashMap::new();
+
+        for title_path in files_in_lib {
+            if !title_path
+                .extension()
+                .map(|e| e.to_string_lossy() == "zip")
+                .unwrap_or(false)
+            {
+                debug!("skipping {}", title_path.display());
+                continue;
+            }
+            debug!("processing {}", title_path.display());
+
+            // title inside a subdir -> in a category
+            // title inside library root -> no category
+            let category_path = title_path
+                .parent()
+                .filter(|p| {
+                    p.strip_prefix(&self.app_state.config.library_path)
+                        .map(|p| !p.to_string_lossy().to_string().is_empty())
+                        .unwrap_or(false)
+                })
+                .map(PathBuf::from);
+
+            if let Some(category_path) = category_path {
+                let category_id = category_path_id_map
+                    .entry(category_path.clone())
+                    .or_insert(
+                        category_to_db(self.app_state.clone(), &category_path)
+                            .await
+                            .context(format!(
+                                "can't insert category to database: {}",
+                                category_path.display()
+                            ))?,
+                    )
+                    .clone();
+
+                title_to_db(self.app_state.clone(), Some(category_id), &title_path)
+                    .await
+                    .context(format!(
+                        "can't insert title to database: {}",
+                        title_path.display()
+                    ))?;
+
+                continue;
+            }
+
+            title_to_db(self.app_state.clone(), None, &title_path)
+                .await
+                .context(format!(
+                    "can't insert title to database: {}",
+                    title_path.display()
+                ))?;
+        }
+
+        Ok(())
+    }
+}
