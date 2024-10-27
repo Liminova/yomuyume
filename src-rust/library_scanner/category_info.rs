@@ -193,6 +193,16 @@ where
     }
 }
 
+impl CategoryInfo {
+    pub fn from_str(s: &str) -> Result<Self> {
+        if s.is_empty() {
+            return Ok(Self::default());
+        }
+
+        from_str::<CategoryInfo>(s).context("can't parse CategoryInfo.xml")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs::File;
