@@ -1,29 +1,36 @@
-use std::{fmt::Display, path::PathBuf};
+use std::path::PathBuf;
 
+use anyhow::{Context, Result};
+use quick_xml::de::from_str;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{models::prelude::CategoryID, SUPPORTED_IMAGE_FORMATS};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
 pub struct CategoryInfo {
-    #[serde(default, rename = "ID", deserialize_with = "id_deserializer")]
-    pub id: Option<CategoryID>,
+    #[serde(
+        rename = "ID",
+        default = "ID::default",
+        deserialize_with = "ID::deserializer",
+        serialize_with = "ID::serializer"
+    )]
+    pub id: ID,
     #[serde(
         rename = "Name",
         default,
-        deserialize_with = "Name::deserializer",
-        serialize_with = "Name::serializer",
-        skip_serializing_if = "Name::is_untitled"
+        deserialize_with = "name_deserializer",
+        serialize_with = "name_serializer",
+        skip_serializing_if = "Option::is_none"
     )]
-    pub name: Name,
+    pub name: Option<String>,
     #[serde(
         rename = "Description",
         default,
-        deserialize_with = "Description::deserializer",
-        skip_serializing_if = "Description::is_empty",
-        serialize_with = "Description::serializer"
+        deserialize_with = "description_deserializer",
+        serialize_with = "description_serializer",
+        skip_serializing_if = "Option::is_none"
     )]
-    pub description: Description,
+    pub description: Option<String>,
     #[serde(
         rename = "Cover",
         default,
@@ -35,120 +42,96 @@ pub struct CategoryInfo {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub struct Name(String);
+pub struct ID {
+    id: CategoryID,
+    is_new: bool,
+}
 
-impl Default for Name {
+impl Default for ID {
     fn default() -> Self {
-        Name("Untitled".to_string())
+        Self {
+            id: CategoryID::new(),
+            is_new: true,
+        }
     }
 }
 
-impl From<&str> for Name {
-    fn from(value: &str) -> Self {
-        Name(value.to_string())
+impl Into<CategoryID> for ID {
+    fn into(self) -> CategoryID {
+        self.id
     }
 }
 
-impl Display for Name {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Name {
-    fn deserializer<'de, D>(deserializer: D) -> Result<Name, D::Error>
+impl ID {
+    fn deserializer<'de, D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?.trim().to_string();
         if s.is_empty() {
-            return Ok(Name("Untitled".to_string()));
+            return Ok(ID::default());
         }
-        Ok(Name(s))
+        CategoryID::from(s)
+            .map(|id| Self { id, is_new: false })
+            .map_err(|_| serde::de::Error::custom("invalid category id"))
     }
 
-    fn serializer<S>(name: &Name, serializer: S) -> Result<S::Ok, S::Error>
+    fn serializer<S>(id: &ID, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&name.0)
+        serializer.serialize_str(&id.id.to_string())
     }
 
-    fn is_untitled(&self) -> bool {
-        self.0 == "Untitled"
+    pub fn as_ref(&self) -> &CategoryID {
+        &self.id
+    }
+
+    pub fn is_new(&self) -> bool {
+        self.is_new
     }
 }
 
-fn id_deserializer<'de, D>(deserializer: D) -> Result<Option<CategoryID>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
+fn name_deserializer<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<String>, D::Error> {
+    let s = String::deserialize(deserializer)?.trim().to_string();
+    if s.is_empty() || s.to_ascii_lowercase() == "untitled" {
+        return Ok(None);
+    }
+    Ok(Some(s))
+}
+
+fn name_serializer<S: Serializer>(name: &Option<String>, serializer: S) -> Result<S::Ok, S::Error> {
+    match name {
+        Some(name) => serializer.serialize_str(name),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn description_deserializer<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<String>, D::Error> {
     let s = String::deserialize(deserializer)?.trim().to_string();
     if s.is_empty() {
         return Ok(None);
     }
-    CategoryID::from(s)
-        .map_err(|_| serde::de::Error::custom("invalid category id"))
-        .map(Some)
+    Ok(Some(s))
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
-pub struct Description(Option<String>);
-
-impl From<&str> for Description {
-    fn from(value: &str) -> Self {
-        let s = value.trim().to_string();
-        if s.is_empty() {
-            return Description(None);
-        }
-        Description(Some(s))
+fn description_serializer<S: Serializer>(
+    description: &Option<String>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    match description {
+        Some(description) => serializer.serialize_str(description),
+        None => serializer.serialize_none(),
     }
 }
 
-impl From<String> for Description {
-    fn from(value: String) -> Self {
-        let s = value.trim().to_string();
-        if s.is_empty() {
-            return Description(None);
-        }
-        Description(Some(s))
-    }
-}
-
-impl Description {
-    fn deserializer<'de, D>(deserializer: D) -> Result<Description, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?.trim().to_string();
-        if s.is_empty() {
-            return Ok(Description::default());
-        }
-        Ok(Description::from(s))
-    }
-    fn serializer<S>(description: &Description, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if let Some(ref s) = description.0 {
-            return serializer.serialize_str(s);
-        }
-        serializer.serialize_none()
-    }
-
-    fn is_empty(&self) -> bool {
-        self.0.is_none()
-    }
-
-    pub fn clone_inner(&self) -> Option<String> {
-        self.0.clone()
-    }
-}
-
-fn cover_deserializer<'de, D>(deserializer: D) -> Result<Option<PathBuf>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
+fn cover_deserializer<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<PathBuf>, D::Error> {
     let s = String::deserialize(deserializer)?.trim().to_string();
 
     if s.is_empty() {
@@ -177,10 +160,10 @@ where
     Ok(Some(path))
 }
 
-fn cover_serializer<S>(cover: &Option<PathBuf>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
+fn cover_serializer<S: Serializer>(
+    cover: &Option<PathBuf>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
     match cover {
         Some(cover) => {
             let s = cover.to_string_lossy().to_string().trim().to_string();
@@ -241,8 +224,8 @@ mod tests {
 
         let category_info: CategoryInfo = from_str::<CategoryInfo>(&xml).unwrap();
 
-        assert_eq!(category_info.name, Name::from("Adventure"));
-        assert_eq!(category_info.description, Description::from("Lorem Ipsum"));
+        assert_eq!(category_info.name, Some("Adventure".to_string()));
+        assert_eq!(category_info.description, Some("Lorem Ipsum".to_string()));
         assert_eq!(category_info.cover, Some(cover_path.clone()));
     }
 
@@ -252,8 +235,8 @@ mod tests {
 
         let category_info: CategoryInfo = from_str::<CategoryInfo>(xml).unwrap();
 
-        assert_eq!(category_info.name, Name::from("Untitled"));
-        assert_eq!(category_info.description, Description::default());
+        assert_eq!(category_info.name, None);
+        assert_eq!(category_info.description, None);
         assert_eq!(category_info.cover, None);
     }
 
@@ -274,8 +257,8 @@ mod tests {
 
         let category_info: CategoryInfo = from_str::<CategoryInfo>(xml).unwrap();
 
-        assert_eq!(category_info.name, Name::from("Untitled"));
-        assert_eq!(category_info.description, Description::default());
+        assert_eq!(category_info.name, None);
+        assert_eq!(category_info.description, None);
         assert_eq!(category_info.cover, None);
     }
 
