@@ -232,7 +232,7 @@ pub async fn title_to_db(
         match cover_page_blurhash {
             Ok((blurhash_result, path)) => {
                 if let Some(ref title_model) = title_model {
-                    if title_model.cover_blurhash != Some(blurhash_result.blurhash.clone()) {
+                    if title_model.cover_blurhash.as_ref() != Some(&blurhash_result.blurhash) {
                         active_title_model.cover_blurhash = Set(Some(blurhash_result.blurhash));
                     }
                     if title_model.blurhash_width != Some(blurhash_result.small_width) {
