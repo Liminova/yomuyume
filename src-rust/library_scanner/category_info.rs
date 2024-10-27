@@ -201,6 +201,15 @@ impl CategoryInfo {
 
         from_str::<CategoryInfo>(s).context("can't parse CategoryInfo.xml")
     }
+
+    pub fn to_pretty_string(&self) -> Result<String> {
+        let mut buffer = String::new();
+        let mut ser = quick_xml::se::Serializer::new(&mut buffer);
+        ser.indent(' ', 4);
+        self.serialize(ser)
+            .context("can't serialize CategoryInfo.xml")?;
+        Ok(buffer)
+    }
 }
 
 #[cfg(test)]
