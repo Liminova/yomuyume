@@ -6,11 +6,11 @@ mod upsert_title;
 
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, Result};
 use async_recursion::async_recursion;
 use tracing::debug;
 
-use crate::{models::prelude::*, AppError, AppState};
+use crate::{models::prelude::*, AppState};
 use upsert_category::upsert_category;
 use upsert_title::upsert_title;
 
@@ -20,11 +20,11 @@ pub struct Scanner {
 }
 
 #[async_recursion]
-async fn read_dir_recursive(path: &PathBuf) -> Result<Vec<PathBuf>, AppError> {
+async fn read_dir_recursive(path: &PathBuf) -> Result<Vec<PathBuf>> {
     let mut files: Vec<PathBuf> = Vec::new();
     let mut entries = tokio::fs::read_dir(path)
         .await
-        .map_err(|e| AppError::from(anyhow!("can't read category dir: {}", e)))?;
+        .context("can't read category dir")?;
     'next_dir: while let Some(entry) = entries.next_entry().await.unwrap_or_default() {
         let path = entry.path();
         if path.is_file() {
@@ -45,7 +45,7 @@ impl Scanner {
         }
     }
 
-    pub async fn run(&self) -> Result<(), AppError> {
+    pub async fn run(&self) -> Result<()> {
         let files_in_lib = read_dir_recursive(&self.app_state.config.library_path).await?;
         debug!("found {} files in library", files_in_lib.len());
 
