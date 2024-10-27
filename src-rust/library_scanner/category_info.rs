@@ -80,7 +80,7 @@ impl ID {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&id.id.to_string())
+        serializer.serialize_str(id.id.as_ref())
     }
 
     pub fn as_ref(&self) -> &CategoryID {
