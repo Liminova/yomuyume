@@ -1,9 +1,18 @@
 use std::{env::var, path::PathBuf};
 
-pub const SUPPORTED_IMAGE_FORMATS: [&str; 9] = [
-    "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
-];
+use phf::phf_map;
 
+pub const SUPPORTED_IMAGE_FORMATS: phf::Map<&'static str, &'static str> = phf_map! {
+    "avif" => "image/avif",
+    "bmp" => "image/bmp",
+    "gif" => "image/gif",
+    "jpeg" => "image/jpeg",
+    "jpg" => "image/jpeg",
+    "png" => "image/png",
+    "tif" => "image/tiff",
+    "tiff" => "image/tiff",
+    "webp" => "image/webp",
+};
 const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
     "Story of Eastern Wonderland",
