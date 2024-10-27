@@ -699,6 +699,9 @@ impl ComicInfo {
     }
 
     pub fn from_str(s: &str) -> Result<Self> {
+        if s.is_empty() {
+            return Ok(Self::default());
+        }
         from_str(s).context("can't parse ComicInfo from string")
     }
 
