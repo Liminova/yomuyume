@@ -13,6 +13,10 @@ pub const SUPPORTED_IMAGE_FORMATS: phf::Map<&'static str, &'static str> = phf_ma
     "tiff" => "image/tiff",
     "webp" => "image/webp",
 };
+
+pub const COMICINFO_SCHEMA: &str =
+    r#"<?xml-model href="https://delnegend.com/comicinfo-2.1-extended.xsd"?>"#;
+
 const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
     "Story of Eastern Wonderland",
