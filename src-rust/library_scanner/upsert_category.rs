@@ -47,9 +47,9 @@ pub async fn upsert_category(
             .clone()
             .map(|m| m.into())
             .unwrap_or_else(|| categories::ActiveModel {
-                id: Set(category_id.clone()),
-                name: Set(category_info.name.to_string()),
-                description: Set(category_info.description.clone_inner()),
+                id: Set(category_info.id.clone().into()),
+                name: Set(category_info.name.clone()),
+                description: Set(category_info.description.clone()),
                 cover_path: Set(None),
                 cover_blurhash: Set(None),
                 blurhash_resolution_x: Set(None),
@@ -58,8 +58,8 @@ pub async fn upsert_category(
             });
 
     if let Some(ref category_model) = category_model {
-        if category_model.name != category_info.name.to_string() {
-            category_active.name = Set(category_info.name.to_string());
+        if category_model.name != category_info.name {
+            category_active.name = Set(category_info.name.clone());
         }
     }
 
