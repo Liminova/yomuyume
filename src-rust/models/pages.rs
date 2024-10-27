@@ -1,6 +1,6 @@
 use sea_orm::entity::prelude::*;
 
-use crate::models::prelude::{CustomID, TitleID};
+use crate::{models::prelude::TitleID, types::custom_id::CustomID};
 
 pub type PageID = CustomID;
 

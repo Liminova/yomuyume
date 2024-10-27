@@ -17,6 +17,7 @@ use utoipa::ToSchema;
 use crate::{
     models::prelude::*,
     routes::{check_pass, Mailer},
+    types::custom_id::CustomID,
     AppError, AppState,
 };
 

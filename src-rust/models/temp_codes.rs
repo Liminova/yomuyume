@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 
-use crate::models::prelude::{CustomID, UserID};
+use crate::{models::prelude::UserID, types::custom_id::CustomID};
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(14))")]

@@ -1,3 +1,5 @@
+//! Database models only. For everything else, use the [`crate::types`] module.
+
 pub mod bookmarks;
 pub mod categories;
 pub mod favorites;
@@ -9,8 +11,6 @@ pub mod temp_codes;
 pub mod titles;
 pub mod titles_tags;
 pub mod users;
-
-pub mod types;
 
 pub mod prelude {
     pub use super::bookmarks::Entity as Bookmarks;
@@ -29,8 +29,6 @@ pub mod prelude {
     pub use super::pages::PageID;
     pub use super::titles::TitleID;
     pub use super::users::UserID;
-
-    pub use super::types::custom_id::CustomID;
 
     pub use super::*;
 }

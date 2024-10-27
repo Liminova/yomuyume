@@ -16,8 +16,9 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    models::prelude::{CustomID, *},
+    models::prelude::*,
     routes::{hash_pass, Mailer},
+    types::custom_id::CustomID,
     AppError, AppState,
 };
 

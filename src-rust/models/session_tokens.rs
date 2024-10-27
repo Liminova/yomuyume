@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 
-use crate::models::prelude::{CustomID, UserID};
+use crate::{models::prelude::UserID, types::custom_id::CustomID};
 
 /// Just serve as an alias for [`CustomID`], nothing more.
 pub type SessionSecret = CustomID;

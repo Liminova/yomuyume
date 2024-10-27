@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
-use crate::{models::prelude::*, AppError, AppState};
+use crate::{models::prelude::*, types::custom_id::CustomID, AppError, AppState};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 #[skip_serializing_none]

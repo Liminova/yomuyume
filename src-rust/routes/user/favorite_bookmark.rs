@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{models::prelude::*, AppError, AppState};
+use crate::{models::prelude::*, types::custom_id::CustomID, AppError, AppState};
 
 use axum::{
     extract::{Path, State},

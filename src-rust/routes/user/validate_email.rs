@@ -14,7 +14,7 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{models::prelude::*, routes::Mailer, AppError, AppState};
+use crate::{models::prelude::*, routes::Mailer, types::custom_id::CustomID, AppError, AppState};
 
 /// Send an email to the user with a code to validate their email address.
 #[utoipa::path(get, path = "/api/user/verify", responses(

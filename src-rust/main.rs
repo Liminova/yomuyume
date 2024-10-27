@@ -2,6 +2,7 @@ mod library_scanner;
 mod migrator;
 mod models;
 mod routes;
+mod types;
 mod utils;
 
 use std::sync::Arc;

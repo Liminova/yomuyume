@@ -1,6 +1,6 @@
 use sea_orm::entity::prelude::*;
 
-use crate::models::prelude::CustomID;
+use crate::types::custom_id::CustomID;
 
 /// Just serve as an alias for [`CustomID`], nothing more.
 pub type CategoryID = CustomID;
