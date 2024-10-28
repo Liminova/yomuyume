@@ -7,7 +7,7 @@
 use std::{fmt::Display, path::PathBuf, str::FromStr};
 
 use anyhow::{anyhow, Context, Result};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 use murmur3::murmur3_32;
 use quick_xml::de::from_str;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -543,6 +543,20 @@ pub struct ComicPageInfo {
         skip_serializing_if = "Option::is_none"
     )]
     pub description: Option<String>,
+    #[serde(
+        rename = "@Blurhash",
+        default,
+        deserialize_with = "option_blurhash_deserializer",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub blurhash: Option<String>,
+    #[serde(
+        rename = "@ModifiedDateAtEncode",
+        default,
+        deserialize_with = "option_datetime_deserializer",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub modified_date_at_encode: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -713,6 +727,41 @@ impl ComicInfo {
             .context("can't serialize ComicInfo to pretty string")?;
         Ok(buffer)
     }
+}
+
+fn option_blurhash_deserializer<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?.trim().to_string();
+    if s.is_empty() {
+        return Ok(None);
+    }
+    if let Err(e) = blurhash::decode(&s, 0, 0, 0.0) {
+        return Err(serde::de::Error::custom(e));
+    }
+    Ok(Some(s.to_string()))
+}
+
+fn option_datetime_deserializer<'de, D>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?.trim().to_string();
+    if s.is_empty() {
+        return Ok(None);
+    }
+
+    let native_datetime = s
+        .parse::<NaiveDateTime>()
+        .map_err(|e| serde::de::Error::custom(format!("can't parse as NaiveDateTime: {e}")))?;
+
+    let local_datetime = Local
+        .from_local_datetime(&native_datetime)
+        .single()
+        .ok_or_else(|| serde::de::Error::custom("invalid datetime"))?;
+
+    Ok(Some(local_datetime.to_utc()))
 }
 
 #[cfg(test)]
@@ -1164,6 +1213,8 @@ mod tests {
                     image_height: 4,
                     image_path: Some("5".to_string()),
                     description: Some("6".to_string()),
+                    blurhash: None,
+                    modified_date_at_encode: None
                 }]
             }
         );
