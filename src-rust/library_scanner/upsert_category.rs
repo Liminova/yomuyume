@@ -1,13 +1,13 @@
 use std::{path::Path, sync::Arc};
 
 use anyhow::{anyhow, Context, Result};
-use quick_xml::se::to_string;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use tracing::warn;
 
 use crate::{
-    library_scanner::{blurhash, category_info::CategoryInfo},
+    library_scanner::blurhash,
     models::prelude::{categories, Categories, CategoryID},
+    types::category_info::CategoryInfo,
     AppState,
 };
 
