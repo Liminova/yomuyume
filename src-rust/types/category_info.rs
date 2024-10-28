@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use quick_xml::de::from_str;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{models::prelude::CategoryID, SUPPORTED_IMAGE_FORMATS};
+use crate::{models::prelude::CategoryID, CATEGORY_INFO_SCHEMA, SUPPORTED_IMAGE_FORMATS};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
 pub struct CategoryInfo {
@@ -190,7 +190,7 @@ impl CategoryInfo {
     }
 
     pub fn to_pretty_string(&self) -> Result<String> {
-        let mut buffer = String::new();
+        let mut buffer = format!("{CATEGORY_INFO_SCHEMA}\n");
         let mut ser = quick_xml::se::Serializer::new(&mut buffer);
         ser.indent(' ', 4);
         self.serialize(ser)
@@ -206,6 +206,7 @@ mod tests {
     use tempdir::TempDir;
 
     use super::*;
+    use crate::CATEGORY_INFO_SCHEMA;
 
     #[test]
     fn perfect() {
@@ -234,7 +235,13 @@ mod tests {
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
             format!(
-                "<CategoryInfo>\n    <ID>{}</ID>\n    <Name>Adventure</Name>\n    <Description>Lorem Ipsum</Description>\n    <Cover>{}</Cover>\n</CategoryInfo>",
+                "{CATEGORY_INFO_SCHEMA}
+<CategoryInfo>
+    <ID>{}</ID>
+    <Name>Adventure</Name>
+    <Description>Lorem Ipsum</Description>
+    <Cover>{}</Cover>
+</CategoryInfo>",
                 category_info.id.as_ref(),
                 cover_path.to_string_lossy()
             )
@@ -254,7 +261,7 @@ mod tests {
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
             format!(
-                "<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
+                "{CATEGORY_INFO_SCHEMA}\n<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
                 category_info.id.as_ref()
             )
         );
@@ -284,7 +291,7 @@ mod tests {
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
             format!(
-                "<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
+                "{CATEGORY_INFO_SCHEMA}\n<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
                 category_info.id.as_ref()
             )
         );
@@ -326,7 +333,7 @@ mod tests {
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
             format!(
-                "<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
+                "{CATEGORY_INFO_SCHEMA}\n<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
                 category_info.id.as_ref()
             )
         );
