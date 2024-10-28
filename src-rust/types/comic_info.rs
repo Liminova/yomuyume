@@ -1353,4 +1353,25 @@ mod tests {
             )
         );
     }
+
+    #[test]
+    fn blurhash() {
+        let xml = r#"<ComicInfo>
+                <Pages>
+                    <Page Image="0" Blurhash="LEHV6nWB2yk8pyo0adR*.7kCMdnj" />
+                </Pages>
+            </ComicInfo>"#;
+        let comic_info = ComicInfo::from_str(xml).unwrap();
+        assert_eq!(
+            comic_info.pages.pages.first().unwrap().blurhash,
+            Some("LEHV6nWB2yk8pyo0adR*.7kCMdnj".to_string())
+        );
+
+        let xml = r#"<ComicInfo>
+                <Pages>
+                    <Page Image="0" Blurhash="123456789" />
+                </Pages>
+            </ComicInfo>"#;
+        assert!(ComicInfo::from_str(xml).is_err());
+    }
 }
