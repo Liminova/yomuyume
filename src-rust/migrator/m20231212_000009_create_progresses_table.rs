@@ -51,6 +51,7 @@ impl MigrationTrait for Migration {
                     .table(Progresses::Table)
                     .col(Progresses::UserId)
                     .col(Progresses::TitleId)
+                    .unique()
                     .to_owned(),
             )
             .await

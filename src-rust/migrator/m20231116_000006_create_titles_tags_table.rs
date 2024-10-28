@@ -49,6 +49,7 @@ impl MigrationTrait for Migration {
                     .table(TitlesTags::Table)
                     .col(TitlesTags::TitleId)
                     .col(TitlesTags::TagId)
+                    .unique()
                     .to_owned(),
             )
             .await

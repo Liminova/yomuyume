@@ -50,6 +50,7 @@ impl MigrationTrait for Migration {
                     .table(Bookmarks::Table)
                     .col(Bookmarks::UserId)
                     .col(Bookmarks::TitleId)
+                    .unique()
                     .to_owned(),
             )
             .await

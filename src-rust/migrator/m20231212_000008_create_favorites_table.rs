@@ -50,6 +50,7 @@ impl MigrationTrait for Migration {
                     .table(Favorites::Table)
                     .col(Favorites::UserId)
                     .col(Favorites::TitleId)
+                    .unique()
                     .to_owned(),
             )
             .await

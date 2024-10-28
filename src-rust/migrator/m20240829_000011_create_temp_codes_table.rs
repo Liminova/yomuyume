@@ -47,6 +47,7 @@ impl MigrationTrait for Migration {
                     .table(TempCodes::Table)
                     .col(TempCodes::Purpose)
                     .col(TempCodes::UserId)
+                    .unique()
                     .to_owned(),
             )
             .await
