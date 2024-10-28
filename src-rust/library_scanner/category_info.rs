@@ -274,4 +274,25 @@ mod tests {
 
         assert!(from_str::<CategoryInfo>(xml).is_err());
     }
+
+    #[test]
+    fn de_id() {
+        let xml = r#"
+            <CategoryInfo>
+                <ID>KpvE_vralCwx5HA_4B9y8</ID>
+            </CategoryInfo>"#;
+        let mut category_info: CategoryInfo = from_str::<CategoryInfo>(xml).unwrap();
+        assert_eq!(
+            category_info.id.take(),
+            CategoryID::from("KpvE_vralCwx5HA_4B9y8".to_string()).unwrap()
+        );
+        assert!(!category_info.id.is_new());
+
+        let xml = r#"
+            <CategoryInfo>
+                <ID></ID>
+            </CategoryInfo>"#;
+        let category_info: CategoryInfo = from_str::<CategoryInfo>(xml).unwrap();
+        assert!(category_info.id.is_new());
+    }
 }
