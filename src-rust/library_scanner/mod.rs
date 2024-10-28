@@ -1,6 +1,4 @@
 pub mod blurhash;
-mod category_info;
-mod comic_info;
 mod upsert_category;
 mod upsert_title;
 
