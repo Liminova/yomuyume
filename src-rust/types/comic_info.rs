@@ -499,7 +499,11 @@ pub struct ComicPageInfo {
         skip_serializing_if = "ComicPageType::is_story"
     )]
     pub page_type: ComicPageType,
-    #[serde(rename = "@DoublePage", default, skip_serializing_if = "is_false")]
+    #[serde(
+        rename = "@DoublePage",
+        default,
+        skip_serializing_if = "std::ops::Not::not"
+    )]
     pub double_page: bool,
     #[serde(rename = "@ImageSize", default, skip_serializing_if = "int64_is_zero")]
     pub image_size: i64,
@@ -626,10 +630,6 @@ const fn int32_is_zero(i: &i32) -> bool {
 
 const fn int64_is_zero(i: &i64) -> bool {
     *i == 0
-}
-
-fn is_false(b: &bool) -> bool {
-    !b
 }
 
 impl ComicInfo {
