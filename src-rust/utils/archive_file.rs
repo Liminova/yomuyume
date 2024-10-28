@@ -11,13 +11,33 @@ use std::{
 };
 
 use anyhow::{anyhow, Context, Result};
+use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 use memfd_exec::{MemFdExecutable, Stdio};
+use tracing::warn;
 
 const SEVEN_ZIP_BIN: &[u8] = include_bytes!("../../.devcontainer/7zz");
 
 #[derive(Debug)]
 pub struct ArchiveFile {
     path: PathBuf,
+}
+
+#[derive(Debug, Clone, Eq, PartialOrd)]
+pub struct ItemInArchive {
+    pub path: String,
+    pub last_modified: DateTime<Utc>,
+}
+
+impl PartialEq for ItemInArchive {
+    fn eq(&self, other: &Self) -> bool {
+        self.path == other.path
+    }
+}
+
+impl Ord for ItemInArchive {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.path.cmp(&other.path)
+    }
 }
 
 impl ArchiveFile {
@@ -100,7 +120,7 @@ impl ArchiveFile {
     /// List all files in the archive.
     ///
     /// https://superuser.com/a/1073272
-    pub async fn list_files(&mut self) -> Result<Vec<String>> {
+    pub async fn list_files(&mut self) -> Result<Vec<ItemInArchive>> {
         if !self.path.exists() {
             return Err(anyhow!("archive not exists"));
         }
@@ -132,7 +152,7 @@ impl ArchiveFile {
             ));
         }
 
-        let mut files: Vec<String> = String::from_utf8_lossy(&stdout_buf)
+        let mut files: Vec<ItemInArchive> = String::from_utf8_lossy(&stdout_buf)
             .trim()
             .split("\n\n")
             .filter(|s| !s.is_empty())
@@ -159,9 +179,37 @@ impl ArchiveFile {
                             .map(|val| val.trim() == "0")
                             .unwrap_or(false)
                     });
-                match is_dir {
-                    true => None,
-                    false => attributes.get("Path").map(|val| val.trim().to_string()),
+                if is_dir {
+                    return None;
+                }
+
+                let path = attributes.get("Path").map(|val| val.trim().to_string());
+                let last_modified = attributes
+                    .get("Modified")
+                    .ok_or_else(|| anyhow!("there should exist a modified date"))
+                    .and_then(|val| {
+                        NaiveDateTime::parse_from_str(val.trim(), "%Y-%m-%d %H:%M:%S%.f")
+                            .context("can't parse modified date")
+                    })
+                    .and_then(|native_datetime| {
+                        Local
+                            .from_local_datetime(&native_datetime)
+                            .single()
+                            .context("can't convert modified date to local datetime")
+                    })
+                    .map(|local_datetime| local_datetime.to_utc());
+
+                if let (Some(path), Ok(last_modified)) = (path, last_modified) {
+                    Some(ItemInArchive {
+                        path,
+                        last_modified,
+                    })
+                } else {
+                    warn!(
+                        "can't parse path or last modified date for some file in {}",
+                        self.path.display()
+                    );
+                    None
                 }
             })
             .collect();
@@ -345,7 +393,8 @@ mod tests {
                 .unwrap();
         let files = archive_file.list_files().await.unwrap();
 
-        assert_eq!(files, vec!["test.txt".to_string()]);
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].path, "test.txt");
     }
 
     #[tokio::test]
