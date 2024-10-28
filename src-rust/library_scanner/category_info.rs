@@ -90,6 +90,10 @@ impl ID {
     pub fn is_new(&self) -> bool {
         self.is_new
     }
+
+    pub fn take(&mut self) -> CategoryID {
+        std::mem::take(&mut self.id)
+    }
 }
 
 fn name_deserializer<'de, D: Deserializer<'de>>(
