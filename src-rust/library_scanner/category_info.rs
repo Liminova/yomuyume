@@ -209,7 +209,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn de_perfect() {
+    fn perfect() {
         let temp_dir =
             TempDir::new("test-category-info-der-perfect").expect("can't create temp dir");
         let cover_path = temp_dir.path().join("cover.jpg");
@@ -234,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn de_no_fields() {
+    fn no_fields() {
         let xml = r#"<CategoryInfo></CategoryInfo>"#;
 
         let category_info: CategoryInfo = from_str::<CategoryInfo>(xml).unwrap();
@@ -245,12 +245,12 @@ mod tests {
     }
 
     #[test]
-    fn de_nothing_expect_err() {
         assert!(from_str::<CategoryInfo>("").is_err());
+    fn empty_string_expect_default() {
     }
 
     #[test]
-    fn de_all_empty() {
+    fn all_empty() {
         let xml = r#"
             <CategoryInfo>
                 <Name></Name>
@@ -267,7 +267,7 @@ mod tests {
     }
 
     #[test]
-    fn de_cover_not_exists() {
+    fn cover_not_exists() {
         let xml = r#"
             <CategoryInfo>
                 <Name>Adventure</Name>
@@ -280,7 +280,7 @@ mod tests {
     }
 
     #[test]
-    fn de_id() {
+    fn id() {
         let xml = r#"
             <CategoryInfo>
                 <ID>KpvE_vralCwx5HA_4B9y8</ID>
