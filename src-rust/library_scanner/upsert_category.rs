@@ -24,7 +24,7 @@ pub async fn upsert_category(
     }
 
     let category_info_path = category_dir_path.join("CategoryInfo.xml");
-    let category_info = CategoryInfo::from_str(
+    let mut category_info = CategoryInfo::from_str(
         &std::fs::read_to_string(&category_info_path).context("can't read CategoryInfo.xml")?,
     )
     .context("can't parse CategoryInfo.xml")?;
@@ -138,5 +138,5 @@ pub async fn upsert_category(
             .context("can't write to CategoryInfo.xml")?;
     }
 
-    Ok(CategoryID::new())
+    Ok(category_info.id.take())
 }
