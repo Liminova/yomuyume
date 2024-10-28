@@ -32,6 +32,18 @@ impl MigrationTrait for Migration {
                     .col(string_null(Pages::Description))
                     .to_owned(),
             )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx-pages-title_id-path")
+                    .table(Pages::Table)
+                    .col(Pages::TitleId)
+                    .col(Pages::Path)
+                    .unique()
+                    .to_owned(),
+            )
             .await
     }
 
