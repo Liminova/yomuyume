@@ -230,6 +230,15 @@ mod tests {
         assert_eq!(category_info.name, Some("Adventure".to_string()));
         assert_eq!(category_info.description, Some("Lorem Ipsum".to_string()));
         assert_eq!(category_info.cover, Some(cover_path.clone()));
+
+        assert_eq!(
+            category_info.to_pretty_string().unwrap(),
+            format!(
+                "<CategoryInfo>\n    <ID>{}</ID>\n    <Name>Adventure</Name>\n    <Description>Lorem Ipsum</Description>\n    <Cover>{}</Cover>\n</CategoryInfo>",
+                category_info.id.as_ref(),
+                cover_path.to_string_lossy()
+            )
+        );
     }
 
     #[test]
@@ -241,6 +250,14 @@ mod tests {
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
         assert_eq!(category_info.cover, None);
+
+        assert_eq!(
+            category_info.to_pretty_string().unwrap(),
+            format!(
+                "<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
+                category_info.id.as_ref()
+            )
+        );
     }
 
     #[test]
@@ -263,6 +280,14 @@ mod tests {
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
         assert_eq!(category_info.cover, None);
+
+        assert_eq!(
+            category_info.to_pretty_string().unwrap(),
+            format!(
+                "<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
+                category_info.id.as_ref()
+            )
+        );
     }
 
     #[test]
@@ -297,5 +322,13 @@ mod tests {
             </CategoryInfo>"#;
         let category_info: CategoryInfo = CategoryInfo::from_str(xml).unwrap();
         assert!(category_info.id.is_new());
+
+        assert_eq!(
+            category_info.to_pretty_string().unwrap(),
+            format!(
+                "<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
+                category_info.id.as_ref()
+            )
+        );
     }
 }
