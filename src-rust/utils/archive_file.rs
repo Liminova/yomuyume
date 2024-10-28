@@ -351,6 +351,7 @@ mod tests {
         sync::Arc,
     };
 
+    use chrono::{DateTime, Utc};
     use memfd_exec::{MemFdExecutable, Stdio};
     use tempdir::TempDir;
 
@@ -468,5 +469,33 @@ mod tests {
         assert_eq!(archive_file.get_file(&filename_1).unwrap(), *content_1);
         assert_eq!(archive_file.get_file(&filename_2).unwrap(), *content_2);
         assert_eq!(archive_file.list_files().await.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn modified_date() {
+        let temp_dir = TempDir::new("modified-date").unwrap();
+
+        let test_file = temp_dir.path().join("test.txt");
+        File::create(&test_file).unwrap();
+
+        let mut archive_file =
+            ArchiveFile::_create(&vec![test_file.clone()], &temp_dir.path().join("new.zip"))
+                .await
+                .unwrap();
+
+        let modified_date_in_zip = archive_file.list_files().await.unwrap()[0].last_modified;
+        let real_modified_date: DateTime<Utc> = File::open(&test_file)
+            .unwrap()
+            .metadata()
+            .unwrap()
+            .modified()
+            .unwrap()
+            .into();
+
+        // 7z only gives 7 digits of second precision, while .modified() gives 9
+        assert_eq!(
+            modified_date_in_zip.to_rfc3339()[..27],
+            real_modified_date.to_rfc3339()[..27]
+        );
     }
 }
