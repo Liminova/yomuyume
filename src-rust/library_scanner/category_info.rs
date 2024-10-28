@@ -203,7 +203,6 @@ impl CategoryInfo {
 mod tests {
     use std::fs::File;
 
-    use quick_xml::de::from_str;
     use tempdir::TempDir;
 
     use super::*;
@@ -226,7 +225,7 @@ mod tests {
             cover_path.to_string_lossy()
         );
 
-        let category_info: CategoryInfo = from_str::<CategoryInfo>(&xml).unwrap();
+        let category_info: CategoryInfo = CategoryInfo::from_str(&xml).unwrap();
 
         assert_eq!(category_info.name, Some("Adventure".to_string()));
         assert_eq!(category_info.description, Some("Lorem Ipsum".to_string()));
@@ -245,8 +244,8 @@ mod tests {
     }
 
     #[test]
-        assert!(from_str::<CategoryInfo>("").is_err());
     fn empty_string_expect_default() {
+        assert!(CategoryInfo::from_str("").is_ok());
     }
 
     #[test]
@@ -259,7 +258,7 @@ mod tests {
             </CategoryInfo>
         "#;
 
-        let category_info: CategoryInfo = from_str::<CategoryInfo>(xml).unwrap();
+        let category_info: CategoryInfo = CategoryInfo::from_str(xml).unwrap();
 
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
@@ -285,7 +284,7 @@ mod tests {
             <CategoryInfo>
                 <ID>KpvE_vralCwx5HA_4B9y8</ID>
             </CategoryInfo>"#;
-        let mut category_info: CategoryInfo = from_str::<CategoryInfo>(xml).unwrap();
+        let mut category_info: CategoryInfo = CategoryInfo::from_str(xml).unwrap();
         assert_eq!(
             category_info.id.take(),
             CategoryID::from("KpvE_vralCwx5HA_4B9y8".to_string()).unwrap()
@@ -296,7 +295,7 @@ mod tests {
             <CategoryInfo>
                 <ID></ID>
             </CategoryInfo>"#;
-        let category_info: CategoryInfo = from_str::<CategoryInfo>(xml).unwrap();
+        let category_info: CategoryInfo = CategoryInfo::from_str(xml).unwrap();
         assert!(category_info.id.is_new());
     }
 }
