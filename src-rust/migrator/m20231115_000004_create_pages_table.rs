@@ -50,6 +50,10 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table(Pages::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_index(Index::drop().name("idx-pages-title_id-path").to_owned())
             .await
     }
 }

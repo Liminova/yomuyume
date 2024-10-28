@@ -59,6 +59,14 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table(Favorites::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_index(
+                Index::drop()
+                    .name("idx-favorites-user_id-title_id")
+                    .to_owned(),
+            )
             .await
     }
 }
