@@ -281,7 +281,7 @@ pub struct ComicInfo {
         default,
         skip_serializing_if = "ArrayOfComicPageInfo::is_empty"
     )]
-    pub pages: ArrayOfComicPageInfo,
+    pages_: ArrayOfComicPageInfo,
     #[serde(
         rename = "CommunityRating",
         default,
@@ -480,19 +480,19 @@ impl AgeRating {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ArrayOfComicPageInfo {
-    #[serde(rename = "Page", default)]
-    pub pages: Vec<ComicPageInfo>,
+    #[serde(rename = "Page", default, skip_serializing_if = "Vec::is_empty")]
+    pages_: Vec<ComicPageInfo>,
 }
 
 impl ArrayOfComicPageInfo {
     fn is_empty(&self) -> bool {
-        self.pages.is_empty()
+        self.pages_.is_empty()
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ComicPageInfo {
-    #[serde(rename = "@Image")]
+    #[serde(rename = "@Image", default)]
     pub image: i32,
     #[serde(
         rename = "@Type",
@@ -648,18 +648,26 @@ const fn int64_is_zero(i: &i64) -> bool {
 }
 
 impl ComicInfo {
+    pub fn pages(&self) -> &Vec<ComicPageInfo> {
+        &self.pages_.pages_
+    }
+
+    pub fn pages_mut(&mut self) -> &mut Vec<ComicPageInfo> {
+        &mut self.pages_.pages_
+    }
+
     /// Get the release date of the comic.
-    pub fn get_release(&mut self) -> Result<DateTime<Utc>> {
+    pub fn get_release(&mut self) -> Option<DateTime<Utc>> {
         if let Some(ref release) = self.release_date {
-            return Ok(*release);
+            return Some(*release);
         }
         let result = DateTime::parse_from_str(
             format!("{}-{}-{}", self.year, self.month, self.day).as_str(),
             "%Y-%m-%d",
         )
-        .context("can't parse comic release date")
+        .ok()
         .map(|d| d.with_timezone(&Utc));
-        if let Ok(result) = result {
+        if let Some(result) = result {
             self.release_date = Some(result);
         }
         result
@@ -674,7 +682,7 @@ impl ComicInfo {
             .unwrap_or_default();
         let with_ext = page_file_name.to_string();
 
-        self.pages.pages.iter().find_map(|page| {
+        self.pages().iter().find_map(|page| {
             if let Some(ref image_path) = page.image_path {
                 if image_path == &with_ext || image_path == &no_ext {
                     return page.description.clone();
@@ -1098,7 +1106,7 @@ mod tests {
     fn pages() {
         let xml = r#"<ComicInfo></ComicInfo>"#;
         let comic_info = ComicInfo::from_str(&xml).unwrap();
-        assert_eq!(comic_info.pages, ArrayOfComicPageInfo { pages: vec![] });
+        assert_eq!(comic_info.pages().len(), 0);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
             format!("{COMICINFO_SCHEMA}\n<ComicInfo/>")
@@ -1106,7 +1114,7 @@ mod tests {
 
         let xml = r#"<ComicInfo><Pages></Pages></ComicInfo>"#;
         let comic_info = ComicInfo::from_str(&xml).unwrap();
-        assert_eq!(comic_info.pages, ArrayOfComicPageInfo { pages: vec![] });
+        assert_eq!(comic_info.pages().len(), 0);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
             format!("{COMICINFO_SCHEMA}\n<ComicInfo/>")
@@ -1137,23 +1145,21 @@ mod tests {
         </ComicInfo>"#;
         let comic_info = ComicInfo::from_str(&xml).unwrap();
         assert_eq!(
-            comic_info.pages,
-            ArrayOfComicPageInfo {
-                pages: vec![ComicPageInfo {
-                    image: 0,
-                    page_type: ComicPageType::FrontCover,
-                    double_page: false,
-                    image_size: 0,
-                    key: "1".to_string(),
-                    bookmark: "2".to_string(),
-                    image_width: 3,
-                    image_height: 4,
-                    image_path: Some("5".to_string()),
-                    description: Some("6".to_string()),
-                    blurhash: None,
-                    modified_date_at_encode: None
-                }]
-            }
+            comic_info.pages(),
+            &vec![ComicPageInfo {
+                image: 0,
+                page_type: ComicPageType::FrontCover,
+                double_page: false,
+                image_size: 0,
+                key: "1".to_string(),
+                bookmark: "2".to_string(),
+                image_width: 3,
+                image_height: 4,
+                image_path: Some("5".to_string()),
+                description: Some("6".to_string()),
+                blurhash: None,
+                modified_date_at_encode: None
+            }]
         );
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1300,7 +1306,7 @@ mod tests {
             </ComicInfo>"#;
         let comic_info = ComicInfo::from_str(xml).unwrap();
         assert_eq!(
-            comic_info.pages.pages.first().unwrap().blurhash,
+            comic_info.pages().first().unwrap().blurhash,
             Some("LEHV6nWB2yk8pyo0adR*.7kCMdnj".to_string())
         );
 
