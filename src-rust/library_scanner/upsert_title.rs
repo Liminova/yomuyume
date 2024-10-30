@@ -260,7 +260,7 @@ pub async fn upsert_title(
                     .add(pages::Column::TitleId.eq(&title_id))
                     .add(
                         pages::Column::Path.is_not_in(
-                            &pages_in_archive
+                            pages_in_archive
                                 .iter()
                                 .map(|p| p.path.clone())
                                 .collect::<Vec<_>>(),
