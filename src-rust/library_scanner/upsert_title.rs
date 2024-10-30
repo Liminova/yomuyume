@@ -80,17 +80,12 @@ pub async fn upsert_title(
         if let Some((cover, cover_path)) = comic_info
             .pages_mut()
             .iter_mut()
-            .filter(|p| p.page_type == ComicPageType::FrontCover)
-            .next()
-            .and_then(|p| match p.image_path.clone() {
-                Some(path) => Some((p, path)),
-                None => None,
-            })
+            .find(|p| p.page_type == ComicPageType::FrontCover)
+            .and_then(|p| p.image_path.clone().map(|path| (p, path)))
         {
             let real_modified_date = pages_in_archive
                 .iter()
-                .filter(|i| i.path == *cover_path)
-                .next()
+                .find(|i| i.path == *cover_path)
                 .map(|i| i.last_modified);
 
             if real_modified_date.is_none() {
