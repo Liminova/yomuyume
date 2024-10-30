@@ -16,11 +16,13 @@ pub async fn upsert_category(
     app_state: Arc<AppState>,
     category_dir_path: &Path,
 ) -> Result<CategoryID> {
-    if !category_dir_path.exists() {
-        return Err(anyhow!("category dir not found"));
-    }
-    if !category_dir_path.is_dir() {
-        return Err(anyhow!("category dir is not a directory"));
+    '_pre_checks: {
+        if !category_dir_path.exists() {
+            return Err(anyhow!("category dir not found"));
+        }
+        if !category_dir_path.is_dir() {
+            return Err(anyhow!("category dir is not a directory"));
+        }
     }
 
     let category_info_path = category_dir_path.join("CategoryInfo.xml");
