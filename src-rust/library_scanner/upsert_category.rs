@@ -5,7 +5,7 @@ use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use tracing::warn;
 
 use crate::{
-    library_scanner::blurhash,
+    library_scanner::blurhash::encode,
     models::prelude::{categories, Categories, CategoryID},
     types::category_info::CategoryInfo,
     AppState,
