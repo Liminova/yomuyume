@@ -241,8 +241,7 @@ pub async fn upsert_title(
     }
 
     '_upsert_pages: {
-        debug!("upserting pages");
-        let pages_in_content_file_active: Vec<pages::ActiveModel> = pages_in_content_file
+        let pages_in_archive_active: Vec<pages::ActiveModel> = pages_in_archive
             .iter()
             .map(|p| pages::ActiveModel {
                 id: Set(PageID::new()),
