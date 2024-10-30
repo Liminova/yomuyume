@@ -372,7 +372,7 @@ mod tests {
         sync::Arc,
     };
 
-    use chrono::{DateTime, Utc};
+    use chrono::{DateTime, Timelike, Utc};
     use memfd_exec::{MemFdExecutable, Stdio};
     use tempdir::TempDir;
 
@@ -513,10 +513,9 @@ mod tests {
             .unwrap()
             .into();
 
-        // 7z only gives 7 digits of second precision, while .modified() gives 9
         assert_eq!(
-            modified_date_in_zip.to_rfc3339()[..27],
-            real_modified_date.to_rfc3339()[..27]
+            modified_date_in_zip.with_nanosecond(0),
+            real_modified_date.with_nanosecond(0)
         );
     }
 }
