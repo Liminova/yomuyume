@@ -47,6 +47,22 @@ pub async fn upsert_title(
 
     let mut archive_file = ArchiveFile::from(title_file_path.clone())
         .context("can't create ArchiveFile from content file")?;
+    let pages_in_archive = archive_file
+        .list_files()
+        .await
+        .context("can't list files in archive")?
+        .into_iter()
+        .filter(|item| {
+            SUPPORTED_IMAGE_FORMATS.contains_key(
+                &item
+                    .path
+                    .split('.')
+                    .last()
+                    .unwrap_or_default()
+                    .to_ascii_lowercase(),
+            )
+        })
+        .collect::<Vec<_>>();
 
     let mut comic_info = archive_file
         .get_file("CategoryInfo.xml")
@@ -178,13 +194,6 @@ pub async fn upsert_title(
         return Ok((title_id, comic_info));
     }
 
-    let pages_in_content_file = archive_file
-        .list_files()
-        .await
-        .context("can't list files in content file")?
-        .into_iter()
-        .filter(|p| SUPPORTED_IMAGE_FORMATS.contains_key(p.split('.').last().unwrap_or_default()))
-        .collect::<Vec<_>>();
 
     '_validate_cover_page: {
         // try encode-to-blurhash the configured FrontCover in ComicInfo.toml
