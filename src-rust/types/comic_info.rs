@@ -664,35 +664,6 @@ impl ComicInfo {
         result
     }
 
-    /// Get the hash of all the pages in the Pages array.
-    pub fn get_pages_field_hash(&mut self) -> Result<u32> {
-        if self.pages.pages.is_empty() {
-            return Ok(0);
-        }
-        if self.pages_field_hash != 0 {
-            return Ok(self.pages_field_hash);
-        }
-
-        let raw = self
-            .pages
-            .pages
-            .iter()
-            .map(|p| {
-                quick_xml::se::to_string(p)
-                    .context("can't serialize page metadata")
-                    .unwrap_or_default()
-            })
-            .collect::<Vec<String>>()
-            .join("");
-        match murmur3_32(&mut &raw.as_bytes()[..], 0) {
-            Ok(hash) => {
-                self.pages_field_hash = hash;
-                Ok(hash)
-            }
-            Err(e) => Err(anyhow!("can't hash pages field: {}", e)),
-        }
-    }
-
     /// Get the description of a page file given its file name.
     pub fn get_page_description(&self, page_file_name: &str) -> Option<String> {
         // split by "." and remove just the last one
