@@ -243,11 +243,11 @@ pub async fn upsert_title(
     '_upsert_pages: {
         let pages_in_archive_active: Vec<pages::ActiveModel> = pages_in_archive
             .iter()
-            .map(|p| pages::ActiveModel {
+            .map(|item| pages::ActiveModel {
                 id: Set(PageID::new()),
                 title_id: Set(title_id.clone()),
-                path: Set(p.clone()),
-                description: Set(comic_info.get_page_description(p)),
+                path: Set(item.path.clone()),
+                description: Set(comic_info.get_page_description(&item.path)),
             })
             .collect();
         Pages::insert_many(pages_in_content_file_active)
