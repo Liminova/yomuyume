@@ -65,9 +65,9 @@ pub async fn upsert_title(
         .collect::<Vec<_>>();
 
     let mut comic_info = archive_file
-        .get_file("CategoryInfo.xml")
-        .context("can't get CategoryInfo.xml in content file")
-        .and_then(|b| String::from_utf8(b).context("can't decode CategoryInfo.xml in content file"))
+        .get_file("ComicInfo.xml")
+        .context("can't get ComicInfo.xml in content file")
+        .and_then(|b| String::from_utf8(b).context("can't decode ComicInfo.xml in content file"))
         .and_then(|s| ComicInfo::from_str(&s))?;
 
     let current_content_file_hash = {
