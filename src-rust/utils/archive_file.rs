@@ -22,7 +22,7 @@ pub struct ArchiveFile {
     path: PathBuf,
 }
 
-#[derive(Debug, Clone, Eq, PartialOrd)]
+#[derive(Debug, Clone, Eq)]
 pub struct ItemInArchive {
     pub path: String,
     pub last_modified: DateTime<Utc>,
@@ -31,6 +31,12 @@ pub struct ItemInArchive {
 impl PartialEq for ItemInArchive {
     fn eq(&self, other: &Self) -> bool {
         self.path == other.path
+    }
+}
+
+impl PartialOrd for ItemInArchive {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
