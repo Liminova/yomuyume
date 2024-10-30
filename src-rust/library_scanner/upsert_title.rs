@@ -3,6 +3,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, Context, Result};
+use chrono::Timelike;
 use murmur3::murmur3_32;
 use sea_orm::{
     sea_query::OnConflict, ColumnTrait, Condition, EntityTrait, QueryFilter, Set, TransactionTrait,
@@ -99,10 +100,9 @@ pub async fn upsert_title(
                 real_modified_date,
             ) {
                 let valid_dimension = cover.image_width > 0 && cover.image_height > 0;
-                let modified_date_at_encode = modified_date_at_encode.to_rfc3339();
-                let real_modified_date = real_modified_date.to_rfc3339();
-                let unmodified = modified_date_at_encode[..27.min(modified_date_at_encode.len())]
-                    == real_modified_date[..27.min(real_modified_date.len())];
+                let modified_date_at_encode = modified_date_at_encode.with_nanosecond(0);
+                let real_modified_date = real_modified_date.with_nanosecond(0);
+                let unmodified = modified_date_at_encode == real_modified_date;
                 // then use them
                 if valid_dimension && unmodified {
                     break 'scoped (
