@@ -10,11 +10,11 @@ use crate::{models::prelude::CategoryID, CATEGORY_INFO_SCHEMA, SUPPORTED_IMAGE_F
 pub struct CategoryInfo {
     #[serde(
         rename = "ID",
-        default = "ID::default",
-        deserialize_with = "ID::deserializer",
-        serialize_with = "ID::serializer"
+        default,
+        deserialize_with = "id_deserializer",
+        serialize_with = "id_serializer"
     )]
-    pub id: ID,
+    pub id: CategoryID,
     #[serde(
         rename = "Name",
         default,
@@ -41,59 +41,24 @@ pub struct CategoryInfo {
     pub cover: Option<PathBuf>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub struct ID {
-    id: CategoryID,
-    is_new: bool,
 }
 
-impl Default for ID {
-    fn default() -> Self {
-        Self {
-            id: CategoryID::new(),
-            is_new: true,
-        }
-    }
-}
-
-impl From<ID> for CategoryID {
-    fn from(val: ID) -> Self {
-        val.id
-    }
-}
-
-impl ID {
-    fn deserializer<'de, D>(deserializer: D) -> Result<Self, D::Error>
+fn id_deserializer<'de, D>(deserializer: D) -> Result<CategoryID, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?.trim().to_string();
         if s.is_empty() {
-            return Ok(ID::default());
+        return Ok(CategoryID::new());
         }
-        CategoryID::from(s)
-            .map(|id| Self { id, is_new: false })
-            .map_err(|_| serde::de::Error::custom("invalid category id"))
+    CategoryID::from(s).map_err(serde::de::Error::custom)
     }
 
-    fn serializer<S>(id: &ID, serializer: S) -> Result<S::Ok, S::Error>
+fn id_serializer<S>(id: &CategoryID, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(id.id.as_ref())
-    }
-
-    pub fn as_ref(&self) -> &CategoryID {
-        &self.id
-    }
-
-    pub fn is_new(&self) -> bool {
-        self.is_new
-    }
-
-    pub fn take(&mut self) -> CategoryID {
-        std::mem::take(&mut self.id)
-    }
+    serializer.serialize_str(&id.to_string())
 }
 
 fn name_deserializer<'de, D: Deserializer<'de>>(
@@ -316,19 +281,17 @@ mod tests {
             <CategoryInfo>
                 <ID>KpvE_vralCwx5HA_4B9y8</ID>
             </CategoryInfo>"#;
-        let mut category_info: CategoryInfo = CategoryInfo::from_str(xml).unwrap();
+        let category_info: CategoryInfo = CategoryInfo::from_str(xml).unwrap();
         assert_eq!(
-            category_info.id.take(),
+            category_info.id,
             CategoryID::from("KpvE_vralCwx5HA_4B9y8".to_string()).unwrap()
         );
-        assert!(!category_info.id.is_new());
 
         let xml = r#"
             <CategoryInfo>
                 <ID></ID>
             </CategoryInfo>"#;
         let category_info: CategoryInfo = CategoryInfo::from_str(xml).unwrap();
-        assert!(category_info.id.is_new());
 
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
