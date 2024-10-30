@@ -25,6 +25,8 @@ pub async fn upsert_category(
         }
     }
 
+    let category_dir_path_string = category_dir_path.to_string_lossy().to_string();
+
     let category_info_path = category_dir_path.join("CategoryInfo.xml");
     let mut category_info = CategoryInfo::from_str(
         &std::fs::read_to_string(&category_info_path).context("can't read CategoryInfo.xml")?,
