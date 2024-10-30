@@ -1,9 +1,11 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use quick_xml::de::from_str;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use super::{option_blurhash_deserializer, option_datetime_deserializer};
 use crate::{models::prelude::CategoryID, CATEGORY_INFO_SCHEMA, SUPPORTED_IMAGE_FORMATS};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
@@ -42,14 +44,14 @@ where
     let s = String::deserialize(deserializer)?.trim().to_string();
     if s.is_empty() {
         return Ok(CategoryID::new());
-        }
-    CategoryID::from(s).map_err(serde::de::Error::custom)
     }
+    CategoryID::from(s).map_err(serde::de::Error::custom)
+}
 
 fn id_serializer<S>(id: &CategoryID, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+where
+    S: Serializer,
+{
     serializer.serialize_str(&id.to_string())
 }
 
@@ -122,49 +124,49 @@ pub struct Cover {
 
 impl Cover {
     fn path_deserializer<'de, D: serde::Deserializer<'de>>(
-    deserializer: D,
-) -> Result<Option<PathBuf>, D::Error> {
-    let s = String::deserialize(deserializer)?.trim().to_string();
+        deserializer: D,
+    ) -> Result<Option<PathBuf>, D::Error> {
+        let s = String::deserialize(deserializer)?.trim().to_string();
 
-    if s.is_empty() {
-        return Ok(None);
+        if s.is_empty() {
+            return Ok(None);
+        }
+        let path = PathBuf::from(s);
+        if !path.exists() {
+            return Err(serde::de::Error::custom(format!(
+                "cover file not exists: {path:?}"
+            )));
+        }
+        if !path.is_file() {
+            return Err(serde::de::Error::custom(format!(
+                "cover file is not a file: {path:?}"
+            )));
+        }
+        let ext = path
+            .extension()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default();
+        if !SUPPORTED_IMAGE_FORMATS.contains_key(ext.as_str()) {
+            return Err(serde::de::Error::custom(format!(
+                "cover file is not a supported image format: {ext}"
+            )));
+        }
+        Ok(Some(path))
     }
-    let path = PathBuf::from(s);
-    if !path.exists() {
-        return Err(serde::de::Error::custom(format!(
-            "cover file not exists: {path:?}"
-        )));
-    }
-    if !path.is_file() {
-        return Err(serde::de::Error::custom(format!(
-            "cover file is not a file: {path:?}"
-        )));
-    }
-    let ext = path
-        .extension()
-        .map(|s| s.to_string_lossy().to_string())
-        .unwrap_or_default();
-    if !SUPPORTED_IMAGE_FORMATS.contains_key(ext.as_str()) {
-        return Err(serde::de::Error::custom(format!(
-            "cover file is not a supported image format: {ext}"
-        )));
-    }
-    Ok(Some(path))
-}
 
     fn path_serializer<S: Serializer>(
-    cover: &Option<PathBuf>,
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
-    match cover {
-        Some(cover) => {
-            let s = cover.to_string_lossy().to_string().trim().to_string();
-            if s.is_empty() {
-                return Err(serde::ser::Error::custom("empty string"));
+        cover: &Option<PathBuf>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        match cover {
+            Some(cover) => {
+                let s = cover.to_string_lossy().to_string().trim().to_string();
+                if s.is_empty() {
+                    return Err(serde::ser::Error::custom("empty string"));
+                }
+                serializer.serialize_str(&s)
             }
-            serializer.serialize_str(&s)
-        }
-        None => serializer.serialize_none(),
+            None => serializer.serialize_none(),
     }
 }
 
