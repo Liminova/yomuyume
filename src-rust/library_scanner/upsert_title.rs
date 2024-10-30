@@ -5,20 +5,20 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::{anyhow, Context, Result};
 use murmur3::murmur3_32;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, Set,
-    TransactionTrait,
+    sea_query::OnConflict, ColumnTrait, Condition, EntityTrait, QueryFilter, Set, TransactionTrait,
 };
-use tracing::{debug, warn};
+use tracing::warn;
 // use zip::ZipArchive;
 
 use crate::{
-    library_scanner::{blurhash::encode, comic_info::ComicInfo},
+    library_scanner::blurhash::encode,
     models::prelude::*,
-    types::custom_id::CustomID,
+    types::{
+        comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
+        custom_id::CustomID,
+    },
     AppState, ArchiveFile, IteratorExt, SUPPORTED_IMAGE_FORMATS,
 };
-
-use super::comic_info::ComicPageType;
 
 /// Upsert a title to the database and return its ID and ComicInfo.
 pub async fn upsert_title(
