@@ -52,7 +52,7 @@ fn id_serializer<S>(id: &CategoryID, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    serializer.serialize_str(&id.to_string())
+    serializer.serialize_str(id.as_ref())
 }
 
 fn name_deserializer<'de, D: Deserializer<'de>>(
