@@ -152,7 +152,7 @@ impl Cover {
     Ok(Some(path))
 }
 
-fn cover_serializer<S: Serializer>(
+    fn path_serializer<S: Serializer>(
     cover: &Option<PathBuf>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
