@@ -7,30 +7,30 @@ use image::{imageops::FilterType::Gaussian, DynamicImage, GenericImageView};
 #[derive(Debug, Clone)]
 pub struct BlurhashResult {
     pub blurhash: String,
-    pub small_width: u8,
-    pub small_height: u8,
+    pub width: u32,
+    pub height: u32,
 }
 
 /// A [`blurhash::encode`] wrapper that handles
 /// the image resizing and dimension calculations.
 pub fn encode(decoded_img: &DynamicImage) -> Result<BlurhashResult> {
-    let decoded_img = decoded_img.resize_to_fill(32, 32, Gaussian);
     let (width, height) = decoded_img.dimensions();
+    let decoded_img = decoded_img.resize_to_fill(32, 32, Gaussian);
+    let (smaller_width, smaller_height) = decoded_img.dimensions();
     let (components_x, components_y) = {
-        let scale = width.min(height) / 3;
-        (width / scale, height / scale)
+        let scale = smaller_width.min(smaller_height) / 3;
+        (smaller_width / scale, smaller_height / scale)
     };
 
     Ok(BlurhashResult {
         blurhash: blurhash::encode(
             components_x,
             components_y,
-            width,
-            height,
+            smaller_width,
+            smaller_height,
             &decoded_img.to_rgba8().into_vec(),
         )?,
-        // TODO: for some reason these always both 32
-        small_width: width as u8,
-        small_height: height as u8,
+        width,
+        height,
     })
 }
