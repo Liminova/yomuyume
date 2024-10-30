@@ -48,9 +48,9 @@ pub struct FilterTitleResponseBody {
     pub page_read: Option<i64>,
 
     /// Cover
-    pub blurhash: Option<String>,
-    pub blurhash_width: Option<u8>,
-    pub blurhash_height: Option<u8>,
+    pub cover_blurhash: Option<String>,
+    pub cover_width: Option<u32>,
+    pub cover_height: Option<u32>,
 }
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
@@ -213,9 +213,9 @@ pub async fn post_filter(
             page_count,
             page_read,
 
-            blurhash: title.cover_blurhash,
-            blurhash_width: title.blurhash_width,
-            blurhash_height: title.blurhash_height,
+            cover_blurhash: title.cover_blurhash,
+            cover_width: title.cover_width,
+            cover_height: title.cover_height,
         });
     }
 

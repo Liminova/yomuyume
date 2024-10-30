@@ -31,8 +31,8 @@ pub struct TitleResponseBody {
     pub release_date: Option<String>,
 
     pub cover_blurhash: Option<String>,
-    pub blurhash_width: Option<u8>,
-    pub blurhash_height: Option<u8>,
+    pub cover_width: Option<u32>,
+    pub cover_height: Option<u32>,
 
     pub tag_ids: Vec<u32>,
     pub pages: Vec<ResponsePage>,
@@ -175,8 +175,8 @@ pub async fn get_title(
             description: title.description,
             release_date: title.release.map(|d| d.to_rfc3339()),
             cover_blurhash: title.cover_blurhash,
-            blurhash_width: title.blurhash_width,
-            blurhash_height: title.blurhash_height,
+            cover_width: title.cover_width,
+            cover_height: title.cover_height,
             tag_ids,
             pages,
             favorites,

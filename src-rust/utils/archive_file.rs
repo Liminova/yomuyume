@@ -156,20 +156,32 @@ impl ArchiveFile {
             .trim()
             .split("\n\n")
             .filter(|s| !s.is_empty())
-            .filter_map(|s| {
+            .filter_map(|s| 'scoped: {
                 let attributes: HashMap<&str, &str> = s
                     .split("\n")
                     .collect::<Vec<_>>()
                     .iter()
-                    .filter_map(|line| {
+                    .filter_map(|line| 'scoped2: {
                         let mut split = line.split(" = ");
                         if let (Some(key), Some(value)) = (split.next(), split.next()) {
-                            Some((key, value))
-                        } else {
-                            None
+                            break 'scoped2 Some((key, value));
                         }
+                        None
                     })
                     .collect();
+
+                let path = attributes.get("Path").map(|val| val.trim().to_string());
+                let path = match path {
+                    Some(path) => path,
+                    None => {
+                        warn!(
+                            "can't get file path for an entry in {}",
+                            self.path.display()
+                        );
+                        break 'scoped None;
+                    }
+                };
+
                 let is_dir = attributes
                     .get("Folder")
                     .map(|val| val.trim() == "+")
@@ -177,13 +189,18 @@ impl ArchiveFile {
                         attributes
                             .get("Size")
                             .map(|val| val.trim() == "0")
-                            .unwrap_or(false)
+                            .unwrap_or_else(|| {
+                                warn!(
+                                    "can't check if {path} in {} is a directory",
+                                    self.path.display()
+                                );
+                                true
+                            })
                     });
                 if is_dir {
                     return None;
                 }
 
-                let path = attributes.get("Path").map(|val| val.trim().to_string());
                 let last_modified = attributes
                     .get("Modified")
                     .ok_or_else(|| anyhow!("there should exist a modified date"))
@@ -202,19 +219,21 @@ impl ArchiveFile {
                             .context("can't convert modified date to local datetime")
                     })
                     .map(|local_datetime| local_datetime.to_utc());
+                let last_modified = match last_modified {
+                    Ok(last_modified) => last_modified,
+                    Err(e) => {
+                        warn!(
+                            "can't get last modified date for file {path} in {}: {e:#}",
+                            self.path.display()
+                        );
+                        break 'scoped None;
+                    }
+                };
 
-                if let (Some(path), Ok(last_modified)) = (path, last_modified) {
-                    Some(ItemInArchive {
-                        path,
-                        last_modified,
-                    })
-                } else {
-                    warn!(
-                        "can't parse path or last modified date for some file in {}",
-                        self.path.display()
-                    );
-                    None
-                }
+                Some(ItemInArchive {
+                    path,
+                    last_modified,
+                })
             })
             .collect();
         files.sort();
