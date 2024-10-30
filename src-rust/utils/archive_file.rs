@@ -211,10 +211,6 @@ impl ArchiveFile {
                     .get("Modified")
                     .ok_or_else(|| anyhow!("there should exist a modified date"))
                     .and_then(|val| {
-                        let length = val.len();
-                        if length != 27 {
-                            return Err(anyhow!("expected 27 characters, got {length} ({val})",));
-                        }
                         NaiveDateTime::parse_from_str(val.trim(), "%Y-%m-%d %H:%M:%S%.f")
                             .context("can't parse modified date")
                     })
