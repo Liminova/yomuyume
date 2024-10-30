@@ -33,7 +33,7 @@ pub struct CategoryInfo {
         skip_serializing_if = "Option::is_none"
     )]
     pub description: Option<String>,
-    #[serde(rename = "Cover", default, skip_serializing_if = "Cover::is_empty")]
+    #[serde(rename = "Cover", default, skip_serializing_if = "Cover::all_empty")]
     pub cover: Option<Cover>,
 }
 
@@ -167,6 +167,22 @@ impl Cover {
                 serializer.serialize_str(&s)
             }
             None => serializer.serialize_none(),
+        }
+    }
+
+    fn is_zero(number: &u32) -> bool {
+        *number == 0
+    }
+
+    fn all_empty(cover: &Option<Cover>) -> bool {
+        if let Some(cover) = cover {
+            return cover.blurhash.is_none()
+                && cover.width == 0
+                && cover.height == 0
+                && cover.modified_date_at_encode.is_none()
+                && cover.path.is_none();
+        }
+        true
     }
 }
 
@@ -220,7 +236,13 @@ mod tests {
 
         assert_eq!(category_info.name, Some("Adventure".to_string()));
         assert_eq!(category_info.description, Some("Lorem Ipsum".to_string()));
-        assert_eq!(category_info.cover, None);
+        assert_eq!(
+            category_info.cover,
+            Some(Cover {
+                path: Some(cover_path.clone()),
+                ..Default::default()
+            })
+        );
 
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
@@ -276,7 +298,7 @@ mod tests {
 
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
-        assert_eq!(category_info.cover, None);
+        assert_eq!(category_info.cover, Some(Cover::default()));
 
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
