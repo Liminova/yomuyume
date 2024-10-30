@@ -22,9 +22,8 @@ impl MigrationTrait for Migration {
                     .col(string_null(Categories::Description))
                     .col(string_null(Categories::CoverPath))
                     .col(string_null(Categories::CoverBlurhash))
-                    .col(integer_null(Categories::BlurhashResolutionX))
-                    .col(integer_null(Categories::BlurhashResolutionY))
-                    .col(integer_null(Categories::CoverFileHash))
+                    .col(integer_null(Categories::CoverWidth))
+                    .col(integer_null(Categories::CoverHeight))
                     .to_owned(),
             )
             .await
@@ -45,7 +44,6 @@ pub enum Categories {
 
     CoverPath,
     CoverBlurhash,
-    BlurhashResolutionX,
-    BlurhashResolutionY,
-    CoverFileHash,
+    CoverWidth,
+    CoverHeight,
 }

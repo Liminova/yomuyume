@@ -15,9 +15,8 @@ pub struct Model {
 
     pub cover_path: Option<String>,
     pub cover_blurhash: Option<String>,
-    pub blurhash_resolution_x: Option<u8>,
-    pub blurhash_resolution_y: Option<u8>,
-    pub cover_file_hash: Option<u32>,
+    pub cover_width: Option<u32>,
+    pub cover_height: Option<u32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
