@@ -250,17 +250,12 @@ pub async fn upsert_title(
                 description: Set(comic_info.get_page_description(&item.path)),
             })
             .collect();
-        Pages::insert_many(pages_in_content_file_active)
-            // .on_conflict(
-            //     OnConflict::column(pages::Column::Path)
-            //         .do_nothing()
-            //         .to_owned(),
-            // )
-            // .on_conflict(
-            //     OnConflict::column(pages::Column::TitleId)
-            //         .do_nothing()
-            //         .to_owned(),
-            // )
+        Pages::insert_many(pages_in_archive_active)
+            .on_conflict(
+                OnConflict::columns([pages::Column::TitleId, pages::Column::Path])
+                    .update_column(pages::Column::Description)
+                    .to_owned(),
+            )
             .exec(&txn)
             .await
             .context("can't insert pages to DB")?;
