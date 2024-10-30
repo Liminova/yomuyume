@@ -263,7 +263,14 @@ pub async fn upsert_title(
             .filter(
                 Condition::all()
                     .add(pages::Column::TitleId.eq(&title_id))
-                    .add(pages::Column::Path.is_not_in(&pages_in_content_file)),
+                    .add(
+                        pages::Column::Path.is_not_in(
+                            &pages_in_archive
+                                .iter()
+                                .map(|p| p.path.clone())
+                                .collect::<Vec<_>>(),
+                        ),
+                    ),
             )
             .exec(&txn)
             .await
