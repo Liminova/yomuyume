@@ -31,24 +31,16 @@ pub struct CategoryInfo {
         skip_serializing_if = "Option::is_none"
     )]
     pub description: Option<String>,
-    #[serde(
-        rename = "Cover",
-        default,
-        deserialize_with = "cover_deserializer",
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "cover_serializer"
-    )]
-    pub cover: Option<PathBuf>,
-}
-
+    #[serde(rename = "Cover", default, skip_serializing_if = "Cover::is_empty")]
+    pub cover: Option<Cover>,
 }
 
 fn id_deserializer<'de, D>(deserializer: D) -> Result<CategoryID, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?.trim().to_string();
-        if s.is_empty() {
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?.trim().to_string();
+    if s.is_empty() {
         return Ok(CategoryID::new());
         }
     CategoryID::from(s).map_err(serde::de::Error::custom)
@@ -98,7 +90,38 @@ fn description_serializer<S: Serializer>(
     }
 }
 
-fn cover_deserializer<'de, D: serde::Deserializer<'de>>(
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
+pub struct Cover {
+    #[serde(
+        rename = "@Path",
+        default,
+        deserialize_with = "Cover::path_deserializer",
+        serialize_with = "Cover::path_serializer",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub path: Option<PathBuf>,
+    #[serde(
+        rename = "@Blurhash",
+        default,
+        deserialize_with = "option_blurhash_deserializer",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub blurhash: Option<String>,
+    #[serde(rename = "@Width", default, skip_serializing_if = "Cover::is_zero")]
+    pub width: u32,
+    #[serde(rename = "@Height", default, skip_serializing_if = "Cover::is_zero")]
+    pub height: u32,
+    #[serde(
+        rename = "@ModifiedDateAtEncode",
+        default,
+        deserialize_with = "option_datetime_deserializer",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub modified_date_at_encode: Option<DateTime<Utc>>,
+}
+
+impl Cover {
+    fn path_deserializer<'de, D: serde::Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Option<PathBuf>, D::Error> {
     let s = String::deserialize(deserializer)?.trim().to_string();
@@ -185,7 +208,7 @@ mod tests {
             <CategoryInfo>
                 <Name>  Adventure    </Name>
                 <Description>  Lorem Ipsum</Description>
-                <Cover> {}    </Cover>
+                <Cover Path=\"{}\">    </Cover>
             </CategoryInfo>
         ",
             cover_path.to_string_lossy()
@@ -195,7 +218,7 @@ mod tests {
 
         assert_eq!(category_info.name, Some("Adventure".to_string()));
         assert_eq!(category_info.description, Some("Lorem Ipsum".to_string()));
-        assert_eq!(category_info.cover, Some(cover_path.clone()));
+        assert_eq!(category_info.cover, None);
 
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
@@ -205,7 +228,7 @@ mod tests {
     <ID>{}</ID>
     <Name>Adventure</Name>
     <Description>Lorem Ipsum</Description>
-    <Cover>{}</Cover>
+    <Cover Path=\"{}\"/>
 </CategoryInfo>",
                 category_info.id.as_ref(),
                 cover_path.to_string_lossy()
@@ -268,7 +291,7 @@ mod tests {
             <CategoryInfo>
                 <Name>Adventure</Name>
                 <Description>Lorem Ipsum</Description>
-                <Cover>this-is-not-exists.jpg</Cover>
+                <Cover Path="this-is-not-exists.jpg" />
             </CategoryInfo>
         "#;
 
