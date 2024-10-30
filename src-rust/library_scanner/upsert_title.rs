@@ -24,16 +24,16 @@ use super::comic_info::ComicPageType;
 pub async fn upsert_title(
     app_state: Arc<AppState>,
     category_id: Option<CustomID>,
-    content_file_path: &PathBuf,
+    title_file_path: &PathBuf,
 ) -> Result<(TitleID, ComicInfo)> {
     '_pre_checks: {
-        if !content_file_path.exists() {
+        if !title_file_path.exists() {
             return Err(anyhow!("content file not exists"));
         }
-        if !content_file_path.is_file() {
+        if !title_file_path.is_file() {
             return Err(anyhow!("content file is not a file"));
         }
-        if !content_file_path
+        if !title_file_path
             .extension()
             .map(|s| s.to_string_lossy() == "zip")
             .unwrap_or(false)
@@ -43,9 +43,9 @@ pub async fn upsert_title(
     }
 
     // micro optimization, this value is used frequently
-    let content_file_path_string = content_file_path.to_string_lossy().to_string();
+    let title_file_path_string = title_file_path.to_string_lossy().to_string();
 
-    let mut archive_file = ArchiveFile::from(content_file_path.clone())
+    let mut archive_file = ArchiveFile::from(title_file_path.clone())
         .context("can't create ArchiveFile from content file")?;
 
     let mut comic_info = archive_file
