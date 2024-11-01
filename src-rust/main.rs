@@ -1,20 +1,17 @@
 mod library_scanner;
-mod migrator;
-mod models;
 mod routes;
 mod types;
 mod utils;
 
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{
     middleware::from_fn_with_state as apply,
     routing::{get, post, put},
     Router,
 };
-use sea_orm::{ConnectionTrait, Database, DbBackend, DbErr};
-use sea_orm_migration::prelude::*;
+use sqlx::postgres::PgPoolOptions;
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
@@ -23,14 +20,13 @@ use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    migrator::Migrator,
     routes::{auth, ApiDoc},
     utils::*,
 };
 use routes::*;
 
 #[tokio::main]
-async fn main() -> Result<(), DbErr> {
+async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
     let config = Config::init();
 
@@ -39,34 +35,12 @@ async fn main() -> Result<(), DbErr> {
         .with_env_filter("sqlx=warn,axum=info,yomuyume=debug")
         .init();
 
-    let db = Database::connect(&config.database_url).await?;
-    if db.get_database_backend() != DbBackend::Sqlite {
-        error!("we don't support other databases outside of sqlite. exiting.");
-        std::process::exit(1)
-    }
-
-    if let Err(e) = db.execute_unprepared("PRAGMA journal_mode = WAL;").await {
-        info!("{}", e);
-    }
-
-    let schema_manager = SchemaManager::new(&db);
-    Migrator::up(&db, None).await?;
-    assert!(schema_manager.has_table("users").await?);
-    assert!(schema_manager.has_table("categories").await?);
-    assert!(schema_manager.has_table("titles").await?);
-    assert!(schema_manager.has_table("pages").await?);
-    assert!(schema_manager.has_table("tags").await?);
-    assert!(schema_manager.has_table("titles_tags").await?);
-    assert!(schema_manager.has_table("bookmarks").await?);
-    assert!(schema_manager.has_table("favorites").await?);
-    assert!(schema_manager.has_table("progresses").await?);
-    assert!(schema_manager.has_table("session_tokens").await?);
-    assert!(schema_manager.has_table("temp_codes").await?);
-
-    info!("database migrations complete!");
-
     let app_state = Arc::new(AppState {
-        db,
+        pool: PgPoolOptions::new()
+            .max_connections(100)
+            .connect(&config.database_url)
+            .await
+            .context("can't connect to database")?,
         config: config.clone(),
         scanning_complete: Mutex::new(false),
         scanning_progress: Mutex::new(0.0),
