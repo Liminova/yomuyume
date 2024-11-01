@@ -1,0 +1,20 @@
+localhost:3001 {
+	tls internal
+	reverse_proxy localhost:3000
+}
+
+localhost:8081 {
+	tls internal
+	header {
+		Access-Control-Allow-Credentials "true"
+		Access-Control-Allow-Origin "https://localhost:3001"
+		Access-Control-Allow-Methods "*"
+		Access-Control-Allow-Headers "Content-Type, Authorization"
+		>Set-Cookie (.*) "$1; SameSite=None; Secure; HttpOnly"
+	}
+
+	@options method OPTIONS
+	respond @options 204
+
+	reverse_proxy localhost:8080
+}
