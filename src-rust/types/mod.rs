@@ -1,6 +1,7 @@
 pub mod category_info;
 pub mod comic_info;
 pub mod custom_id;
+pub mod temp_code_purpose;
 
 use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 use serde::{Deserialize, Deserializer};
