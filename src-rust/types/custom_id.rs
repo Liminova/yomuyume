@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use nanoid::nanoid;
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -20,12 +21,12 @@ impl CustomID {
         Self(nanoid!())
     }
 
-    pub fn from(id: String) -> Result<Self, String> {
+    pub fn from(id: String) -> Result<Self> {
         id.as_bytes()
             .iter()
             .try_for_each(|byte| match *byte {
                 b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b'-' | b'_' => Ok(()),
-                _ => Err("invalid nanoid string".to_string()),
+                _ => Err(anyhow!("invalid nanoid string")),
             })
             .map(|_| Self(id))
     }
