@@ -44,7 +44,9 @@
 				"Vue.volar",
 				"fill-labs.dependi",
 				"maptz.regionfolder",
-				"tamasfe.even-better-toml"
+				"tamasfe.even-better-toml",
+				"mtxr.sqltools",
+				"mtxr.sqltools-driver-pg"
 			],
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "zsh",
