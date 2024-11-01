@@ -20,11 +20,10 @@ pub struct ComicInfo {
     #[serde(
         rename = "Title",
         default,
-        deserialize_with = "Title::deserializer",
-        serialize_with = "Title::serializer",
-        skip_serializing_if = "Title::is_untitled"
+        deserialize_with = "title_deserializer",
+        skip_serializing_if = "String::is_empty"
     )]
-    pub title: Title,
+    pub title: String,
     #[serde(
         rename = "Series",
         default,
@@ -313,48 +312,12 @@ pub struct ComicInfo {
     pub gtin: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub struct Title(String);
-
-impl Default for Title {
-    fn default() -> Self {
-        Title("Untitled".to_string())
-    }
-}
-
-impl From<&str> for Title {
-    fn from(value: &str) -> Self {
-        Title(value.trim().to_string())
-    }
-}
-
-impl Display for Title {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Title {
-    pub fn is_untitled(&self) -> bool {
-        self.0 == "Untitled"
-    }
-    fn deserializer<'de, D>(deserializer: D) -> Result<Title, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
+fn title_deserializer<'de, D: Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
         let s = String::deserialize(deserializer)?.trim().to_string();
         if s.is_empty() {
-            return Err(serde::de::Error::custom("empty string"));
+        return Ok("Untitled".to_string());
         }
-        Ok(Title(s))
-    }
-
-    fn serializer<S>(title: &Title, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&title.0)
-    }
+    Ok(s)
 }
 
 fn option_string_deserializer<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
@@ -945,7 +908,7 @@ mod tests {
     fn title() {
         let xml = r#"<ComicInfo><Title>  Lorem Ipsum Title  </Title></ComicInfo>"#;
         let comic_info = ComicInfo::from_str(xml).unwrap();
-        assert_eq!(comic_info.title, Title::from("Lorem Ipsum Title"));
+        assert_eq!(comic_info.title, "Lorem Ipsum Title".to_string());
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
             format!("{COMICINFO_SCHEMA}\n<ComicInfo>\n    <Title>Lorem Ipsum Title</Title>\n</ComicInfo>"));
