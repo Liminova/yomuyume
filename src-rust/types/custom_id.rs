@@ -4,6 +4,11 @@ use serde::{Deserialize, Deserializer, Serialize};
 #[derive(Clone, Debug, PartialEq, Eq, Hash, sea_orm::DeriveValueType)]
 pub struct CustomID(String);
 
+pub type CategoryID = CustomID;
+pub type TitleID = CustomID;
+pub type UserID = CustomID;
+pub type SessionSecret = CustomID;
+
 impl Default for CustomID {
     fn default() -> Self {
         Self(nanoid!())
