@@ -1,7 +1,7 @@
 use nanoid::nanoid;
 use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, sea_orm::DeriveValueType)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CustomID(String);
 
 pub type CategoryID = CustomID;
@@ -84,31 +84,5 @@ impl std::fmt::Display for CustomID {
 impl AsRef<str> for CustomID {
     fn as_ref(&self) -> &str {
         &self.0
-    }
-}
-
-// SeaORM New Type - https://www.sea-ql.org/SeaORM/docs/generate-entity/newtype/
-// 1, 2, 3. satisfied by the DeriveValueType macro
-// 4. If the field is Option<T>, implement sea_query::Nullable for T
-impl sea_orm::sea_query::Nullable for CustomID {
-    fn null() -> sea_orm::Value {
-        sea_orm::Value::String(None)
-    }
-}
-
-// SeaORM wouldn't shut up about this even though we don't use auto increment
-impl sea_orm::TryFromU64 for CustomID {
-    fn try_from_u64(value: u64) -> Result<Self, sea_orm::DbErr> {
-        match Self::from(value.to_string()) {
-            Ok(id) => Ok(id),
-            Err(e) => Err(sea_orm::DbErr::Custom(e)),
-        }
-    }
-}
-
-// to be able to use references when writing conditions, instead of cloning
-impl From<&CustomID> for sea_orm::Value {
-    fn from(id: &CustomID) -> Self {
-        sea_orm::Value::String(Some(Box::new(id.0.clone())))
     }
 }
