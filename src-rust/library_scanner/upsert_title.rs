@@ -19,7 +19,7 @@ use crate::{
 /// Upsert a title to the database and return its ID and ComicInfo.
 pub async fn upsert_title(
     app_state: Arc<AppState>,
-    category_id: Option<CustomID>,
+    category_id: Option<CategoryID>,
     title_file_path: &PathBuf,
 ) -> Result<(TitleID, ComicInfo)> {
     '_pre_checks: {
