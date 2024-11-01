@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     # mold linker
     clang \
     # openssl crate somewhere in the dependency tree
-    pkg-config libssl-dev
+    pkg-config libssl-dev \
     # misc
     curl git zsh && apt-get clean
 
