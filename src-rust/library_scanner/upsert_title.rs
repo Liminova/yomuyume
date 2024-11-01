@@ -4,19 +4,14 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, Context, Result};
 use chrono::Timelike;
-use murmur3::murmur3_32;
-use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, Condition, EntityTrait, QueryFilter, Set, TransactionTrait,
-};
+use rayon::prelude::*;
 use tracing::warn;
-// use zip::ZipArchive;
 
 use crate::{
     library_scanner::blurhash::encode,
-    models::prelude::*,
     types::{
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
-        custom_id::CustomID,
+        custom_id::{CategoryID, TitleID},
     },
     AppState, ArchiveFile, IteratorExt, SUPPORTED_IMAGE_FORMATS,
 };
