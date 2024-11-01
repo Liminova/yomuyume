@@ -1,0 +1,16 @@
+DROP TABLE IF EXISTS sessions_tokens;
+DROP INDEX IF EXISTS "idx-temp-code-purpose-user_id";
+DROP TABLE IF EXISTS temp_codes;
+DROP INDEX IF EXISTS "idx-progresses-user_id-title_id";
+DROP TABLE IF EXISTS progresses;
+DROP INDEX IF EXISTS "idx-favorites-user_id-title_id";
+DROP TABLE IF EXISTS favorites;
+DROP INDEX IF EXISTS "idx-bookmarks-user_id-title_id";
+DROP TABLE IF EXISTS bookmarks;
+DROP TABLE IF EXISTS users CASCADE;
+DROP INDEX IF EXISTS "idx-titles-tags-title_id-tag_id";
+DROP TABLE IF EXISTS titles_tags;
+DROP TABLE IF EXISTS tags;
+DROP TABLE IF EXISTS pages;
+DROP TABLE IF EXISTS titles;
+DROP TABLE IF EXISTS categories;

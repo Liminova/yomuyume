@@ -1,0 +1,121 @@
+CREATE TABLE IF NOT EXISTS categories (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+
+    cover_path TEXT,
+    cover_blurhash TEXT,
+    cover_width INTEGER,
+    cover_height INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS titles (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+
+    category_id TEXT,
+    author TEXT,
+    description TEXT,
+    release DATE,
+    path TEXT NOT NULL UNIQUE,
+
+    cover_path TEXT,
+    cover_blurhash TEXT,
+    cover_width INTEGER,
+    cover_height INTEGER,
+
+    date_added TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    date_updated TIMESTAMP WITH TIME ZONE,
+
+    FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS pages (
+    id TEXT PRIMARY KEY,
+    title_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    description TEXT,
+
+    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx-pages-title_id-path" ON pages (title_id, path);
+
+CREATE TABLE IF NOT EXISTS tags (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS titles_tags (
+    id TEXT PRIMARY KEY,
+    title_id TEXT NOT NULL,
+    tag_id INTEGER NOT NULL,
+    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx-titles_tags-title_id-tag_id" ON titles_tags (title_id, tag_id);
+
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    email TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    profile_picture TEXT,
+    ip_address TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    verified_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS bookmarks (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    title_id TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx-bookmarks-user_id-title_id" ON bookmarks (user_id, title_id);
+
+CREATE TABLE IF NOT EXISTS favorites (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    title_id TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx-favorites-user_id-title_id" ON favorites (user_id, title_id);
+
+CREATE TABLE IF NOT EXISTS progresses (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    title_id TEXT NOT NULL,
+    last_read_at TIMESTAMP WITH TIME ZONE,
+    page INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx-progresses-user_id-title_id" ON progresses (user_id, title_id);
+
+DO $$ BEGIN
+    CREATE TYPE temp_codes_purpose AS ENUM ('delete_account', 'reset_password', 'validate_email');
+EXCEPTION
+    WHEN duplicate_object THEN RAISE NOTICE 'type already exists, skipping';
+END $$;
+CREATE TABLE IF NOT EXISTS temp_codes (
+    id SERIAL PRIMARY KEY,
+    purpose temp_codes_purpose NOT NULL,
+    user_id TEXT NOT NULL,
+    code TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "idx-temp-code-purpose-user_id" ON temp_codes (purpose, user_id);
+
+CREATE TABLE IF NOT EXISTS session_tokens (
+    session_secret TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    user_agent TEXT,
+    ip_address TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
