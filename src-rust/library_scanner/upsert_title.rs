@@ -168,58 +168,55 @@ pub async fn upsert_title(
         (None, None, None, None)
     };
 
-    let txn = app_state.clone().db.begin().await?;
+    let txn = app_state.pool.begin().await?;
 
-    let title_id = Titles::insert(titles::ActiveModel {
-        id: Set(TitleID::new()),
-        title: Set(comic_info.title.to_string()),
-        category_id: Set(category_id.clone()),
-        author: Set(comic_info.penciller.clone()),
-        description: Set(comic_info.summary.clone()),
-        release: Set(comic_info.get_release()),
-        path: Set(title_file_path_string.clone()),
-        cover_path: Set(cover_path),
-        cover_blurhash: Set(cover_blurhash),
-        cover_width: Set(cover_width),
-        cover_height: Set(cover_height),
-        file_hash: Set({
-            let title_file = tokio::fs::read(&title_file_path).await?;
-            match murmur3_32(&mut &title_file[..], 0) {
-                Ok(hash) => hash,
-                Err(e) => return Err(anyhow!("can't hash content file: {}", e)),
-            }
-        }),
-        date_added: Set(chrono::Utc::now()),
-        date_updated: Set(match tokio::fs::metadata(&title_file_path).await {
-            Ok(metadata) => Some(metadata.modified()?.into()),
-            Err(e) => {
-                warn!("can't get last modified date of {title_file_path_string}: {e:?}");
-                None
-            }
-        }),
-    })
-    .on_conflict(
-        OnConflict::column(titles::Column::Path)
-            .update_columns([
-                titles::Column::Title,
-                titles::Column::CategoryId,
-                titles::Column::Author,
-                titles::Column::Description,
-                titles::Column::Release,
-                titles::Column::Path,
-                titles::Column::CoverPath,
-                titles::Column::CoverBlurhash,
-                titles::Column::CoverWidth,
-                titles::Column::CoverHeight,
-                titles::Column::FileHash,
-                titles::Column::DateUpdated,
-            ])
-            .to_owned(),
+    let title_id = sqlx::query!(
+        r#"INSERT INTO titles
+            (id, title, category_id, author, description, release,
+            path, cover_path, cover_blurhash, cover_width,
+            cover_height, date_added, date_updated)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        ON CONFLICT (path)
+        DO UPDATE SET
+            title = EXCLUDED.title,
+            category_id = EXCLUDED.category_id,
+            author = EXCLUDED.author,
+            description = EXCLUDED.description,
+            release = EXCLUDED.release,
+            path = EXCLUDED.path,
+            cover_path = EXCLUDED.cover_path,
+            cover_blurhash = EXCLUDED.cover_blurhash,
+            cover_width = EXCLUDED.cover_width,
+            cover_height = EXCLUDED.cover_height,
+            date_updated = EXCLUDED.date_updated
+        RETURNING id
+        "#,
+        nanoid::nanoid!(),
+        &comic_info.title,
+        category_id.map(|id| id.to_string()),
+        comic_info.penciller.as_ref(),
+        comic_info.summary.as_ref(),
+        comic_info.get_release(),
+        title_file_path_string.to_string(),
+        cover_path,
+        cover_blurhash,
+        cover_width.map(|w| w as i32),
+        cover_height.map(|h| h as i32),
+        Some(chrono::Utc::now()),
+        tokio::fs::metadata(&title_file_path)
+            .await
+            .and_then(|m| m
+                .modified()
+                .map(|d| chrono::DateTime::<chrono::Utc>::from(d)))
+            .unwrap_or_default(),
     )
-    .exec(&txn)
+    .fetch_one(&app_state.pool)
     .await
     .context("can't insert title model to DB")?
-    .last_insert_id;
+    .id;
+
+    let title_id = TitleID::from(title_id)
+        .context("can't convert title id from database to TitleID, this should not happen")?;
 
     '_save_comic_info: {
         archive_file
@@ -230,41 +227,67 @@ pub async fn upsert_title(
             .context("can't write back metadata to content file")?;
     }
 
-    '_upsert_pages: {
-        let pages_in_archive_active: Vec<pages::ActiveModel> = pages_in_archive
-            .iter()
-            .map(|item| pages::ActiveModel {
-                id: Set(PageID::new()),
-                title_id: Set(title_id.clone()),
-                path: Set(item.path.clone()),
-                description: Set(comic_info.get_page_description(&item.path)),
-            })
-            .collect();
-        Pages::insert_many(pages_in_archive_active)
-            .on_conflict(
-                OnConflict::columns([pages::Column::TitleId, pages::Column::Path])
-                    .update_column(pages::Column::Description)
-                    .to_owned(),
+    'upsert_pages: {
+        if pages_in_archive.is_empty() {
+            break 'upsert_pages;
+        }
+
+        let page_ids = (0..pages_in_archive.len())
+            .into_par_iter()
+            .map(|_| nanoid::nanoid!())
+            .collect::<Vec<_>>();
+        let mut page_paths = Vec::with_capacity(pages_in_archive.len());
+        let mut page_descriptions = Vec::with_capacity(pages_in_archive.len());
+        pages_in_archive.iter().for_each(|item| {
+            page_paths.push(item.path.clone());
+            page_descriptions.push(
+                comic_info
+                    .get_page_description(&item.path)
+                    .unwrap_or_default(),
             )
-            .exec(&txn)
-            .await
-            .context("can't insert pages to DB")?;
-        Pages::delete_many()
-            .filter(
-                Condition::all()
-                    .add(pages::Column::TitleId.eq(&title_id))
-                    .add(
-                        pages::Column::Path.is_not_in(
-                            pages_in_archive
-                                .iter()
-                                .map(|p| p.path.clone())
-                                .collect::<Vec<_>>(),
-                        ),
-                    ),
+        });
+
+        sqlx::query!(
+            r#"
+            INSERT INTO pages (id, title_id, path, description)
+                SELECT id, $1, path, NULLIF(description, '')
+                FROM UNNEST($2::text[], $3::text[], $4::text[])
+                AS t(id, path, description)
+            ON CONFLICT (path) DO UPDATE
+                SET description = EXCLUDED.description
+        "#,
+            title_id.as_ref(),
+            &page_ids,
+            &page_paths,
+            &page_descriptions
+        )
+        .execute(&app_state.pool)
+        .await
+        .context("can't insert new pages")?;
+    }
+
+    '_delete_old_pages: {
+        if pages_in_archive.is_empty() {
+            sqlx::query!(
+                r#"DELETE FROM "pages" WHERE "title_id" = $1"#,
+                title_id.to_string()
             )
-            .exec(&txn)
+            .execute(&app_state.pool)
             .await
-            .context("can't delete pages in DB")?;
+            .context("can't delete old pages")?;
+        } else {
+            sqlx::query!(
+                r#"DELETE FROM pages WHERE title_id = $1 AND path NOT IN (SELECT UNNEST($2::text[]))"#,
+                title_id.as_ref(),
+                &pages_in_archive
+                    .iter()
+                    .map(|p| p.path.clone())
+                    .collect::<Vec<_>>()
+            )
+            .execute(&app_state.pool)
+            .await
+            .context("can't delete old pages")?;
+        }
     }
 
     // TODO: handle tags
@@ -272,44 +295,4 @@ pub async fn upsert_title(
     txn.commit().await.context("can't commit transaction")?;
 
     Ok((title_id, comic_info))
-}
-
-#[cfg(test)]
-mod tests {
-    use sea_orm::{
-        ActiveModelTrait,
-        ActiveValue::{NotSet, Set},
-        ColumnTrait, Database, EntityTrait, QueryFilter,
-    };
-    use sea_orm_migration::MigratorTrait;
-
-    use crate::{migrator::Migrator, models::prelude::*};
-
-    #[tokio::test]
-    async fn seaorm_set_always_change_active_model() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        Migrator::up(&db, None).await.unwrap();
-
-        Tags::insert(tags::ActiveModel {
-            id: NotSet,
-            name: Set("favorite".to_string()),
-        })
-        .exec(&db)
-        .await
-        .unwrap();
-
-        let mut active_model: tags::ActiveModel = Tags::find()
-            .filter(tags::Column::Name.eq("favorite"))
-            .one(&db)
-            .await
-            .unwrap()
-            .unwrap()
-            .into();
-
-        assert!(!(active_model.is_changed()));
-
-        active_model.name = Set("favorite".to_string());
-
-        assert!(active_model.is_changed());
-    }
 }
