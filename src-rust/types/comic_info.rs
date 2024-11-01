@@ -4,11 +4,10 @@
 //!
 //! Based on the [ComicInfo Version 2.1 Schema](https://anansi-project.github.io/docs/comicinfo/schemas/v2.1)
 
-use std::{fmt::Display, path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr};
 
-use anyhow::{anyhow, Context, Result};
-use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
-use murmur3::murmur3_32;
+use anyhow::{Context, Result};
+use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use quick_xml::de::from_str;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -615,19 +614,14 @@ impl ComicInfo {
     }
 
     /// Get the release date of the comic.
-    pub fn get_release(&mut self) -> Option<DateTime<Utc>> {
-        if let Some(ref release) = self.release_date {
-            return Some(*release);
-        }
+    pub fn get_release(&self) -> Option<NaiveDate> {
         let result = DateTime::parse_from_str(
             format!("{}-{}-{}", self.year, self.month, self.day).as_str(),
             "%Y-%m-%d",
         )
         .ok()
-        .map(|d| d.with_timezone(&Utc));
-        if let Some(result) = result {
-            self.release_date = Some(result);
-        }
+        .map(|d| d.with_timezone(&Utc))
+        .and_then(|d| NaiveDate::from_ymd_opt(d.year(), d.month(), d.day()));
         result
     }
 
