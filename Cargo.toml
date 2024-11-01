@@ -47,6 +47,7 @@ sqlx = { version = "0.8.2", features = ["runtime-tokio", "postgres", "chrono"] }
 axum-test = "14.0.0"
 tempdir = "0.3.7"
 criterion = { version = "0.5.1", features = ["html_reports", "async_tokio"] }
+itertools = "0.13.0"
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3
