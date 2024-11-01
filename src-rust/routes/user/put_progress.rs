@@ -6,11 +6,8 @@ use axum::{
     response::{IntoResponse, Response},
     Extension,
 };
-use sea_orm::{
-    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
-};
 
-use crate::{models::prelude::*, types::custom_id::CustomID, AppError, AppState};
+use crate::{AppError, AppState};
 
 #[utoipa::path(put, path = "/api/user/progress/{title_id}/{page}", responses(
     (status = 200, description = "Set progress successfully"),
@@ -19,44 +16,26 @@ use crate::{models::prelude::*, types::custom_id::CustomID, AppError, AppState};
 ))]
 pub async fn put_progress(
     State(app_state): State<Arc<AppState>>,
-    Extension(user): Extension<users::Model>,
+    Extension(user_id): Extension<String>,
     Path((title_id, page)): Path<(String, i64)>,
 ) -> Result<Response, AppError> {
-    let title_id = match CustomID::from(title_id) {
-        Ok(id) => id,
-        Err(e) => return Ok((StatusCode::BAD_REQUEST, e).into_response()),
-    };
+    let result = sqlx::query!(
+        "INSERT INTO progresses (user_id, title_id, last_read_at, page) VALUES ($1, $2, $3, $4)",
+        user_id,
+        title_id,
+        chrono::Utc::now(),
+        page as i32
+    )
+    .execute(&app_state.pool)
+    .await;
 
-    let progress_model = Progresses::find()
-        .filter(
-            Condition::all()
-                .add(progresses::Column::TitleId.eq(&title_id))
-                .add(progresses::Column::UserId.eq(&user.id)),
-        )
-        .one(&app_state.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find progress: {}", e)))?;
-
-    if let Some(progress_model) = progress_model {
-        let mut active_model: progresses::ActiveModel = progress_model.into();
-        active_model.last_read_at = Set(Some(chrono::Utc::now()));
-        active_model.page = Set(page);
-        active_model
-            .update(&app_state.db)
-            .await
-            .map_err(|e| AppError::from(anyhow::anyhow!("can't update progress: {}", e)))?;
-    } else {
-        progresses::ActiveModel {
-            id: NotSet,
-            user_id: Set(user.id),
-            title_id: Set(title_id),
-            last_read_at: Set(Some(chrono::Utc::now())),
-            page: Set(page),
+    match result {
+        Ok(_) => Ok((StatusCode::OK).into_response()),
+        Err(sqlx::Error::Database(db_err))
+            if db_err.constraint() == Some("progresses_title_id_fkey") =>
+        {
+            Ok((StatusCode::BAD_REQUEST, "invalid title_id").into_response())
         }
-        .insert(&app_state.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't insert progress: {}", e)))?;
+        Err(e) => Ok((StatusCode::INTERNAL_SERVER_ERROR, format!("{e:#}")).into_response()),
     }
-
-    Ok((StatusCode::OK).into_response())
 }

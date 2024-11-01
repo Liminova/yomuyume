@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
-use crate::{models::prelude::*, types::custom_id::CustomID, AppError, AppState};
+use crate::{AppError, AppState};
 
+use anyhow::Context;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Extension,
-};
-use sea_orm::{
-    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
 };
 
 #[utoipa::path(put, path = "/api/user/favorite/{id}", responses(
@@ -20,45 +18,32 @@ use sea_orm::{
 ))]
 pub async fn put_favorite(
     State(app_state): State<Arc<AppState>>,
-    Extension(user): Extension<users::Model>,
-    Path(id): Path<String>,
+    Extension(user_id): Extension<String>,
+    Path(title_id): Path<String>,
 ) -> Result<Response, AppError> {
-    let title_id = match CustomID::from(id) {
-        Ok(id) => id,
-        Err(e) => return Ok((StatusCode::BAD_REQUEST, e).into_response()),
-    };
-
-    let title = match Titles::find_by_id(title_id)
-        .one(&app_state.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find title: {}", e)))?
-    {
-        Some(title) => title,
-        None => return Ok((StatusCode::BAD_REQUEST, "invalid title id").into_response()),
-    };
-
-    let favorite_model = Favorites::find()
-        .filter(
-            Condition::all()
-                .add(favorites::Column::TitleId.eq(&title.id))
-                .add(favorites::Column::UserId.eq(&user.id)),
-        )
-        .one(&app_state.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find favorite: {}", e)))?;
-
-    if favorite_model.is_some() {
-        return Ok((StatusCode::BAD_REQUEST, "title already favorited").into_response());
-    }
-
-    let _ = favorites::ActiveModel {
-        id: NotSet,
-        title_id: Set(title.id),
-        user_id: Set(user.id),
-    }
-    .insert(&app_state.db)
+    let title_exists = sqlx::query!(
+        r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
+        &title_id
+    )
+    .fetch_one(&app_state.pool)
     .await
-    .map_err(|e| AppError::from(anyhow::anyhow!("can't insert favorite: {}", e)))?;
+    .context("can't check if title exists")?
+    .exists;
+    if !title_exists {
+        return Ok((StatusCode::BAD_REQUEST, "invalid title id").into_response());
+    }
+
+    sqlx::query!(
+        r#"INSERT INTO favorites (title_id, user_id)
+        VALUES ($1, $2)
+        ON CONFLICT (title_id, user_id)
+        DO NOTHING"#,
+        &title_id,
+        user_id.as_str()
+    )
+    .execute(&app_state.pool)
+    .await
+    .context("can't insert favorite")?;
 
     Ok((StatusCode::OK).into_response())
 }
@@ -71,45 +56,32 @@ pub async fn put_favorite(
 ))]
 pub async fn put_bookmark(
     State(app_state): State<Arc<AppState>>,
-    Extension(user): Extension<users::Model>,
-    Path(id): Path<String>,
+    Extension(user_id): Extension<String>,
+    Path(title_id): Path<String>,
 ) -> Result<Response, AppError> {
-    let title_id = match CustomID::from(id) {
-        Ok(id) => id,
-        Err(e) => return Ok((StatusCode::BAD_REQUEST, e).into_response()),
-    };
-
-    let title = match Titles::find_by_id(title_id)
-        .one(&app_state.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find title: {}", e)))?
-    {
-        Some(title) => title,
-        None => return Ok((StatusCode::BAD_REQUEST, "invalid title id.").into_response()),
-    };
-
-    let bookmark_model = Bookmarks::find()
-        .filter(
-            Condition::all()
-                .add(bookmarks::Column::TitleId.eq(&title.id))
-                .add(bookmarks::Column::UserId.eq(&user.id)),
-        )
-        .one(&app_state.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find bookmark: {}", e)))?;
-
-    if bookmark_model.is_some() {
-        return Ok((StatusCode::BAD_REQUEST, "title already bookmarked").into_response());
-    }
-
-    let _ = bookmarks::ActiveModel {
-        id: NotSet,
-        title_id: Set(title.id),
-        user_id: Set(user.id),
-    }
-    .insert(&app_state.db)
+    let title_exists = sqlx::query!(
+        r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
+        &title_id
+    )
+    .fetch_one(&app_state.pool)
     .await
-    .map_err(|e| AppError::from(anyhow::anyhow!("can't insert bookmark: {}", e)))?;
+    .context("can't check if title exists")?
+    .exists;
+    if !title_exists {
+        return Ok((StatusCode::BAD_REQUEST, "invalid title id").into_response());
+    }
+
+    sqlx::query!(
+        r#"INSERT INTO bookmarks (title_id, user_id)
+        VALUES ($1, $2)
+        ON CONFLICT (title_id, user_id)
+        DO NOTHING"#,
+        &title_id,
+        &user_id
+    )
+    .execute(&app_state.pool)
+    .await
+    .context("can't insert bookmark")?;
 
     Ok((StatusCode::OK).into_response())
 }
@@ -122,32 +94,29 @@ pub async fn put_bookmark(
 ))]
 pub async fn delete_favorite(
     State(data): State<Arc<AppState>>,
-    Extension(user): Extension<users::Model>,
-    Path(id): Path<String>,
+    Extension(user_id): Extension<String>,
+    Path(title_id): Path<String>,
 ) -> Result<Response, AppError> {
-    let title_id = match CustomID::from(id) {
-        Ok(id) => id,
-        Err(e) => return Ok((StatusCode::BAD_REQUEST, e).into_response()),
-    };
+    let title_exists = sqlx::query!(
+        r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
+        &title_id
+    )
+    .fetch_one(&data.pool)
+    .await
+    .context("can't check if title exists")?
+    .exists;
+    if !title_exists {
+        return Ok((StatusCode::BAD_REQUEST, "invalid title id").into_response());
+    }
 
-    let title = match Titles::find_by_id(&title_id)
-        .one(&data.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find title: {}", e)))?
-    {
-        Some(title) => title,
-        None => return Ok((StatusCode::BAD_REQUEST, "invalid title id.").into_response()),
-    };
-
-    Favorites::delete_many()
-        .filter(
-            Condition::all()
-                .add(favorites::Column::TitleId.contains(&title.id))
-                .add(favorites::Column::UserId.contains(&user.id)),
-        )
-        .exec(&data.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't delete favorite: {}", e)))?;
+    sqlx::query!(
+        r#"DELETE FROM favorites WHERE title_id = $1 AND user_id = $2"#,
+        &title_id,
+        user_id.as_str()
+    )
+    .execute(&data.pool)
+    .await
+    .context("can't delete favorite")?;
 
     Ok((StatusCode::OK).into_response())
 }
@@ -160,32 +129,29 @@ pub async fn delete_favorite(
 ))]
 pub async fn delete_bookmark(
     State(data): State<Arc<AppState>>,
-    Extension(user): Extension<users::Model>,
-    Path(id): Path<String>,
+    Extension(user_id): Extension<String>,
+    Path(title_id): Path<String>,
 ) -> Result<Response, AppError> {
-    let id = match CustomID::from(id) {
-        Ok(id) => id,
-        Err(e) => return Ok((StatusCode::BAD_REQUEST, e).into_response()),
-    };
+    let title_exists = sqlx::query!(
+        r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
+        &title_id
+    )
+    .fetch_one(&data.pool)
+    .await
+    .context("can't check if title exists")?
+    .exists;
+    if !title_exists {
+        return Ok((StatusCode::BAD_REQUEST, "invalid title id").into_response());
+    }
 
-    let title = match Titles::find_by_id(id)
-        .one(&data.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find title: {}", e)))?
-    {
-        Some(title) => title,
-        None => return Ok((StatusCode::BAD_REQUEST, "invalid title id").into_response()),
-    };
-
-    Bookmarks::delete_many()
-        .filter(
-            Condition::all()
-                .add(bookmarks::Column::TitleId.contains(&title.id))
-                .add(bookmarks::Column::UserId.contains(&user.id)),
-        )
-        .exec(&data.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("Can't delete bookmark: {}", e)))?;
+    sqlx::query!(
+        r#"DELETE FROM bookmarks WHERE title_id = $1 AND user_id = $2"#,
+        &title_id,
+        &user_id
+    )
+    .execute(&data.pool)
+    .await
+    .context("can't delete bookmark")?;
 
     Ok((StatusCode::OK).into_response())
 }

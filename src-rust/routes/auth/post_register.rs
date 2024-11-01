@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
+use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{models::prelude::*, routes::hash_pass, AppError, AppState};
+use crate::{routes::hash_pass, types::custom_id::UserID, AppError, AppState};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct RegisterRequestBody {
@@ -33,13 +33,16 @@ pub async fn post_register(
         return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
     }
 
-    let email_exists = Users::find()
-        .filter(users::Column::Email.eq(query.email.to_string().to_ascii_lowercase()))
-        .one(&app_state.db)
-        .await
-        .map_err(AppError::from)?;
+    let email_exists = sqlx::query!(
+        r#"SELECT EXISTS(SELECT 1 FROM users WHERE email = $1) AS "exists!""#,
+        query.email.to_string().to_ascii_lowercase()
+    )
+    .fetch_one(&app_state.pool)
+    .await
+    .context("can't check if email exists")?
+    .exists;
 
-    if email_exists.is_some() {
+    if email_exists {
         return Ok((
             StatusCode::CONFLICT,
             "a user with this email already exists",
@@ -61,18 +64,19 @@ pub async fn post_register(
     let email = query.email.to_string().to_ascii_lowercase();
     let created_at = chrono::Utc::now();
 
-    let user = users::ActiveModel {
-        id: Set(UserID::new()),
-        username: Set(username.clone()),
-        email: Set(email),
-        created_at: Set(created_at),
-        password_hash: Set(hash_pass(p)?),
-        ..Default::default()
-    };
-
-    user.insert(&app_state.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't insert user: {}", e)))?;
+    sqlx::query!(
+        "INSERT INTO users
+            (id, username, email, created_at, password_hash)
+        VALUES ($1, $2, $3, $4, $5)",
+        UserID::new().to_string(),
+        username.as_str(),
+        email.as_str(),
+        created_at,
+        hash_pass(p)?
+    )
+    .execute(&app_state.pool)
+    .await
+    .context("can't insert user")?;
 
     Ok((StatusCode::OK).into_response())
 }

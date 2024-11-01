@@ -1,5 +1,6 @@
 use std::{net::SocketAddr, sync::Arc};
 
+use anyhow::Context;
 use axum::{
     extract::{ConnectInfo, State},
     http::{header, HeaderMap, StatusCode},
@@ -7,15 +8,10 @@ use axum::{
     Json,
 };
 use axum_extra::extract::cookie::{Cookie, SameSite};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{
-    models::{prelude::*, session_tokens::SessionSecret},
-    routes::check_pass,
-    AppError, AppState,
-};
+use crate::{routes::check_pass, types::custom_id::SessionSecret, AppError, AppState};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct LoginRequestBody {
@@ -40,19 +36,21 @@ pub async fn post_login(
     State(app_state): State<Arc<AppState>>,
     query: Json<LoginRequestBody>,
 ) -> Result<Response, AppError> {
-    let user = match Users::find()
-        .filter(users::Column::Username.eq(&query.login))
-        .one(&app_state.db)
-        .await
-        .map_err(AppError::from)?
+    let (user_id, password_hash) = match sqlx::query!(
+        "SELECT id, password_hash FROM users WHERE username = $1",
+        query.login
+    )
+    .fetch_optional(&app_state.pool)
+    .await
+    .context("can't find user")?
     {
-        Some(user) => user,
+        Some(user) => (user.id, user.password_hash),
         None => {
-            return Ok((StatusCode::BAD_REQUEST, "invalid username or password").into_response())
+            return Ok((StatusCode::BAD_REQUEST, "invalid username or password").into_response());
         }
     };
 
-    if !check_pass(&user.password_hash, &query.password) {
+    if !check_pass(&password_hash, &query.password) {
         return Ok((StatusCode::BAD_REQUEST, "invalid username or password").into_response());
     }
 
@@ -77,17 +75,26 @@ pub async fn post_login(
 
     let session_secret = SessionSecret::new();
 
-    session_tokens::ActiveModel {
-        session_secret: Set(session_secret.clone()),
-        user_id: Set(user.id),
-        created_at: Set(chrono::Utc::now()),
-        user_agent: Set(user_agent),
-        ip_address: Set(ip_address.clone()),
-        last_used_at: Set(chrono::Utc::now()),
-    }
-    .insert(&app_state.db)
+    sqlx::query!(
+        "INSERT INTO session_tokens
+            (session_secret, user_id, created_at, user_agent, ip_address, last_used_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (session_secret) DO UPDATE SET
+            user_id = EXCLUDED.user_id,
+            created_at = EXCLUDED.created_at,
+            user_agent = EXCLUDED.user_agent,
+            ip_address = EXCLUDED.ip_address,
+            last_used_at = EXCLUDED.last_used_at",
+        session_secret.as_str(),
+        user_id.as_str(),
+        chrono::Utc::now(),
+        user_agent,
+        ip_address.as_str(),
+        chrono::Utc::now()
+    )
+    .execute(&app_state.pool)
     .await
-    .map_err(|e| AppError::from(anyhow::anyhow!("can't insert session token: {}", e)))?;
+    .context("can't insert session token")?;
 
     let session_secret_cookie = Cookie::build(("session-secret", session_secret.to_string()))
         .path("/")

@@ -1,14 +1,17 @@
 use std::sync::Arc;
 
-use crate::{models::prelude::*, routes::check_pass, AppError, AppState};
+use crate::{
+    routes::{check_pass, hash_pass},
+    AppError, AppState,
+};
 
+use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     Extension, Json,
 };
-use sea_orm::{ActiveModelTrait, Set};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -29,18 +32,10 @@ pub struct ModifyRequestBody {
 ))]
 pub async fn post_modify_info(
     State(app_state): State<Arc<AppState>>,
-    Extension(user): Extension<users::Model>,
+    Extension(user_id): Extension<String>,
     Json(body): Json<ModifyRequestBody>,
 ) -> Result<Response, AppError> {
-    let current_password_hash = user.password_hash.clone();
-    let mut active_user: users::ActiveModel = user.into();
-    if let Some(username) = body.username {
-        active_user.username = Set(username);
-    }
-    if let Some(email) = body.email {
-        active_user.email = Set(email);
-        active_user.verified_at = Set(None);
-    }
+    let mut new_password_hash = String::new();
     match (body.current_password, body.new_password) {
         (None, Some(_)) => {
             return Ok((
@@ -50,21 +45,36 @@ pub async fn post_modify_info(
                 .into_response());
         }
         (Some(current_password), Some(new_password)) => {
+            let current_password_hash = sqlx::query!(
+                r#"SELECT password_hash FROM users WHERE id = $1"#,
+                user_id.as_str()
+            )
+            .fetch_one(&app_state.pool)
+            .await
+            .context("can't get user")?
+            .password_hash;
             if !check_pass(&current_password_hash, &current_password) {
                 return Ok((StatusCode::BAD_REQUEST, "invalid current password").into_response());
             }
-            active_user.password_hash = Set(new_password);
+            new_password_hash = hash_pass(new_password)?;
         }
         (_, _) => {}
     }
 
-    if active_user.is_changed() {
-        active_user.updated_at = Set(Some(chrono::Utc::now()));
-        active_user
-            .save(&app_state.db)
-            .await
-            .map_err(|e| AppError::from(anyhow::anyhow!("can't modify user: {}", e)))?;
-    }
+    sqlx::query!(
+        r#"UPDATE users SET
+            username = CASE WHEN $1 = '' THEN username ELSE $1 END,
+            email = CASE WHEN $2 = '' THEN email ELSE $2 END,
+            password_hash = CASE WHEN $3 = '' THEN password_hash ELSE $3 END,
+            updated_at = NOW() WHERE id = $4"#,
+        body.username.unwrap_or_default(),
+        body.email.unwrap_or_default(),
+        new_password_hash,
+        user_id.as_str()
+    )
+    .execute(&app_state.pool)
+    .await
+    .context("can't update user")?;
 
     Ok((StatusCode::OK).into_response())
 }

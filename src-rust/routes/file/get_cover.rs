@@ -6,9 +6,8 @@ use axum::{
     http::{header, StatusCode},
     response::{IntoResponse, Response},
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect};
 
-use crate::{models::prelude::*, AppError, AppState, ArchiveFile};
+use crate::{AppError, AppState, ArchiveFile};
 
 #[utoipa::path(get, path = "/api/file/cover/{id}", responses(
     (status = 200, description = "Fetch cover successful", body = Vec<u8>),
@@ -20,16 +19,15 @@ pub async fn get_cover(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<String>,
 ) -> Result<Response, AppError> {
-    let (content_file_path, cover_path) = match Titles::find()
-        .select_only()
-        .columns(vec![titles::Column::Path, titles::Column::CoverPath])
-        .filter(titles::Column::Id.eq(title_id))
-        .into_tuple::<(String, Option<String>)>()
-        .one(&app_state.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find title path: {}", e)))?
+    let (content_file_path, cover_path) = match sqlx::query!(
+        "SELECT path, cover_path FROM titles WHERE id = $1",
+        title_id.as_str()
+    )
+    .fetch_optional(&app_state.pool)
+    .await
+    .context("can't find title path")?
     {
-        Some(result) => result,
+        Some(result) => (result.path, result.cover_path),
         None => return Ok((StatusCode::NOT_FOUND, "title not found".to_string()).into_response()),
     };
 

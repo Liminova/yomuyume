@@ -6,9 +6,8 @@ use axum::{
     http::{header, StatusCode},
     response::{IntoResponse, Response},
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect};
 
-use crate::{models::prelude::*, AppError, AppState, ArchiveFile};
+use crate::{AppError, AppState, ArchiveFile};
 
 #[utoipa::path(get, path = "/api/file/page/{page_id}", responses(
     (status = 200, description = "Fetch page successful.", body = Vec<u8>),
@@ -20,30 +19,28 @@ pub async fn get_page(
     State(app_state): State<Arc<AppState>>,
     Path(page_id): Path<String>,
 ) -> Result<Response, AppError> {
-    let (title_id, path_in_content_file) = match Pages::find()
-        .select_only()
-        .columns(vec![pages::Column::TitleId, pages::Column::Path])
-        .filter(pages::Column::Id.contains(page_id))
-        .into_tuple::<(String, String)>()
-        .one(&app_state.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find page: {}", e)))?
-    {
-        Some(page) => page,
-        None => return Ok((StatusCode::NOT_FOUND, "page not found".to_string()).into_response()),
-    };
+    let (title_id, path_in_content_file) =
+        match sqlx::query!("SELECT id, path FROM pages WHERE id = $1", page_id.as_str())
+            .fetch_optional(&app_state.pool)
+            .await
+            .context("can't find page")?
+        {
+            Some(page) => (page.id, page.path),
+            None => {
+                return Ok((StatusCode::NOT_FOUND, "page not found".to_string()).into_response())
+            }
+        };
 
-    let title_in_db = match Titles::find()
-        .filter(titles::Column::Id.contains(&title_id))
-        .one(&app_state.db)
+    let path = match sqlx::query!("SELECT path FROM titles WHERE id = $1", title_id.as_str())
+        .fetch_optional(&app_state.pool)
         .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find title: {}", e)))?
+        .context("can't find title")?
     {
-        Some(title) => title,
+        Some(title) => title.path,
         None => return Ok((StatusCode::NOT_FOUND, "title not found".to_string()).into_response()),
     };
 
-    let page_file_buf = ArchiveFile::from(PathBuf::from(title_in_db.path))
+    let page_file_buf = ArchiveFile::from(PathBuf::from(&path))
         .context("can't create ArchiveFile from content file")
         .and_then(|mut archive_file| archive_file.get_file(&path_in_content_file))
         .context("can't get page file from content file")?;

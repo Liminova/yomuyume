@@ -1,24 +1,20 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
-use chrono::{Duration, Utc};
+use chrono::Utc;
 use email_address::EmailAddress;
-use sea_orm::{
-    ActiveModelTrait, ActiveValue::NotSet, ColumnTrait, Condition, EntityTrait, QueryFilter, Set,
-};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    models::prelude::*,
     routes::{hash_pass, Mailer},
-    types::custom_id::CustomID,
+    types::{custom_id::CustomID, temp_code_purpose::TempCodePurpose},
     AppError, AppState,
 };
 
@@ -38,71 +34,63 @@ pub async fn get_reset_password(
     }
     let mailer = Mailer::from(&app_state.config)?;
 
-    let user_model = match Users::find()
-        .filter(users::Column::Email.eq(email.to_string().to_ascii_lowercase()))
-        .one(&app_state.db)
-        .await
-        .context("can't find user")?
-    {
-        Some(u) => u,
+    // valid user
+    let user_record = sqlx::query!(
+        r#"SELECT id, username, email, verified_at FROM users WHERE email = $1"#,
+        email.to_string().to_ascii_lowercase()
+    )
+    .fetch_optional(&app_state.pool)
+    .await
+    .context("can't find user")?;
+    let user_record = match user_record {
+        Some(user_record) => user_record,
         None => return Ok((StatusCode::BAD_REQUEST, "user not found").into_response()),
     };
-
-    if user_model.verified_at.is_none() {
+    if user_record.verified_at.is_none() {
         return Ok((StatusCode::BAD_REQUEST, "user is not verified").into_response());
-    }
+    };
 
-    let temp_code_model = TempCodes::find()
-        .filter(
-            Condition::all()
-                .add(temp_codes::Column::Purpose.eq(temp_codes::Purpose::ResetPassword))
-                .add(temp_codes::Column::UserId.eq(&user_model.id)),
-        )
-        .one(&app_state.db)
-        .await
-        .context("can't find temp code model")?;
-
-    if let Some(ref model) = temp_code_model {
-        if model
-            .created_at
-            .checked_add_signed(Duration::minutes(5))
-            .map(|d| d.gt(&Utc::now()))
-            .unwrap_or(true)
-        {
-            return Ok((StatusCode::TOO_MANY_REQUESTS).into_response());
-        }
-    }
-
-    let code = CustomID::new();
-    match temp_code_model {
-        Some(model) => {
-            let mut active: temp_codes::ActiveModel = model.into();
-            active.id = NotSet;
-            active.code = Set(code.clone());
-            active.created_at = Set(Utc::now());
-            active
-                .update(&app_state.db)
-                .await
-                .context("can't update temp code model")?;
-        }
-        None => {
-            temp_codes::ActiveModel {
-                id: NotSet,
-                user_id: Set(user_model.id),
-                code: Set(code.clone()),
-                purpose: Set(temp_codes::Purpose::ResetPassword),
-                created_at: Set(Utc::now()),
+    // too many requests
+    let temp_code_record = sqlx::query!(
+        r#"SELECT created_at
+        FROM temp_codes
+        WHERE purpose = $1 AND user_id = $2"#,
+        TempCodePurpose::ResetPassword as TempCodePurpose,
+        user_record.id.as_str()
+    )
+    .fetch_optional(&app_state.pool)
+    .await
+    .context("can't find temp code")?;
+    if let Some(ref record) = temp_code_record {
+        if Utc::now() - record.created_at < chrono::Duration::minutes(5) {
+            {
+                return Ok((StatusCode::TOO_MANY_REQUESTS).into_response());
             }
-            .insert(&app_state.db)
-            .await
-            .context("can't insert temp code model")?;
         }
     }
+
+    // get temp code
+    let new_code = CustomID::new();
+    let code = sqlx::query!(
+        r#"INSERT INTO temp_codes (purpose, user_id, code, created_at)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (purpose, user_id)
+        DO UPDATE SET created_at = $4
+        RETURNING code"#,
+        TempCodePurpose::ResetPassword as TempCodePurpose,
+        user_record.id.as_str(),
+        new_code.as_str(),
+        Utc::now()
+    )
+    .fetch_one(&app_state.pool)
+    .await
+    .context("can't insert temp code")?
+    .code;
 
     mailer
         .send(
-            &user_model.username,
-            &user_model.email,
+            &user_record.username,
+            &user_record.email,
             format!("{} - Reset your password", &app_state.config.app_name),
             format!(
                 "Hello, {}!\n\n\
@@ -111,7 +99,7 @@ pub async fn get_reset_password(
                 If you did not request to reset your password, please ignore this email.\n\n\
                 Best regards,\n\
                 The {} team",
-                &user_model.username,
+                &user_record.username,
                 &code,
                 &app_state.config.app_name,
             ),
@@ -139,45 +127,36 @@ pub async fn post_reset_password(
     if query.new_password.is_empty() || query.code.is_empty() {
         return Ok((StatusCode::BAD_REQUEST, "password and code cannot be empty").into_response());
     }
-    let code = match CustomID::from(query.code.clone()) {
-        Ok(code) => code,
-        Err(_) => return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response()),
+
+    // check temp code
+    let temp_code_record = sqlx::query!(
+        r#"DELETE FROM temp_codes WHERE code = $1 AND purpose = $2 RETURNING created_at, user_id"#,
+        query.code.as_str(),
+        TempCodePurpose::ResetPassword as TempCodePurpose,
+    )
+    .fetch_optional(&app_state.pool)
+    .await
+    .context("can't get temp code creation time")?;
+    let temp_code_record = if let Some(record) = temp_code_record {
+        if Utc::now() - record.created_at > chrono::Duration::minutes(5) {
+            return Ok((StatusCode::BAD_REQUEST, "code expired").into_response());
+        }
+        record
+    } else {
+        return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
     };
 
-    let temp_code_model = match TempCodes::find()
-        .filter(
-            Condition::all()
-                .add(temp_codes::Column::Purpose.eq(temp_codes::Purpose::ResetPassword))
-                .add(temp_codes::Column::Code.eq(&code))
-                .add(temp_codes::Column::CreatedAt.gt(Utc::now() - Duration::minutes(5))),
-        )
-        .one(&app_state.db)
-        .await
-        .context("can't find temp code model")?
-    {
-        Some(model) => model,
-        None => return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response()),
-    };
-
-    let user_model = Users::find_by_id(&temp_code_model.user_id)
-        .one(&app_state.db)
-        .await
-        .context("can't find user")?
-        .ok_or_else(|| anyhow!("user not found"))?;
-
-    let mut user_active: users::ActiveModel = user_model.into();
-    user_active.password_hash = Set(hash_pass(query.new_password)?);
-    user_active.updated_at = Set(Some(Utc::now()));
-    user_active
-        .update(&app_state.db)
-        .await
-        .context("can't update user")?;
-
-    let temp_code_active: temp_codes::ActiveModel = temp_code_model.into();
-    temp_code_active
-        .delete(&app_state.db)
-        .await
-        .context("can't delete temp code model")?;
+    // update password
+    let password_hash = hash_pass(query.new_password)?;
+    sqlx::query!(
+        r#"UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3"#,
+        password_hash.as_str(),
+        Utc::now(),
+        temp_code_record.user_id.as_str()
+    )
+    .execute(&app_state.pool)
+    .await
+    .context("can't update user")?;
 
     Ok((StatusCode::OK).into_response())
 }

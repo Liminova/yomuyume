@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
-use crate::{models::prelude::*, AppError, AppState};
+use crate::{AppError, AppState};
 
+use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
-use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct TagResponseBody {
-    pub id: u32,
+    pub id: i32,
     pub name: String,
 }
 
@@ -28,16 +28,14 @@ pub struct TagsMapResponseBody {
     (status = 500, description = "Internal server error.", body = String),
 ))]
 pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response, AppError> {
-    let tags = Tags::find()
-        .all(&app_state.db)
+    let data = sqlx::query!("SELECT id, name FROM tags")
+        .fetch_all(&app_state.pool)
         .await
-        .map_err(AppError::from)?;
-
-    let data = tags
+        .context("can't fetch tags")?
         .into_iter()
-        .map(|tag| TagResponseBody {
-            id: tag.id,
-            name: tag.name,
+        .map(|record| TagResponseBody {
+            id: record.id,
+            name: record.name,
         })
         .collect::<Vec<_>>();
 

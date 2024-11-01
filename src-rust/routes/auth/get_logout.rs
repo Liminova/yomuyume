@@ -10,12 +10,8 @@ use axum_extra::extract::{
     cookie::{Cookie, SameSite},
     CookieJar,
 };
-use sea_orm::EntityTrait;
 
-use crate::{
-    models::{prelude::*, session_tokens::SessionSecret},
-    AppError, AppState,
-};
+use crate::{types::custom_id::SessionSecret, AppError, AppState};
 
 /// Reset all the cookies on the client side.
 #[utoipa::path(get, path = "/api/auth/logout", responses(
@@ -40,10 +36,13 @@ pub async fn get_logout(
         }
     };
 
-    let _ = SessionTokens::delete_by_id(session_secret)
-        .exec(&app_state.db)
-        .await
-        .context("can't delete session token")?;
+    sqlx::query!(
+        "DELETE FROM session_tokens WHERE session_secret = $1",
+        session_secret.as_str()
+    )
+    .execute(&app_state.pool)
+    .await
+    .context("can't delete session token")?;
 
     let cookie = Cookie::build(("token", ""))
         .path("/")

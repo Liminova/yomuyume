@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use crate::{models::prelude::*, AppError, AppState};
-
 use anyhow::Context;
 use axum::{
     body::Body,
@@ -11,8 +9,9 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
-use sea_orm::*;
-use session_tokens::SessionSecret;
+use chrono::Utc;
+
+use crate::{types::custom_id::SessionSecret, AppError, AppState};
 
 pub async fn auth(
     cookie_jar: CookieJar,
@@ -33,45 +32,34 @@ pub async fn auth(
         }
     };
 
-    let session_token = match SessionTokens::find_by_id(&session_secret)
-        .one(&data.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find session token: {}", e)))?
+    let (user_id, last_used_at) = match sqlx::query!(
+        r#"SELECT users.id, session_tokens.last_used_at FROM session_tokens
+        JOIN users ON session_tokens.user_id = users.id
+        WHERE session_tokens.session_secret = $1"#,
+        session_secret.as_str()
+    )
+    .fetch_optional(&data.pool)
+    .await
+    .context("can't find user")?
     {
-        Some(session_token) => session_token,
-        _ => return Ok((StatusCode::UNAUTHORIZED, "session token not found").into_response()),
+        Some(result) => (result.id, result.last_used_at.unwrap_or(Utc::now())),
+        None => {
+            return Ok((StatusCode::UNAUTHORIZED, "session token not found").into_response());
+        }
     };
 
-    let user_model = Users::find_by_id(&session_token.user_id)
-        .one(&data.db)
-        .await
-        .map_err(|e| AppError::from(anyhow::anyhow!("can't find user: {}", e)))?
-        .ok_or({
-            SessionTokens::delete_by_id(session_secret)
-                .exec(&data.db)
-                .await
-                .map_err(|e| {
-                    AppError::from(anyhow::anyhow!("can't delete old session token: {}", e))
-                })?;
-
-            AppError::from(anyhow::anyhow!(
-                "the user belonging to this session token no longer exists"
-            ))
-        })?;
-
-    let last_used_at = user_model
-        .last_used_at
-        .unwrap_or("1970-01-01 00:00:00".parse().unwrap_or_default());
-    let mut user_active_model: users::ActiveModel = user_model.clone().into();
-    let now = chrono::Utc::now();
+    let now = Utc::now();
     if now - last_used_at < chrono::Duration::minutes(2) {
-        user_active_model.last_used_at = Set(Some(chrono::Utc::now()));
-        user_active_model
-            .update(&data.db)
-            .await
-            .context("can't update last_used_at")?;
+        sqlx::query!(
+            r#"UPDATE session_tokens SET last_used_at = $1 WHERE session_secret = $2"#,
+            now,
+            session_secret.as_str()
+        )
+        .execute(&data.pool)
+        .await
+        .context("can't update last_used_at")?;
     }
 
-    req.extensions_mut().insert(user_model);
+    req.extensions_mut().insert(user_id);
     Ok(next.run(req).await)
 }
