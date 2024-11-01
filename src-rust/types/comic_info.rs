@@ -312,10 +312,10 @@ pub struct ComicInfo {
 }
 
 fn title_deserializer<'de, D: Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
-        let s = String::deserialize(deserializer)?.trim().to_string();
-        if s.is_empty() {
+    let s = String::deserialize(deserializer)?.trim().to_string();
+    if s.is_empty() {
         return Ok("Untitled".to_string());
-        }
+    }
     Ok(s)
 }
 
