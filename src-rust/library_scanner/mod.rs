@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use async_recursion::async_recursion;
 use tracing::debug;
 
-use crate::{models::prelude::*, AppState};
+use crate::{types::custom_id::CategoryID, AppState};
 use upsert_category::upsert_category;
 use upsert_title::upsert_title;
 
