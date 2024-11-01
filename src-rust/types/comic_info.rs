@@ -311,11 +311,6 @@ pub struct ComicInfo {
         skip_serializing_if = "Option::is_none"
     )]
     pub gtin: Option<String>,
-
-    #[serde(skip)]
-    pages_field_hash: u32,
-    #[serde(skip)]
-    release_date: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
