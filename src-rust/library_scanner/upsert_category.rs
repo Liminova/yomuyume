@@ -2,13 +2,11 @@ use std::{path::Path, sync::Arc};
 
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
-use sea_orm::{sea_query::OnConflict, EntityTrait, Set};
 use tracing::warn;
 
 use crate::{
     library_scanner::blurhash::encode,
-    models::prelude::{categories, Categories, CategoryID},
-    types::category_info::CategoryInfo,
+    types::{category_info::CategoryInfo, custom_id::CategoryID},
     AppState,
 };
 
@@ -101,33 +99,37 @@ pub async fn upsert_category(
         (None, None, None, None)
     };
 
-    let category_id = Categories::insert(categories::ActiveModel {
-        id: Set(CategoryID::new()),
-        name: Set(category_info.name.clone()),
-        description: Set(category_info.description.clone()),
-        cover_path: Set(cover_path),
-        cover_blurhash: Set(cover_blurhash),
-        cover_width: Set(cover_width),
-        cover_height: Set(cover_height),
-    })
-    .on_conflict(
-        OnConflict::column(categories::Column::Id)
-            .update_columns([
-                categories::Column::Name,
-                categories::Column::Description,
-                categories::Column::CoverPath,
-                categories::Column::CoverBlurhash,
-                categories::Column::CoverWidth,
-                categories::Column::CoverHeight,
-            ])
-            .to_owned(),
+    let category_id = sqlx::query!(
+        r#"
+        INSERT INTO "categories"
+            ("id", "name", "description",
+            "cover_path", "cover_blurhash",
+            "cover_width", "cover_height")
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT ("id") DO UPDATE SET
+            "name" = $2,
+            "description" = $3,
+            "cover_path" = $4,
+            "cover_blurhash" = $5,
+            "cover_width" = $6,
+            "cover_height" = $7
+        RETURNING *
+    "#,
+        category_info.id.as_ref(),
+        category_info.name.as_ref(),
+        category_info.description.as_ref(),
+        cover_path,
+        cover_blurhash,
+        cover_width.map(|w| w as i32),
+        cover_height.map(|h| h as i32)
     )
-    .exec(&app_state.db)
+    .fetch_one(&app_state.pool)
     .await
-    .context("can't insert category to database")?
-    .last_insert_id;
+    .context("can't upsert category to database")?
+    .id;
 
-    category_info.id = category_id;
+    category_info.id = CategoryID::from(category_id)
+        .context("can't convert back category ID got from DB back to CategoryID")?;
 
     '_save_category_info: {
         std::fs::write(&category_info_path, category_info.to_pretty_string()?)
