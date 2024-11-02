@@ -220,17 +220,13 @@ pub async fn upsert_title(
     )
     .fetch_one(&mut *txn)
     .await
-    .context("can't insert title model to DB")?
-    .id;
+    .context("can't upsert title model to DB")
+    .and_then(|record| {
+        TitleID::from(record.id)
+            .context("can't convert title id from database to TitleID, this should not happen")
+    })?;
 
-    let title_id = TitleID::from(title_id)
-        .context("can't convert title id from database to TitleID, this should not happen")?;
-
-    'upsert_pages: {
-        if pages_in_archive.is_empty() {
-            break 'upsert_pages;
-        }
-
+    '_upsert_pages: {
         let page_ids = (0..pages_in_archive.len())
             .into_par_iter()
             .map(|_| nanoid::nanoid!())
