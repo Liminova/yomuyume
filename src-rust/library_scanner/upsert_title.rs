@@ -4,6 +4,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, Context, Result};
 use chrono::Timelike;
+use chrono::{DateTime, Utc};
 use rayon::prelude::*;
 use tracing::warn;
 
@@ -211,12 +212,10 @@ pub async fn upsert_title(
         cover_blurhash,
         cover_width.map(|w| w as i32),
         cover_height.map(|h| h as i32),
-        chrono::Utc::now(),
+        Utc::now(),
         tokio::fs::metadata(&title_file_path)
             .await
-            .and_then(|m| m
-                .modified()
-                .map(|d| chrono::DateTime::<chrono::Utc>::from(d)))
+            .and_then(|m| { m.modified().map(|d| DateTime::<Utc>::from(d)) })
             .unwrap_or_default(),
     )
     .fetch_one(&app_state.pool)
