@@ -262,7 +262,7 @@ pub async fn upsert_title(
         )
         .execute(&mut *txn)
         .await
-        .context("can't insert new pages")?;
+        .context("can't upsert new pages")?;
     }
 
     '_upsert_tags: {
