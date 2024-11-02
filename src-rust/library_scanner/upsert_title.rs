@@ -169,6 +169,15 @@ pub async fn upsert_title(
     };
 
     let txn = app_state.pool.begin().await?;
+    // no longer need to modify anything in the ComicInfo.xml
+    // beside the cover page, so we can write it back here
+    archive_file
+        .upsert_file(
+            "CategoryInfo.xml",
+            Arc::new(comic_info.to_pretty_string()?.as_bytes().to_vec()),
+        )
+        .context("can't write back metadata to content file")?;
+
 
     let title_id = sqlx::query!(
         r#"INSERT INTO titles
@@ -217,15 +226,6 @@ pub async fn upsert_title(
 
     let title_id = TitleID::from(title_id)
         .context("can't convert title id from database to TitleID, this should not happen")?;
-
-    '_save_comic_info: {
-        archive_file
-            .upsert_file(
-                "CategoryInfo.xml",
-                Arc::new(comic_info.to_pretty_string()?.as_bytes().to_vec()),
-            )
-            .context("can't write back metadata to content file")?;
-    }
 
     'upsert_pages: {
         if pages_in_archive.is_empty() {
