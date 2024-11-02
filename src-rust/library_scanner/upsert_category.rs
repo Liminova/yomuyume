@@ -107,13 +107,13 @@ pub async fn upsert_category(
             "cover_width", "cover_height")
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT ("id") DO UPDATE SET
-            "name" = $2,
-            "description" = $3,
-            "cover_path" = $4,
-            "cover_blurhash" = $5,
-            "cover_width" = $6,
-            "cover_height" = $7
-        RETURNING *
+            "name" = EXCLUDED.name,
+            "description" = EXCLUDED.description,
+            "cover_path" = EXCLUDED.cover_path,
+            "cover_blurhash" = EXCLUDED.cover_blurhash,
+            "cover_width" = EXCLUDED.cover_width,
+            "cover_height" = EXCLUDED.cover_height
+        RETURNING id
     "#,
         category_info.id.as_ref(),
         category_info.name.as_ref(),
