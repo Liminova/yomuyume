@@ -116,7 +116,7 @@ pub async fn upsert_category(
         RETURNING id
     "#,
         category_info.id.as_ref(),
-        category_info.name.as_ref(),
+        category_info.name.clone().unwrap_or("Untitled".to_string()),
         category_info.description.as_ref(),
         cover_path,
         cover_blurhash,
