@@ -5,5 +5,6 @@ CREATE TABLE IF NOT EXISTS pages_benchmark (
     title_id VARCHAR NOT NULL,
     path VARCHAR NOT NULL,
     description VARCHAR
+
+    CONSTRAINT "uc-pages_benchmark-title_id-path" UNIQUE (title_id, path)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "idx-pages_benchmark-title_id-path" ON pages_benchmark (title_id, path);

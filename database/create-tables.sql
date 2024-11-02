@@ -36,13 +36,15 @@ CREATE TABLE IF NOT EXISTS pages (
     path TEXT NOT NULL,
     description TEXT,
 
-    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE
+    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
+    CONSTRAINT "uc-pages-title_id-path" UNIQUE (title_id, path)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "idx-pages-title_id-path" ON pages (title_id, path);
 
 CREATE TABLE IF NOT EXISTS tags (
-    name TEXT NOT NULL
     id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+
+    CONSTRAINT "uc-tags-name" UNIQUE (name)
 );
 
 CREATE TABLE IF NOT EXISTS titles_tags (
@@ -51,9 +53,9 @@ CREATE TABLE IF NOT EXISTS titles_tags (
     tag_id TEXT NOT NULL,
 
     FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
-    FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
+    FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
+    CONSTRAINT "uc-titles_tags-title_id-tag_id" UNIQUE (title_id, tag_id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "idx-titles_tags-title_id-tag_id" ON titles_tags (title_id, tag_id);
 
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -71,19 +73,21 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     id SERIAL PRIMARY KEY,
     user_id TEXT NOT NULL,
     title_id TEXT NOT NULL,
+
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE
+    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
+    CONSTRAINT "uc-bookmarks-user_id-title_id" UNIQUE (user_id, title_id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "idx-bookmarks-user_id-title_id" ON bookmarks (user_id, title_id);
 
 CREATE TABLE IF NOT EXISTS favorites (
     id SERIAL PRIMARY KEY,
     user_id TEXT NOT NULL,
     title_id TEXT NOT NULL,
+
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE
+    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
+    CONSTRAINT "uc-favorites-user_id-title_id" UNIQUE (user_id, title_id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "idx-favorites-user_id-title_id" ON favorites (user_id, title_id);
 
 CREATE TABLE IF NOT EXISTS progresses (
     id SERIAL PRIMARY KEY,
@@ -91,10 +95,11 @@ CREATE TABLE IF NOT EXISTS progresses (
     title_id TEXT NOT NULL,
     last_read_at TIMESTAMP WITH TIME ZONE,
     page INTEGER NOT NULL,
+
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE
+    FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
+    CONSTRAINT "uc-progresses-user_id-title_id" UNIQUE (user_id, title_id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "idx-progresses-user_id-title_id" ON progresses (user_id, title_id);
 
 DO $$ BEGIN
     CREATE TYPE temp_codes_purpose AS ENUM ('delete_account', 'reset_password', 'validate_email');
@@ -107,9 +112,10 @@ CREATE TABLE IF NOT EXISTS temp_codes (
     user_id TEXT NOT NULL,
     code TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT "uc-temp-codes-purpose-user_id" UNIQUE (purpose, user_id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "idx-temp-code-purpose-user_id" ON temp_codes (purpose, user_id);
 
 CREATE TABLE IF NOT EXISTS session_tokens (
     session_secret TEXT PRIMARY KEY,
@@ -118,5 +124,6 @@ CREATE TABLE IF NOT EXISTS session_tokens (
     last_used_at TIMESTAMP WITH TIME ZONE,
     user_agent TEXT,
     ip_address TEXT NOT NULL,
+
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
