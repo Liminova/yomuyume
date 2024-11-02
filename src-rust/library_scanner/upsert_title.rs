@@ -244,13 +244,17 @@ pub async fn upsert_title(
 
         sqlx::query!(
             r#"
+            WITH _ AS (
             INSERT INTO pages (id, title_id, path, description)
-                SELECT id, $1, path, NULLIF(description, '')
+            SELECT id, $1, path, NULLIF(description, '')
                 FROM UNNEST($2::text[], $3::text[], $4::text[])
                 AS t(id, path, description)
-            ON CONFLICT (path) DO UPDATE
+            ON CONFLICT (title_id, path) DO UPDATE
                 SET description = EXCLUDED.description
-        "#,
+            )
+            DELETE FROM pages WHERE title_id = $1
+                AND path NOT IN (SELECT UNNEST($3::text[]))
+            "#,
             title_id.as_ref(),
             &page_ids,
             &page_paths,
@@ -261,31 +265,36 @@ pub async fn upsert_title(
         .context("can't insert new pages")?;
     }
 
-    '_delete_old_pages: {
-        if pages_in_archive.is_empty() {
-            sqlx::query!(
-                r#"DELETE FROM "pages" WHERE "title_id" = $1"#,
-                title_id.to_string()
-            )
-            .execute(&app_state.pool)
-            .await
-            .context("can't delete old pages")?;
-        } else {
-            sqlx::query!(
-                r#"DELETE FROM pages WHERE title_id = $1 AND path NOT IN (SELECT UNNEST($2::text[]))"#,
-                title_id.as_ref(),
-                &pages_in_archive
-                    .iter()
-                    .map(|p| p.path.clone())
-                    .collect::<Vec<_>>()
-            )
-            .execute(&app_state.pool)
-            .await
-            .context("can't delete old pages")?;
-        }
-    }
+    '_upsert_tags: {
+        let tag_ids = (0..comic_info.tags.len())
+            .into_par_iter()
+            .map(|_| nanoid::nanoid!())
+            .collect::<Vec<_>>();
 
-    // TODO: handle tags
+        sqlx::query!(
+            r#"
+            WITH tag_ids AS (
+                INSERT INTO tags (id, name)
+                SELECT id, name
+                    FROM UNNEST($1::text[], $2::text[])
+                    AS t(id, name)
+                ON CONFLICT (name) DO UPDATE SET
+                    name = tags.name where FALSE
+                RETURNING id
+            )
+            INSERT INTO titles_tags (title_id, tag_id)
+                SELECT $3, id
+                FROM tag_ids
+            ON CONFLICT DO NOTHING
+            "#,
+            &tag_ids,
+            &comic_info.tags,
+            title_id.as_ref(),
+        )
+        .execute(&mut *txn)
+        .await
+        .context("can't insert tags to database")?;
+    }
 
     txn.commit().await.context("can't commit transaction")?;
 
