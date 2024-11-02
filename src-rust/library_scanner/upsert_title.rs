@@ -260,7 +260,7 @@ pub async fn upsert_title(
             &page_paths,
             &page_descriptions
         )
-        .execute(&app_state.pool)
+        .execute(&mut *txn)
         .await
         .context("can't insert new pages")?;
     }
