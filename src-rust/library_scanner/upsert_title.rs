@@ -211,7 +211,7 @@ pub async fn upsert_title(
         cover_blurhash,
         cover_width.map(|w| w as i32),
         cover_height.map(|h| h as i32),
-        Some(chrono::Utc::now()),
+        chrono::Utc::now(),
         tokio::fs::metadata(&title_file_path)
             .await
             .and_then(|m| m
