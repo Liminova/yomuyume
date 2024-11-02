@@ -34,7 +34,7 @@ pub struct TitleResponseBody {
     pub cover_width: Option<i32>,
     pub cover_height: Option<i32>,
 
-    pub tag_ids: Vec<i32>,
+    pub tag_ids: Vec<String>,
     pub pages: Vec<ResponsePage>,
     pub favorites: i64,
     pub bookmarks: i64,
@@ -160,7 +160,7 @@ pub async fn get_title(
     .fetch_all(&app_state.pool)
     .await
     .context("can't check if user is bookmark")?
-    .iter()
+    .into_iter()
     .map(|tag| tag.tag_id)
     .collect::<Vec<_>>();
 
