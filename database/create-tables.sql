@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS titles (
     author TEXT,
     description TEXT,
     release DATE,
-    path TEXT NOT NULL UNIQUE,
+    path TEXT NOT NULL,
 
     cover_path TEXT,
     cover_blurhash TEXT,
@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS titles (
     date_added TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     date_updated TIMESTAMP WITH TIME ZONE,
 
-    FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
+    FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL,
+    CONSTRAINT "uc-titles-path" UNIQUE (path)
 );
 
 CREATE TABLE IF NOT EXISTS pages (
