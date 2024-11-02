@@ -168,7 +168,6 @@ pub async fn upsert_title(
         (None, None, None, None)
     };
 
-    let txn = app_state.pool.begin().await?;
     // no longer need to modify anything in the ComicInfo.xml
     // beside the cover page, so we can write it back here
     archive_file
@@ -178,6 +177,7 @@ pub async fn upsert_title(
         )
         .context("can't write back metadata to content file")?;
 
+    let mut txn = app_state.pool.begin().await?;
 
     let title_id = sqlx::query!(
         r#"INSERT INTO titles
