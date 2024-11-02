@@ -218,7 +218,7 @@ pub async fn upsert_title(
             .and_then(|m| { m.modified().map(|d| DateTime::<Utc>::from(d)) })
             .unwrap_or_default(),
     )
-    .fetch_one(&app_state.pool)
+    .fetch_one(&mut *txn)
     .await
     .context("can't insert title model to DB")?
     .id;
