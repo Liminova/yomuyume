@@ -19,10 +19,10 @@ pub struct ComicInfo {
     #[serde(
         rename = "Title",
         default,
-        deserialize_with = "title_deserializer",
-        skip_serializing_if = "String::is_empty"
+        deserialize_with = "option_string_deserializer",
+        skip_serializing_if = "Option::is_none"
     )]
-    pub title: String,
+    pub title: Option<String>,
     #[serde(
         rename = "Series",
         default,
@@ -309,14 +309,6 @@ pub struct ComicInfo {
         skip_serializing_if = "Option::is_none"
     )]
     pub gtin: Option<String>,
-}
-
-fn title_deserializer<'de, D: Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
-    let s = String::deserialize(deserializer)?.trim().to_string();
-    if s.is_empty() {
-        return Ok("Untitled".to_string());
-    }
-    Ok(s)
 }
 
 fn option_string_deserializer<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
