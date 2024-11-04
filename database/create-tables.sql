@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS categories (
 
 CREATE TABLE IF NOT EXISTS titles (
     id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
+    title TEXT,
 
     category_id TEXT,
     author TEXT,
