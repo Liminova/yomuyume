@@ -1260,7 +1260,7 @@ mod tests {
                 .unwrap();
         assert_eq!(
             comic_info.tags,
-            vec!["tag1".to_string(), "tag2".to_string(), "tag3".to_string()]
+            Vec::<String>::from(["tag1".into(), "tag2".into(), "tag3".into()])
         );
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
