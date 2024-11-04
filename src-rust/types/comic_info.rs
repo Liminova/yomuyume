@@ -311,10 +311,9 @@ pub struct ComicInfo {
     pub gtin: Option<String>,
 }
 
-fn option_string_deserializer<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
+fn option_string_deserializer<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<String>, D::Error> {
     let s = String::deserialize(deserializer)?.trim().to_string();
     if s.is_empty() {
         return Ok(None);
@@ -322,10 +321,7 @@ where
     Ok(Some(s))
 }
 
-fn tags_deserializer<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
+fn tags_deserializer<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<String>, D::Error> {
     let mut tags: Vec<String> = String::deserialize(deserializer)?
         .split(",")
         .filter_map(|s| match s.trim() {
@@ -338,10 +334,7 @@ where
     Ok(tags)
 }
 
-fn tags_serializer<S>(tags: &[String], serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
+fn tags_serializer<S: Serializer>(tags: &[String], serializer: S) -> Result<S::Ok, S::Error> {
     serializer.serialize_str(&tags.join(", "))
 }
 
@@ -354,10 +347,7 @@ pub enum YesNo {
 }
 
 impl YesNo {
-    fn deserializer<'de, D>(deserializer: D) -> Result<YesNo, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
+    fn deserializer<'de, D: Deserializer<'de>>(deserializer: D) -> Result<YesNo, D::Error> {
         let s = String::deserialize(deserializer)?.trim().to_string();
         if s.is_empty() {
             return Err(serde::de::Error::custom("empty string"));
@@ -531,10 +521,9 @@ impl FromStr for Rating {
 }
 
 impl Rating {
-    fn deserializer<'de, D>(deserializer: D) -> Result<Option<Rating>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
+    fn deserializer<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<Rating>, D::Error> {
         let s = String::deserialize(deserializer)?.trim().to_string();
         if s.is_empty() {
             return Err(serde::de::Error::custom("empty string"));
@@ -544,10 +533,10 @@ impl Rating {
             .map(Some)
     }
 
-    fn serializer<S>(rating: &Option<Rating>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+    fn serializer<S: Serializer>(
+        rating: &Option<Rating>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
         match rating {
             Some(rating) => serializer.serialize_str(&format!("{:.1}", rating.0)),
             None => serializer.serialize_none(),
