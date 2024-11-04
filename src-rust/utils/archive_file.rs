@@ -476,7 +476,7 @@ mod tests {
             .upsert_file(&filename_1, content_1.clone())
             .unwrap();
 
-        assert_eq!(archive_file.get_file(&filename_1).unwrap(), *content_1);
+        assert_eq!(archive_file.read_file(&filename_1).unwrap(), *content_1);
         assert_eq!(archive_file.list_files().await.unwrap().len(), 1);
 
         // add new file
@@ -487,8 +487,8 @@ mod tests {
             .upsert_file(&filename_2, content_2.clone())
             .unwrap();
 
-        assert_eq!(archive_file.get_file(&filename_1).unwrap(), *content_1);
-        assert_eq!(archive_file.get_file(&filename_2).unwrap(), *content_2);
+        assert_eq!(archive_file.read_file(&filename_1).unwrap(), *content_1);
+        assert_eq!(archive_file.read_file(&filename_2).unwrap(), *content_2);
         assert_eq!(archive_file.list_files().await.unwrap().len(), 2);
     }
 
