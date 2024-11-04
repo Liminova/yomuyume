@@ -207,7 +207,7 @@ pub async fn upsert_title(
         RETURNING id
         "#,
         nanoid::nanoid!(),
-        &comic_info.title,
+        comic_info.title,
         category_id.map(|id| id.to_string()),
         comic_info.penciller.as_ref(),
         comic_info.summary.as_ref(),
