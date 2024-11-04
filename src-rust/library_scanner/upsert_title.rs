@@ -288,7 +288,7 @@ pub async fn upsert_title(
                     FROM UNNEST($1::text[], $2::text[])
                     AS t(id, name)
                 ON CONFLICT (name) DO UPDATE SET
-                    name = tags.name where FALSE
+                    name = EXCLUDED.name WHERE FALSE
                 RETURNING id
             )
             INSERT INTO titles_tags (title_id, tag_id)
