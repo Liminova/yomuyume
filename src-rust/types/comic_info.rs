@@ -326,14 +326,12 @@ fn tags_deserializer<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer)?.trim().to_string();
-    if s.is_empty() {
-        return Ok(vec![]);
-    }
-    let mut tags: Vec<String> = s
-        .split(',')
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
+    let mut tags: Vec<String> = String::deserialize(deserializer)?
+        .split(",")
+        .filter_map(|s| match s.trim() {
+            "" => None,
+            s => Some(s.to_string()),
+        })
         .collect();
     tags.sort();
     tags.dedup();
