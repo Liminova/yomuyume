@@ -25,7 +25,7 @@ pub struct ResponsePage {
 #[skip_serializing_none]
 pub struct TitleResponseBody {
     pub category_id: Option<String>,
-    pub title: String,
+    pub title: Option<String>,
     pub author: Option<String>,
     pub description: Option<String>,
     pub release_date: Option<String>,
