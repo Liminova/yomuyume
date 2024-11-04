@@ -49,7 +49,6 @@ CREATE TABLE IF NOT EXISTS tags (
 );
 
 CREATE TABLE IF NOT EXISTS titles_tags (
-    id TEXT PRIMARY KEY,
     title_id TEXT NOT NULL,
     tag_id TEXT NOT NULL,
 
