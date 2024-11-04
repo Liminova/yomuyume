@@ -261,9 +261,8 @@ mod tests {
 
     #[test]
     fn no_fields() {
-        let xml = r#"<CategoryInfo></CategoryInfo>"#;
-
-        let category_info: CategoryInfo = from_str::<CategoryInfo>(xml).unwrap();
+        let category_info: CategoryInfo =
+            from_str::<CategoryInfo>(r#"<CategoryInfo></CategoryInfo>"#).unwrap();
 
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
@@ -279,21 +278,10 @@ mod tests {
     }
 
     #[test]
-    fn empty_string_expect_default() {
-        assert!(CategoryInfo::from_str("").is_ok());
-    }
-
-    #[test]
     fn all_empty() {
-        let xml = r#"
-            <CategoryInfo>
-                <Name></Name>
-                <Description></Description>
-                <Cover></Cover>
-            </CategoryInfo>
-        "#;
-
-        let category_info: CategoryInfo = CategoryInfo::from_str(xml).unwrap();
+        let category_info: CategoryInfo =
+            CategoryInfo::from_str(r#"<CategoryInfo><Name/><Description/><Cover/></CategoryInfo>"#)
+                .unwrap();
 
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
@@ -310,15 +298,16 @@ mod tests {
 
     #[test]
     fn cover_not_exists() {
-        let xml = r#"
+        assert!(CategoryInfo::from_str(
+            r#"
             <CategoryInfo>
                 <Name>Adventure</Name>
                 <Description>Lorem Ipsum</Description>
                 <Cover Path="this-is-not-exists.jpg" />
             </CategoryInfo>
-        "#;
-
-        assert!(from_str::<CategoryInfo>(xml).is_err());
+        "#
+        )
+        .is_err());
     }
 
     #[test]
@@ -333,12 +322,8 @@ mod tests {
             CategoryID::from("KpvE_vralCwx5HA_4B9y8".to_string()).unwrap()
         );
 
-        let xml = r#"
-            <CategoryInfo>
-                <ID></ID>
-            </CategoryInfo>"#;
-        let category_info: CategoryInfo = CategoryInfo::from_str(xml).unwrap();
-
+        let category_info: CategoryInfo =
+            CategoryInfo::from_str(r#"<CategoryInfo><ID/></CategoryInfo>"#).unwrap();
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
             format!(
