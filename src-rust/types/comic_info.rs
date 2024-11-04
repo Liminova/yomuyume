@@ -11,7 +11,7 @@ use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use quick_xml::de::from_str;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use super::{option_blurhash_deserializer, option_datetime_deserializer};
+use super::option_blurhash_deserializer;
 use crate::COMICINFO_SCHEMA;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
@@ -511,7 +511,6 @@ pub struct ComicPageInfo {
     #[serde(
         rename = "@ModifiedDateAtEncode",
         default,
-        deserialize_with = "option_datetime_deserializer",
         skip_serializing_if = "Option::is_none"
     )]
     pub modified_date_at_encode: Option<DateTime<Utc>>,
