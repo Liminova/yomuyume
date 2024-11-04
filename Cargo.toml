@@ -15,7 +15,7 @@ async-recursion = "1.0.5"
 axum = "0.7.2"
 axum-extra = { version = "0.9.0", features = ["cookie"] }
 axum-macros = "0.4.0"
-blurhash = "0.2.0"
+blurhash = "0.2.3"
 chrono = { version = "0.4.30", features = ["serde"] }
 dotenvy = "0.15.7"
 email_address = "0.2.4"
