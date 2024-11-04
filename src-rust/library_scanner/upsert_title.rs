@@ -270,7 +270,11 @@ pub async fn upsert_title(
         .context("can't upsert new pages")?;
     }
 
-    '_upsert_tags: {
+    'upsert_tags: {
+        if comic_info.tags.is_empty() {
+            break 'upsert_tags;
+        }
+
         let tag_ids = (0..comic_info.tags.len())
             .into_par_iter()
             .map(|_| nanoid::nanoid!())
