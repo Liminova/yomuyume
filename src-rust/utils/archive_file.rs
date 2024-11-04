@@ -278,7 +278,7 @@ impl ArchiveFile {
         if !stderr_buf.is_empty() {
             return Err(anyhow!(
                 "7zz error: {:#}",
-                String::from_utf8_lossy(&stdout_buf).trim()
+                String::from_utf8_lossy(&stderr_buf).trim()
             ));
         }
 
