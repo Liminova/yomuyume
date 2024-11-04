@@ -10,7 +10,10 @@ MOLD_MD5=08d7304ea9f5e232a5c46a45f230b5db
 SEVENZ_TAR_MD5=8908df4bec189cd1f314b54724911a36
 SEVENZ_MD5=c7dce9920aac9217ae6ce2e35f18b985
 
-echo "\n==============="
+cd "/workspaces/yomuyume"
+
+echo
+echo "==============="
 echo "= pnpm stuffs ="
 echo "==============="
 sudo npm i -g pnpm
