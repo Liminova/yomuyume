@@ -244,10 +244,10 @@ impl ArchiveFile {
         Ok(files)
     }
 
-    /// Get the content of a specified file in the archive.
+    /// Read the content of a specified file in the archive.
     ///
     /// https://superuser.com/a/148501
-    pub fn get_file(&mut self, file_name: impl ToString) -> Result<Vec<u8>> {
+    pub fn read_file(&mut self, file_name: impl ToString) -> Result<Vec<u8>> {
         if !self.path.exists() {
             return Err(anyhow!("archive not exists"));
         }
@@ -444,9 +444,9 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(archive_file.get_file("test1.txt").unwrap(), b"lorem ipsum");
+        assert_eq!(archive_file.read_file("test1.txt").unwrap(), b"lorem ipsum");
         assert_eq!(
-            archive_file.get_file("test2.txt").unwrap(),
+            archive_file.read_file("test2.txt").unwrap(),
             b"dolor sit amet"
         );
     }
@@ -467,7 +467,7 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(archive_file.get_file(&filename_1).unwrap(), b"");
+        assert_eq!(archive_file.read_file(&filename_1).unwrap(), b"");
         assert_eq!(archive_file.list_files().await.unwrap().len(), 1);
 
         // overwrite that empty file
