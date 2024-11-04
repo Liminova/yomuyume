@@ -117,7 +117,7 @@ pub async fn upsert_title(
 
             // else re-encode the page
             let blurhash_result = archive_file
-                .get_file(&cover_path)
+                .read_file(&cover_path)
                 .context("can't get cover file")
                 .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
                 .and_then(|img| encode(&img).context("can't encode image to blurhash"));
@@ -143,7 +143,7 @@ pub async fn upsert_title(
         // else try every single pages
         match pages_in_archive.iter().try_find_map(|item| {
             archive_file
-                .get_file(&item.path)
+                .read_file(&item.path)
                 .context("can't get file in archive")
                 .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
                 .and_then(|img| encode(&img).context("can't encode image to blurhash"))
