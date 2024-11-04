@@ -273,14 +273,14 @@ impl ArchiveFile {
             .read_to_end(&mut stderr_buf)
             .context("can't read stderr to buffer")?;
 
+        child.wait().context("can't wait 7zz process to complete")?;
+
         if !stderr_buf.is_empty() {
             return Err(anyhow!(
                 "7zz error: {:#}",
                 String::from_utf8_lossy(&stdout_buf).trim()
             ));
         }
-
-        child.wait().context("can't wait 7zz process to complete")?;
 
         Ok(stdout_buf)
     }
