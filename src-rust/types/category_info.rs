@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use quick_xml::de::from_str;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use super::{option_blurhash_deserializer, option_datetime_deserializer};
+use super::option_blurhash_deserializer;
 use crate::{types::custom_id::CategoryID, CATEGORY_INFO_SCHEMA, SUPPORTED_IMAGE_FORMATS};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
@@ -116,7 +116,6 @@ pub struct Cover {
     #[serde(
         rename = "@ModifiedDateAtEncode",
         default,
-        deserialize_with = "option_datetime_deserializer",
         skip_serializing_if = "Option::is_none"
     )]
     pub modified_date_at_encode: Option<DateTime<Utc>>,
