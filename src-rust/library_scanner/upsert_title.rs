@@ -8,6 +8,8 @@ use chrono::{DateTime, Utc};
 use rayon::prelude::*;
 use tracing::warn;
 
+const COMICINFO_FILENAME: &str = "ComicInfo.xml";
+
 use crate::{
     library_scanner::blurhash::encode,
     types::{
@@ -62,9 +64,12 @@ pub async fn upsert_title(
         .collect::<Vec<_>>();
 
     let mut comic_info = archive_file
-        .get_file("ComicInfo.xml")
-        .context("can't get ComicInfo.xml in content file")
-        .and_then(|b| String::from_utf8(b).context("can't decode ComicInfo.xml in content file"))
+        .read_file(COMICINFO_FILENAME)
+        .context(format!("can't get {COMICINFO_FILENAME} in content file"))
+        .and_then(|b| {
+            String::from_utf8(b)
+                .context(format!("can't decode {COMICINFO_FILENAME} in content file"))
+        })
         .and_then(|s| ComicInfo::from_str(&s))?;
 
     let (cover_path, cover_blurhash, cover_width, cover_height): (
@@ -173,7 +178,7 @@ pub async fn upsert_title(
     // beside the cover page, so we can write it back here
     archive_file
         .upsert_file(
-            "CategoryInfo.xml",
+            COMICINFO_FILENAME,
             Arc::new(comic_info.to_pretty_string()?.as_bytes().to_vec()),
         )
         .context("can't write back metadata to content file")?;
