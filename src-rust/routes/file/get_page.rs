@@ -42,7 +42,7 @@ pub async fn get_page(
 
     let page_file_buf = ArchiveFile::from(PathBuf::from(&path))
         .context("can't create ArchiveFile from content file")
-        .and_then(|mut archive_file| archive_file.get_file(&path_in_content_file))
+        .and_then(|mut archive_file| archive_file.read_file(&path_in_content_file))
         .context("can't get page file from content file")?;
 
     Ok((

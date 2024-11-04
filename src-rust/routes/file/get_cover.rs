@@ -40,7 +40,7 @@ pub async fn get_cover(
 
     let cover_file_buf = ArchiveFile::from(PathBuf::from(content_file_path))
         .context("can't create ArchiveFile from content file")
-        .and_then(|mut archive_file| archive_file.get_file(&cover_path))
+        .and_then(|mut archive_file| archive_file.read_file(&cover_path))
         .context("can't get cover file from content file")?;
 
     Ok((
