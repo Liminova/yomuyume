@@ -75,10 +75,10 @@ impl Config {
     pub fn init() -> Self {
         let library_path = PathBuf::from(var("LIBRARY_PATH").expect("LIBRARY_PATH must be set."));
         if !library_path.exists() {
-            panic!("LIBRARY_PATH must be set and exist.");
+            panic!("LIBRARY_PATH was set but doesn't exist.");
         }
         if !library_path.is_dir() {
-            panic!("LIBRARY_PATH must be point to a directory.");
+            panic!("LIBRARY_PATH was set but isn't a directory.");
         }
 
         Self {
