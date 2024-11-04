@@ -836,8 +836,12 @@ mod tests {
 
     #[test]
     fn default_numbers() {
-        let xml = r#"<ComicInfo></ComicInfo>"#;
-        let comic_info = ComicInfo::from_str(xml).unwrap();
+        assert!(ComicInfo::from_str(
+            r#"<ComicInfo><Count/><Volume/><AlternateCount/><Year/><Month/><Day/><PageCount/></ComicInfo>"#
+        )
+        .is_err());
+
+        let comic_info = ComicInfo::from_str(r#"<ComicInfo/>"#).unwrap();
         assert_eq!(comic_info.count, -1);
         assert_eq!(comic_info.volume, -1);
         assert_eq!(comic_info.alternate_count, -1);
@@ -845,45 +849,47 @@ mod tests {
         assert_eq!(comic_info.month, -1);
         assert_eq!(comic_info.day, -1);
         assert_eq!(comic_info.page_count, 0);
+        assert_eq!(
+            comic_info.to_pretty_string().unwrap(),
+            format!("{COMICINFO_SCHEMA}\n<ComicInfo/>")
+        );
 
-        let xml = comic_info.to_pretty_string().unwrap();
-        assert_eq!(xml, format!("{COMICINFO_SCHEMA}\n<ComicInfo/>"));
-
-        let xml = r#"<ComicInfo>
-            <Count>  </Count>
-            <Volume>  </Volume>
-            <AlternateCount>  </AlternateCount>
-            <Year>  </Year>
-            <Month>  </Month>
-            <Day>  </Day>
-            <PageCount>  </PageCount>
-        </ComicInfo>"#;
-        assert!(ComicInfo::from_str(&xml).is_err());
-
-        let xml = r#"<ComicInfo>
-            <Count>-1</Count>
-            <Volume>-1</Volume>
-            <AlternateCount>-1</AlternateCount>
-            <Year>-1</Year>
-            <Month>-1</Month>
-            <Day>-1</Day>
-            <PageCount>0</PageCount>
-        </ComicInfo>"#;
-        let xml = ComicInfo::from_str(&xml)
+        assert_eq!(
+            ComicInfo::from_str(
+                r#"<ComicInfo>
+                <Count>-1</Count>
+                <Volume>-1</Volume>
+                <AlternateCount>-1</AlternateCount>
+                <Year>-1</Year>
+                <Month>-1</Month>
+                <Day>-1</Day>
+                <PageCount>0</PageCount>
+            </ComicInfo>"#
+            )
             .unwrap()
             .to_pretty_string()
-            .unwrap();
-        assert_eq!(xml, format!("{COMICINFO_SCHEMA}\n<ComicInfo/>"));
+            .unwrap(),
+            format!("{COMICINFO_SCHEMA}\n<ComicInfo/>")
+        );
     }
 
     #[test]
     fn title() {
-        let xml = r#"<ComicInfo><Title>  Lorem Ipsum Title  </Title></ComicInfo>"#;
-        let comic_info = ComicInfo::from_str(xml).unwrap();
-        assert_eq!(comic_info.title, "Lorem Ipsum Title".to_string());
         assert_eq!(
-            comic_info.to_pretty_string().unwrap(),
-            format!("{COMICINFO_SCHEMA}\n<ComicInfo>\n    <Title>Lorem Ipsum Title</Title>\n</ComicInfo>"));
+            ComicInfo::from_str(r#"<ComicInfo><Title>  Foo  </Title></ComicInfo>"#)
+                .unwrap()
+                .to_pretty_string()
+                .unwrap(),
+            format!("{COMICINFO_SCHEMA}\n<ComicInfo>\n    <Title>Foo</Title>\n</ComicInfo>")
+        );
+
+        assert_eq!(
+            ComicInfo::from_str(r#"<ComicInfo><Title /></ComicInfo>"#)
+                .unwrap()
+                .to_pretty_string()
+                .unwrap(),
+            format!("{COMICINFO_SCHEMA}\n<ComicInfo/>")
+        );
     }
 
     #[test]
@@ -1043,28 +1049,44 @@ mod tests {
 
     #[test]
     fn pages() {
-        let xml = r#"<ComicInfo></ComicInfo>"#;
-        let comic_info = ComicInfo::from_str(&xml).unwrap();
-        assert_eq!(comic_info.pages().len(), 0);
         assert_eq!(
-            comic_info.to_pretty_string().unwrap(),
+            ComicInfo::from_str(&r#"<ComicInfo></ComicInfo>"#)
+                .unwrap()
+                .to_pretty_string()
+                .unwrap(),
             format!("{COMICINFO_SCHEMA}\n<ComicInfo/>")
         );
 
-        let xml = r#"<ComicInfo><Pages></Pages></ComicInfo>"#;
-        let comic_info = ComicInfo::from_str(&xml).unwrap();
-        assert_eq!(comic_info.pages().len(), 0);
         assert_eq!(
-            comic_info.to_pretty_string().unwrap(),
+            ComicInfo::from_str(r#"<ComicInfo><Pages></Pages></ComicInfo>"#)
+                .unwrap()
+                .to_pretty_string()
+                .unwrap(),
             format!("{COMICINFO_SCHEMA}\n<ComicInfo/>")
         );
 
-        let xml = r#"<ComicInfo>
+        let comic_info = ComicInfo::from_str(r#"<ComicInfo>
             <Pages>
                 <Page Image="1" Type="Story" DoublePage="false" ImageSize="0" Key="" Bookmark="" ImageWidth="-1" ImageHeight="-1" ImagePath="" Description=""/>
             </Pages>
-        </ComicInfo>"#;
-        let comic_info = ComicInfo::from_str(&xml).unwrap();
+        </ComicInfo>"#).unwrap();
+        assert_eq!(
+            comic_info.pages(),
+            &vec![ComicPageInfo {
+                image: 1,
+                page_type: ComicPageType::Story,
+                double_page: false,
+                image_size: 0,
+                key: "".to_string(),
+                bookmark: "".to_string(),
+                image_width: -1,
+                image_height: -1,
+                image_path: None,
+                description: None,
+                blurhash: None,
+                modified_date_at_encode: None
+            }]
+        );
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
             format!(
