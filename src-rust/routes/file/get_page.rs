@@ -50,14 +50,10 @@ pub async fn get_page(
         StatusCode::OK,
         [(
             header::CONTENT_TYPE,
-            format!(
-                "image/{}",
-                PathBuf::from(path_in_content_file)
-                    .extension()
-                    .map(|s| s.to_str().unwrap_or(""))
-                    .unwrap_or("")
-                    .to_ascii_lowercase()
-            ),
+            match path_in_content_file.split('.').last().unwrap_or_default() {
+                "jpg" => "image/jpeg".to_string(),
+                v => format!("image/{v}"),
+            },
         )],
         page_file_buf,
     )
