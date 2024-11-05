@@ -7,7 +7,6 @@ pub const SUPPORTED_IMAGE_FORMATS: &[&str] = &[
 
 pub const COMICINFO_SCHEMA: &str =
     r#"<?xml-model href="https://delnegend.com/comicinfo-2.1-extended.xsd"?>"#;
-
 pub const CATEGORY_INFO_SCHEMA: &str =
     r#"<?xml-model href="https://delnegend.com/categoryinfo-1.0.xsd"?>"#;
 
