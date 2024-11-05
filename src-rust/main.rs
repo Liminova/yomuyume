@@ -35,16 +35,14 @@ async fn main() -> Result<()> {
         .with_env_filter("sqlx=warn,axum=info,yomuyume=debug")
         .init();
 
-    let app_state = Arc::new(AppState {
-        pool: PgPoolOptions::new()
+    let app_state = Arc::new(AppState::new(
+        PgPoolOptions::new()
             .max_connections(100)
             .connect(&config.database_url)
             .await
             .context("can't connect to database")?,
-        config: config.clone(),
-        scanning_complete: Mutex::new(false),
-        scanning_progress: Mutex::new(0.0),
-    });
+        config,
+    ));
 
     let app = Router::new()
         .nest(
