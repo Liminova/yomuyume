@@ -17,10 +17,10 @@ use crate::{AppError, AppState, ArchiveFile};
 ))]
 pub async fn get_page(
     State(app_state): State<Arc<AppState>>,
-    Path(page_id): Path<String>,
+    Path(page_id): Path<i64>,
 ) -> Result<Response, AppError> {
     let (title_id, path_in_content_file) =
-        match sqlx::query!("SELECT id, path FROM pages WHERE id = $1", page_id.as_str())
+        match sqlx::query!("SELECT id, path FROM pages WHERE id = $1", page_id)
             .fetch_optional(&app_state.pool)
             .await
             .context("can't find page")?
@@ -31,7 +31,8 @@ pub async fn get_page(
             }
         };
 
-    let path = match sqlx::query!("SELECT path FROM titles WHERE id = $1", title_id.as_str())
+    // TODO: join these queries
+    let path = match sqlx::query!("SELECT path FROM titles WHERE id = $1", title_id)
         .fetch_optional(&app_state.pool)
         .await
         .context("can't find title")?
