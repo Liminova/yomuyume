@@ -10,7 +10,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{types::custom_id::CustomID, AppError, AppState};
+use crate::{types::UserID, AppError, AppState};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct ResponsePage {
@@ -62,15 +62,10 @@ pub struct TitleResponseBody {
 ))]
 pub async fn get_title(
     State(app_state): State<Arc<AppState>>,
-    Path(title_id): Path<String>,
-    Extension(user_id): Extension<String>,
+    Path(title_id): Path<i64>,
+    Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
-    let title_id = match CustomID::from(title_id) {
-        Ok(id) => id,
-        Err(e) => return Ok((StatusCode::BAD_REQUEST, format!("{e:#}")).into_response()),
-    };
-
-    let title_record = match sqlx::query!("SELECT * FROM titles WHERE id = $1", title_id.as_str())
+    let title_record = match sqlx::query!("SELECT * FROM titles WHERE id = $1", title_id)
         .fetch_optional(&app_state.pool)
         .await
         .context("can't find title")?
@@ -81,7 +76,7 @@ pub async fn get_title(
 
     let pages = sqlx::query!(
         "SELECT * FROM pages WHERE title_id = $1 ORDER BY path ASC",
-        title_id.as_str()
+        title_id
     )
     .fetch_all(&app_state.pool)
     .await
@@ -116,7 +111,7 @@ pub async fn get_title(
     let is_favorite = sqlx::query!(
         r#"SELECT EXISTS(SELECT 1 FROM favorites WHERE user_id = $1 AND title_id = $2) AS "exists!""#,
         &user_id,
-        title_record.id.as_str()
+        title_record.id
     )
     .fetch_one(&app_state.pool)
     .await
@@ -126,7 +121,7 @@ pub async fn get_title(
     let is_bookmark = sqlx::query!(
         r#"SELECT EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND title_id = $2) AS "exists!""#,
         &user_id,
-        title_record.id.as_str()
+        title_record.id
     )
     .fetch_one(&app_state.pool)
     .await
@@ -136,7 +131,7 @@ pub async fn get_title(
     let page_read = sqlx::query!(
         r#"SELECT page FROM progresses WHERE user_id = $1 AND title_id = $2"#,
         &user_id,
-        title_record.id.as_str()
+        title_record.id
     )
     .fetch_optional(&app_state.pool)
     .await
@@ -145,7 +140,7 @@ pub async fn get_title(
 
     let favorites = sqlx::query!(
         r#"SELECT COUNT(*) AS "count!" FROM favorites WHERE title_id = $1"#,
-        title_record.id.as_str()
+        title_record.id
     )
     .fetch_one(&app_state.pool)
     .await
@@ -154,7 +149,7 @@ pub async fn get_title(
 
     let bookmarks = sqlx::query!(
         r#"SELECT COUNT(*) AS "count!" FROM bookmarks WHERE title_id = $1"#,
-        title_record.id.as_str()
+        title_record.id
     )
     .fetch_one(&app_state.pool)
     .await
@@ -163,7 +158,7 @@ pub async fn get_title(
 
     let tag_ids = sqlx::query!(
         r#"SELECT tag_id FROM titles_tags WHERE title_id = $1"#,
-        title_record.id.as_str()
+        title_record.id
     )
     .fetch_all(&app_state.pool)
     .await
@@ -185,14 +180,13 @@ pub async fn get_title(
             cover_blurhash: title_record.cover_blurhash,
             cover_width: title_record.cover_width,
             cover_height: title_record.cover_height,
-            tag_ids,
+            tag_ids: tag_ids.into_iter().map(|id| id.to_string()).collect(),
             pages,
             favorites,
             bookmarks,
             is_favorite,
             is_bookmark,
             page_read,
-            date_added: title_record.date_added.to_rfc3339(),
             date_updated: title_record.date_updated.map(|d| d.to_rfc3339()),
         }),
     )
