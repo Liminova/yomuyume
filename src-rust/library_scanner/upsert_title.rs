@@ -5,7 +5,6 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::{anyhow, Context, Result};
 use chrono::Timelike;
 use chrono::{DateTime, Utc};
-use rayon::prelude::*;
 use tracing::warn;
 
 const COMICINFO_FILENAME: &str = "ComicInfo.xml";
@@ -14,7 +13,7 @@ use crate::{
     library_scanner::blurhash::encode,
     types::{
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
-        custom_id::{CategoryID, TitleID},
+        CategoryID, TitleID,
     },
     AppState, ArchiveFile, IteratorExt, SUPPORTED_IMAGE_FORMATS,
 };
@@ -189,8 +188,8 @@ pub async fn upsert_title(
         r#"INSERT INTO titles
             (id, title, category_id, author, description, release,
             path, cover_path, cover_blurhash, cover_width,
-            cover_height, date_added, date_updated)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            cover_height, date_updated)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         ON CONFLICT (path)
         DO UPDATE SET
             title = EXCLUDED.title,
@@ -206,9 +205,9 @@ pub async fn upsert_title(
             date_updated = EXCLUDED.date_updated
         RETURNING id
         "#,
-        nanoid::nanoid!(),
+        app_state.generate_snowflake_id().await?,
         comic_info.title,
-        category_id.map(|id| id.to_string()),
+        category_id,
         comic_info.penciller.as_ref(),
         comic_info.summary.as_ref(),
         comic_info.get_release(),
@@ -217,7 +216,6 @@ pub async fn upsert_title(
         cover_blurhash,
         cover_width.map(|w| w as i32),
         cover_height.map(|h| h as i32),
-        Utc::now(),
         tokio::fs::metadata(&title_file_path)
             .await
             .and_then(|m| { m.modified().map(|d| DateTime::<Utc>::from(d)) })
@@ -225,34 +223,35 @@ pub async fn upsert_title(
     )
     .fetch_one(&mut *txn)
     .await
-    .context("can't upsert title model to DB")
-    .and_then(|record| {
-        TitleID::from(record.id)
-            .context("can't convert title id from database to TitleID, this should not happen")
-    })?;
+    .context("can't upsert title model to DB")?
+    .id;
 
     '_upsert_pages: {
-        let page_ids = (0..pages_in_archive.len())
-            .into_par_iter()
-            .map(|_| nanoid::nanoid!())
-            .collect::<Vec<_>>();
+        let mut page_ids = Vec::with_capacity(pages_in_archive.len());
         let mut page_paths = Vec::with_capacity(pages_in_archive.len());
         let mut page_descriptions = Vec::with_capacity(pages_in_archive.len());
-        pages_in_archive.iter().for_each(|item| {
+
+        for item in pages_in_archive.iter() {
+            page_ids.push(
+                app_state
+                    .generate_snowflake_id()
+                    .await
+                    .context("can't generate page id")?,
+            );
             page_paths.push(item.path.clone());
             page_descriptions.push(
                 comic_info
                     .get_page_description(&item.path)
                     .unwrap_or_default(),
-            )
-        });
+            );
+        }
 
         sqlx::query!(
             r#"
             WITH _ AS (
             INSERT INTO pages (id, title_id, path, description)
             SELECT id, $1, path, NULLIF(description, '')
-                FROM UNNEST($2::text[], $3::text[], $4::text[])
+                FROM UNNEST($2::bigint[], $3::text[], $4::text[])
                 AS t(id, path, description)
             ON CONFLICT (title_id, path) DO UPDATE
                 SET description = EXCLUDED.description
@@ -260,7 +259,7 @@ pub async fn upsert_title(
             DELETE FROM pages WHERE title_id = $1
                 AND path NOT IN (SELECT UNNEST($3::text[]))
             "#,
-            title_id.as_ref(),
+            title_id,
             &page_ids,
             &page_paths,
             &page_descriptions
@@ -277,7 +276,7 @@ pub async fn upsert_title(
                 DELETE FROM titles_tags
                 WHERE title_id = $1
                 "#,
-                title_id.as_ref()
+                title_id
             )
             .execute(&mut *txn)
             .await
@@ -285,17 +284,22 @@ pub async fn upsert_title(
             break 'upsert_tags;
         }
 
-        let tag_ids = (0..comic_info.tags.len())
-            .into_par_iter()
-            .map(|_| nanoid::nanoid!())
-            .collect::<Vec<_>>();
+        let mut tag_ids = Vec::with_capacity(comic_info.tags.len());
+        for _ in 0..comic_info.tags.len() {
+            tag_ids.push(
+                app_state
+                    .generate_snowflake_id()
+                    .await
+                    .context("can't generate tag id")?,
+            );
+        }
 
         sqlx::query!(
             r#"
             WITH tag_ids AS (
                 INSERT INTO tags (id, name)
                 SELECT id, name
-                    FROM UNNEST($1::text[], $2::text[])
+                    FROM UNNEST($1::bigint[], $2::text[])
                     AS t(id, name)
                 ON CONFLICT (name) DO UPDATE SET
                     name = EXCLUDED.name WHERE FALSE
@@ -308,7 +312,7 @@ pub async fn upsert_title(
             "#,
             &tag_ids,
             &comic_info.tags,
-            title_id.as_ref(),
+            title_id,
         )
         .execute(&mut *txn)
         .await
