@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS categories (
-    id TEXT PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
 
@@ -10,10 +10,10 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 CREATE TABLE IF NOT EXISTS titles (
-    id TEXT PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     title TEXT,
 
-    category_id TEXT,
+    category_id BIGINT,
     author TEXT,
     description TEXT,
     release DATE,
@@ -24,7 +24,6 @@ CREATE TABLE IF NOT EXISTS titles (
     cover_width INTEGER,
     cover_height INTEGER,
 
-    date_added TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     date_updated TIMESTAMP WITH TIME ZONE,
 
     FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL,
@@ -42,15 +41,15 @@ CREATE TABLE IF NOT EXISTS pages (
 );
 
 CREATE TABLE IF NOT EXISTS tags (
-    id TEXT PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     name TEXT NOT NULL,
 
     CONSTRAINT "uc-tags-name" UNIQUE (name)
 );
 
 CREATE TABLE IF NOT EXISTS titles_tags (
-    title_id TEXT NOT NULL,
-    tag_id TEXT NOT NULL,
+    title_id BIGINT NOT NULL,
+    tag_id BIGINT NOT NULL,
 
     FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
     FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
@@ -58,21 +57,20 @@ CREATE TABLE IF NOT EXISTS titles_tags (
 );
 
 CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     username TEXT NOT NULL,
     email TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     profile_picture TEXT,
     ip_address TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE,
     verified_at TIMESTAMP WITH TIME ZONE
 );
 
 CREATE TABLE IF NOT EXISTS bookmarks (
-    id SERIAL PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    title_id TEXT NOT NULL,
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title_id BIGINT NOT NULL,
 
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
@@ -80,9 +78,9 @@ CREATE TABLE IF NOT EXISTS bookmarks (
 );
 
 CREATE TABLE IF NOT EXISTS favorites (
-    id SERIAL PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    title_id TEXT NOT NULL,
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title_id BIGINT NOT NULL,
 
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
@@ -90,9 +88,9 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 
 CREATE TABLE IF NOT EXISTS progresses (
-    id SERIAL PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    title_id TEXT NOT NULL,
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title_id BIGINT NOT NULL,
     last_read_at TIMESTAMP WITH TIME ZONE,
     page INTEGER NOT NULL,
 
@@ -109,7 +107,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS temp_codes (
     id SERIAL PRIMARY KEY,
     purpose temp_codes_purpose NOT NULL,
-    user_id TEXT NOT NULL,
+    user_id BIGINT NOT NULL,
     code TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
 
