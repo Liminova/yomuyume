@@ -6,17 +6,10 @@ use quick_xml::de::from_str;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::option_blurhash_deserializer;
-use crate::{types::custom_id::CategoryID, CATEGORY_INFO_SCHEMA, SUPPORTED_IMAGE_FORMATS};
+use crate::{CATEGORY_INFO_SCHEMA, SUPPORTED_IMAGE_FORMATS};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
 pub struct CategoryInfo {
-    #[serde(
-        rename = "ID",
-        default,
-        deserialize_with = "id_deserializer",
-        serialize_with = "id_serializer"
-    )]
-    pub id: CategoryID,
     #[serde(
         rename = "Name",
         default,
@@ -35,24 +28,6 @@ pub struct CategoryInfo {
     pub description: Option<String>,
     #[serde(rename = "Cover", default, skip_serializing_if = "Cover::all_empty")]
     pub cover: Option<Cover>,
-}
-
-fn id_deserializer<'de, D>(deserializer: D) -> Result<CategoryID, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?.trim().to_string();
-    if s.is_empty() {
-        return Ok(CategoryID::new());
-    }
-    CategoryID::from(s).map_err(serde::de::Error::custom)
-}
-
-fn id_serializer<S>(id: &CategoryID, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(id.as_ref())
 }
 
 fn name_deserializer<'de, D: Deserializer<'de>>(
@@ -248,12 +223,10 @@ mod tests {
             format!(
                 "{CATEGORY_INFO_SCHEMA}
 <CategoryInfo>
-    <ID>{}</ID>
     <Name>Adventure</Name>
     <Description>Lorem Ipsum</Description>
     <Cover Path=\"{}\"/>
 </CategoryInfo>",
-                category_info.id.as_ref(),
                 cover_path.to_string_lossy()
             )
         );
@@ -267,14 +240,6 @@ mod tests {
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
         assert_eq!(category_info.cover, None);
-
-        assert_eq!(
-            category_info.to_pretty_string().unwrap(),
-            format!(
-                "{CATEGORY_INFO_SCHEMA}\n<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
-                category_info.id.as_ref()
-            )
-        );
     }
 
     #[test]
@@ -289,10 +254,7 @@ mod tests {
 
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
-            format!(
-                "{CATEGORY_INFO_SCHEMA}\n<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
-                category_info.id.as_ref()
-            )
+            format!("{CATEGORY_INFO_SCHEMA}\n<CategoryInfo/>")
         );
     }
 
@@ -308,28 +270,5 @@ mod tests {
         "#
         )
         .is_err());
-    }
-
-    #[test]
-    fn id() {
-        let xml = r#"
-            <CategoryInfo>
-                <ID>KpvE_vralCwx5HA_4B9y8</ID>
-            </CategoryInfo>"#;
-        let category_info: CategoryInfo = CategoryInfo::from_str(xml).unwrap();
-        assert_eq!(
-            category_info.id,
-            CategoryID::from("KpvE_vralCwx5HA_4B9y8".to_string()).unwrap()
-        );
-
-        let category_info: CategoryInfo =
-            CategoryInfo::from_str(r#"<CategoryInfo><ID/></CategoryInfo>"#).unwrap();
-        assert_eq!(
-            category_info.to_pretty_string().unwrap(),
-            format!(
-                "{CATEGORY_INFO_SCHEMA}\n<CategoryInfo>\n    <ID>{}</ID>\n</CategoryInfo>",
-                category_info.id.as_ref()
-            )
-        );
     }
 }
