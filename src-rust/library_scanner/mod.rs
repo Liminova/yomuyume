@@ -5,7 +5,6 @@ mod upsert_title;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use anyhow::{Context, Result};
-use async_recursion::async_recursion;
 use tracing::debug;
 
 use crate::{types::custom_id::CategoryID, AppState};
@@ -17,22 +16,25 @@ pub struct Scanner {
     app_state: Arc<AppState>,
 }
 
-#[async_recursion]
-async fn read_dir_recursive(path: &PathBuf) -> Result<Vec<PathBuf>> {
+async fn read_dir_iterative(path: &Path) -> Result<Vec<PathBuf>> {
     let mut files: Vec<PathBuf> = Vec::new();
-    let mut entries = tokio::fs::read_dir(path)
-        .await
-        .context("can't read category dir")?;
-    'next_dir: while let Some(entry) = entries.next_entry().await.unwrap_or_default() {
-        let path = entry.path();
-        if path.is_file() {
-            files.push(path);
-            continue 'next_dir;
-        }
-        if path.is_dir() {
-            files.append(&mut read_dir_recursive(&path).await?);
+    let mut stack: Vec<PathBuf> = vec![path.to_path_buf()];
+
+    while let Some(current_path) = stack.pop() {
+        let mut entries = tokio::fs::read_dir(&current_path)
+            .await
+            .context("can't read category dir")?;
+
+        while let Some(entry) = entries.next_entry().await.unwrap_or_default() {
+            let path = entry.path();
+            if path.is_file() {
+                files.push(path);
+            } else if path.is_dir() {
+                stack.push(path);
+            }
         }
     }
+
     Ok(files)
 }
 
@@ -44,7 +46,7 @@ impl Scanner {
     }
 
     pub async fn run(&self) -> Result<()> {
-        let files_in_lib = read_dir_recursive(&self.app_state.config.library_path).await?;
+        let files_in_lib = read_dir_iterative(&self.app_state.config.library_path).await?;
         debug!("found {} files in library", files_in_lib.len());
 
         let mut category_path_id_map: HashMap<PathBuf, CategoryID> = HashMap::new();
