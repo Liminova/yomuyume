@@ -1,18 +1,9 @@
 use std::{env::var, path::PathBuf};
 
-use phf::phf_map;
-
-pub const SUPPORTED_IMAGE_FORMATS: phf::Map<&'static str, &'static str> = phf_map! {
-    "avif" => "image/avif",
-    "bmp" => "image/bmp",
-    "gif" => "image/gif",
-    "jpeg" => "image/jpeg",
-    "jpg" => "image/jpeg",
-    "png" => "image/png",
-    "tif" => "image/tiff",
-    "tiff" => "image/tiff",
-    "webp" => "image/webp",
-};
+pub const SUPPORTED_ARCHIVE_FORMATS: &[&str] = &["zip", "cbz", "rar", "cbr", "7z"];
+pub const SUPPORTED_IMAGE_FORMATS: &[&str] = &[
+    "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
+];
 
 pub const COMICINFO_SCHEMA: &str =
     r#"<?xml-model href="https://delnegend.com/comicinfo-2.1-extended.xsd"?>"#;
