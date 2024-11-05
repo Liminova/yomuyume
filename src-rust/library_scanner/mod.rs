@@ -2,12 +2,16 @@ pub mod blurhash;
 mod upsert_category;
 mod upsert_title;
 
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use anyhow::{Context, Result};
 use tracing::debug;
 
-use crate::{types::custom_id::CategoryID, AppState};
+use crate::{types::CategoryID, AppState, SUPPORTED_ARCHIVE_FORMATS};
 use upsert_category::upsert_category;
 use upsert_title::upsert_title;
 
@@ -52,15 +56,15 @@ impl Scanner {
         let mut category_path_id_map: HashMap<PathBuf, CategoryID> = HashMap::new();
 
         for title_path in files_in_lib {
-            if !title_path
-                .extension()
-                .map(|e| e.to_string_lossy() == "zip")
-                .unwrap_or(false)
-            {
-                debug!("skipping {}", title_path.display());
+            if !SUPPORTED_ARCHIVE_FORMATS.contains(
+                &title_path
+                    .extension()
+                    .unwrap_or_default()
+                    .to_str()
+                    .unwrap_or_default(),
+            ) {
                 continue;
             }
-            debug!("processing {}", title_path.display());
 
             // title inside a subdir -> in a category
             // title inside library root -> no category
