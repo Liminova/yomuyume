@@ -47,14 +47,10 @@ pub async fn get_cover(
         StatusCode::OK,
         [(
             header::CONTENT_TYPE,
-            format!(
-                "image/{}",
-                PathBuf::from(cover_path)
-                    .extension()
-                    .map(|s| s.to_str().unwrap_or(""))
-                    .unwrap_or("")
-                    .to_ascii_lowercase()
-            ),
+            match cover_path.split('.').last().unwrap_or_default() {
+                "jpg" => "image/jpeg".to_string(),
+                v => format!("image/{v}"),
+            },
         )],
         cover_file_buf,
     )
