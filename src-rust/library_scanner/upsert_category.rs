@@ -110,11 +110,11 @@ pub async fn upsert_category(
     let category_id = sqlx::query!(
         r#"
         INSERT INTO "categories"
-            ("id", "name", "description",
+            ("id", "name", "description", "path",
             "cover_path", "cover_blurhash",
             "cover_width", "cover_height")
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT ("id") DO UPDATE SET
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT ("path") DO UPDATE SET
             "name" = EXCLUDED.name,
             "description" = EXCLUDED.description,
             "cover_path" = EXCLUDED.cover_path,
@@ -123,9 +123,13 @@ pub async fn upsert_category(
             "cover_height" = EXCLUDED.cover_height
         RETURNING id
     "#,
-        category_info.id.as_ref(),
+        app_state
+            .generate_snowflake_id()
+            .await
+            .context("can't generate category id")?,
         category_info.name.clone().unwrap_or("Untitled".to_string()),
         category_info.description.as_ref(),
+        &category_dir_path_string,
         cover_path,
         cover_blurhash,
         cover_width.map(|w| w as i32),
