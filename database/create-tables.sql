@@ -105,7 +105,8 @@ EXCEPTION
     WHEN duplicate_object THEN RAISE NOTICE 'type already exists, skipping';
 END $$;
 CREATE TABLE IF NOT EXISTS temp_codes (
-    id SERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
+    secret TEXT NOT NULL,
     purpose temp_codes_purpose NOT NULL,
     user_id BIGINT NOT NULL,
     code TEXT NOT NULL,
