@@ -8,40 +8,48 @@ use axum::{
     Extension, Json,
 };
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
 use crate::{types::custom_id::CustomID, AppError, AppState};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-#[skip_serializing_none]
 pub struct ResponsePage {
     pub id: String,
     pub format: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
-#[skip_serializing_none]
 pub struct TitleResponseBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub category_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub author: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub release_date: Option<String>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cover_blurhash: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cover_width: Option<i32>,
     pub cover_height: Option<i32>,
 
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tag_ids: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub pages: Vec<ResponsePage>,
     pub favorites: i64,
     pub bookmarks: i64,
     pub is_favorite: bool,
     pub is_bookmark: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub page_read: Option<i32>,
-    pub date_added: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date_updated: Option<String>,
 }
 
