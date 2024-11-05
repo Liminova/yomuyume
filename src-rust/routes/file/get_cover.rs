@@ -17,11 +17,11 @@ use crate::{AppError, AppState, ArchiveFile};
 ))]
 pub async fn get_cover(
     State(app_state): State<Arc<AppState>>,
-    Path(title_id): Path<String>,
+    Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
     let (content_file_path, cover_path) = match sqlx::query!(
         "SELECT path, cover_path FROM titles WHERE id = $1",
-        title_id.as_str()
+        title_id
     )
     .fetch_optional(&app_state.pool)
     .await
