@@ -1,8 +1,8 @@
 DROP TABLE IF EXISTS pages_benchmark CASCADE;
 
 CREATE TABLE IF NOT EXISTS pages_benchmark (
-    id VARCHAR PRIMARY KEY,
-    title_id VARCHAR NOT NULL,
+    id TEXT PRIMARY KEY,
+    title_id TEXT NOT NULL,
     path VARCHAR NOT NULL,
     description VARCHAR
 
