@@ -36,7 +36,7 @@ pub async fn get_categories(State(app_state): State<Arc<AppState>>) -> Result<Re
         .context("can't find categories")?
         .into_iter()
         .map(|category| CategoryResponse {
-            id: category.id,
+            id: category.id.to_string(),
             name: category.name,
             description: category.description,
         })
