@@ -11,7 +11,7 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
 
-use crate::{types::custom_id::SessionSecret, AppError, AppState};
+use crate::{AppError, AppState};
 
 pub async fn auth(
     cookie_jar: CookieJar,
@@ -19,10 +19,19 @@ pub async fn auth(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, AppError> {
+    let session_id = match cookie_jar
+        .get("session-id")
+        .and_then(|cookie| cookie.value().to_string().parse::<i64>().ok())
+    {
+        Some(session_id) => session_id,
+        None => {
+            return Ok((StatusCode::UNAUTHORIZED, "no valid session id provided").into_response())
+        }
+    };
+
     let session_secret = match cookie_jar
         .get("session-secret")
         .map(|cookie| cookie.value().to_string())
-        .and_then(|raw| SessionSecret::from(raw).ok())
     {
         Some(session_secret) => session_secret,
         None => {
@@ -35,7 +44,8 @@ pub async fn auth(
     let (user_id, last_used_at) = match sqlx::query!(
         r#"SELECT users.id, session_tokens.last_used_at FROM session_tokens
         JOIN users ON session_tokens.user_id = users.id
-        WHERE session_tokens.session_secret = $1"#,
+        WHERE session_tokens.id = $1 AND session_tokens.session_secret = $2"#,
+        session_id,
         session_secret.as_str()
     )
     .fetch_optional(&data.pool)
@@ -51,9 +61,9 @@ pub async fn auth(
     let now = Utc::now();
     if now - last_used_at < chrono::Duration::minutes(2) {
         sqlx::query!(
-            r#"UPDATE session_tokens SET last_used_at = $1 WHERE session_secret = $2"#,
+            r#"UPDATE session_tokens SET last_used_at = $1 WHERE id = $2"#,
             now,
-            session_secret.as_str()
+            session_id
         )
         .execute(&data.pool)
         .await
