@@ -102,6 +102,11 @@ pub async fn upsert_category(
         (None, None, None, None)
     };
 
+    '_save_category_info: {
+        std::fs::write(&category_info_path, category_info.to_pretty_string()?)
+            .context(format!("can't write to {CATEGORY_INFO_FILENAME}"))?;
+    }
+
     let category_id = sqlx::query!(
         r#"
         INSERT INTO "categories"
@@ -131,13 +136,5 @@ pub async fn upsert_category(
     .context("can't upsert category to database")?
     .id;
 
-    category_info.id = CategoryID::from(category_id)
-        .context("can't convert back category ID got from DB back to CategoryID")?;
-
-    '_save_category_info: {
-        std::fs::write(&category_info_path, category_info.to_pretty_string()?)
-            .context("can't write to CategoryInfo.xml")?;
-    }
-
-    Ok(category_info.id)
+    Ok(category_id)
 }
