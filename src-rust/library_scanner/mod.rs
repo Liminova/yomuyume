@@ -93,17 +93,23 @@ impl Scanner {
                         "can't insert title to database: {}",
                         title_path.display()
                     ))?;
-
-                continue;
+            } else {
+                upsert_title(self.app_state.clone(), None, &title_path)
+                    .await
+                    .context(format!(
+                        "can't insert title to database: {}",
+                        title_path.display()
+                    ))?;
             }
-
-            upsert_title(self.app_state.clone(), None, &title_path)
-                .await
-                .context(format!(
-                    "can't insert title to database: {}",
-                    title_path.display()
-                ))?;
         }
+
+        sqlx::query!(
+            "DELETE FROM categories WHERE id NOT IN (SELECT id FROM UNNEST($1::bigint[]))",
+            &category_path_id_map.values().cloned().collect::<Vec<_>>()
+        )
+        .execute(&self.app_state.pool)
+        .await
+        .context("can't delete categories")?;
 
         Ok(())
     }
