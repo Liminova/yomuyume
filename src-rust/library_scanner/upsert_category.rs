@@ -6,9 +6,11 @@ use tracing::warn;
 
 use crate::{
     library_scanner::blurhash::encode,
-    types::{category_info::CategoryInfo, custom_id::CategoryID},
+    types::{category_info::CategoryInfo, CategoryID},
     AppState,
 };
+
+const CATEGORY_INFO_FILENAME: &str = "CategoryInfo.xml";
 
 /// Upsert a category to the database and return its ID.
 pub async fn upsert_category(
@@ -26,11 +28,12 @@ pub async fn upsert_category(
 
     let category_dir_path_string = category_dir_path.to_string_lossy().to_string();
 
-    let category_info_path = category_dir_path.join("CategoryInfo.xml");
+    let category_info_path = category_dir_path.join(CATEGORY_INFO_FILENAME);
     let mut category_info = CategoryInfo::from_str(
-        &std::fs::read_to_string(&category_info_path).context("can't read CategoryInfo.xml")?,
+        &std::fs::read_to_string(&category_info_path)
+            .context(format!("can't read {CATEGORY_INFO_FILENAME}"))?,
     )
-    .context("can't parse CategoryInfo.xml")?;
+    .context(format!("can't parse {CATEGORY_INFO_FILENAME}"))?;
 
     let (cover_path, cover_blurhash, cover_width, cover_height) = 'scoped: {
         let cover = match category_info.cover.as_mut() {
