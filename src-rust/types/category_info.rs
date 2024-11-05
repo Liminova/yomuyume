@@ -165,7 +165,6 @@ impl CategoryInfo {
         if s.is_empty() {
             return Ok(Self::default());
         }
-
         from_str::<CategoryInfo>(s).context("can't parse CategoryInfo.xml")
     }
 
@@ -195,18 +194,19 @@ mod tests {
         let cover_path = temp_dir.path().join("cover.jpg");
         let _ = File::create(&cover_path).expect("can't create cover file");
 
-        let xml = format!(
-            "
+        let category_info: CategoryInfo = CategoryInfo::from_str(
+            &(format!(
+                "
             <CategoryInfo>
                 <Name>  Adventure    </Name>
                 <Description>  Lorem Ipsum</Description>
                 <Cover Path=\"{}\">    </Cover>
             </CategoryInfo>
         ",
-            cover_path.to_string_lossy()
-        );
-
-        let category_info: CategoryInfo = CategoryInfo::from_str(&xml).unwrap();
+                cover_path.to_string_lossy()
+            )),
+        )
+        .unwrap();
 
         assert_eq!(category_info.name, Some("Adventure".to_string()));
         assert_eq!(category_info.description, Some("Lorem Ipsum".to_string()));
@@ -267,7 +267,7 @@ mod tests {
                 <Description>Lorem Ipsum</Description>
                 <Cover Path="this-is-not-exists.jpg" />
             </CategoryInfo>
-        "#
+            "#
         )
         .is_err());
     }
