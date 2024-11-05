@@ -34,7 +34,7 @@ pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response
         .context("can't fetch tags")?
         .into_iter()
         .map(|record| TagResponseBody {
-            id: record.id,
+            id: record.id.to_string(),
             name: record.name,
         })
         .collect::<Vec<_>>();
