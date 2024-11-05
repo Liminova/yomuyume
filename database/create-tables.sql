@@ -2,11 +2,14 @@ CREATE TABLE IF NOT EXISTS categories (
     id BIGINT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
+    path TEXT NOT NULL,
 
     cover_path TEXT,
     cover_blurhash TEXT,
     cover_width INTEGER,
-    cover_height INTEGER
+    cover_height INTEGER,
+
+    CONSTRAINT "uc-categories-path" UNIQUE (path)
 );
 
 CREATE TABLE IF NOT EXISTS titles (
