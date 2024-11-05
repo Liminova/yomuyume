@@ -78,17 +78,14 @@ impl Scanner {
                 .map(PathBuf::from);
 
             if let Some(category_path) = category_path {
-                let category_id = category_path_id_map
-                    .entry(category_path.clone())
-                    .or_insert(
-                        upsert_category(self.app_state.clone(), &category_path)
-                            .await
-                            .context(format!(
-                                "can't insert category to database: {}",
-                                category_path.display()
-                            ))?,
-                    )
-                    .clone();
+                let category_id = *category_path_id_map.entry(category_path.clone()).or_insert(
+                    upsert_category(self.app_state.clone(), &category_path)
+                        .await
+                        .context(format!(
+                            "can't insert category to database: {}",
+                            category_path.display()
+                        ))?,
+                );
 
                 upsert_title(self.app_state.clone(), Some(category_id), &title_path)
                     .await
