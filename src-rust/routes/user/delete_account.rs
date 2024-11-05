@@ -13,7 +13,7 @@ use utoipa::ToSchema;
 
 use crate::{
     routes::{check_pass, Mailer},
-    types::{custom_id::CustomID, temp_code_purpose::TempCodePurpose},
+    types::{temp_code_purpose::TempCodePurpose, UserID},
     AppError, AppState,
 };
 
@@ -27,7 +27,7 @@ use crate::{
 ))]
 pub async fn get_delete_account(
     State(app_state): State<Arc<AppState>>,
-    Extension(user_id): Extension<String>,
+    Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
     let mailer = Mailer::from(&app_state.config)?;
 
@@ -37,7 +37,7 @@ pub async fn get_delete_account(
         FROM temp_codes
         WHERE purpose = $1 AND user_id = $2"#,
         TempCodePurpose::DeleteAccount as TempCodePurpose,
-        user_id.as_str()
+        user_id
     )
     .fetch_optional(&app_state.pool)
     .await
@@ -51,7 +51,7 @@ pub async fn get_delete_account(
     }
 
     // get temp code
-    let new_code = CustomID::new();
+    let new_code = app_state.generate_secure_id();
     let code = sqlx::query!(
         r#"INSERT INTO temp_codes (purpose, user_id, code, created_at)
         VALUES ($1, $2, $3, $4)
@@ -59,7 +59,7 @@ pub async fn get_delete_account(
         DO UPDATE SET created_at = $4
         RETURNING code"#,
         TempCodePurpose::DeleteAccount as TempCodePurpose,
-        user_id.as_str(),
+        user_id,
         new_code.as_str(),
         Utc::now()
     )
@@ -71,7 +71,7 @@ pub async fn get_delete_account(
     // in4 for email
     let (username, user_email) = sqlx::query!(
         r#"SELECT username, email FROM users WHERE id = $1"#,
-        user_id.as_str()
+        user_id
     )
     .fetch_one(&app_state.pool)
     .await
@@ -112,7 +112,7 @@ pub struct DeleteRequestBody {
 ))]
 pub async fn post_delete_account(
     State(app_state): State<Arc<AppState>>,
-    Extension(user_id): Extension<String>,
+    Extension(user_id): Extension<UserID>,
     Json(query): Json<DeleteRequestBody>,
 ) -> Result<Response, AppError> {
     if query.password.is_empty() || query.code.is_empty() {
@@ -120,14 +120,11 @@ pub async fn post_delete_account(
     }
 
     // check password
-    let password_hash = sqlx::query!(
-        r#"SELECT password_hash FROM users WHERE id = $1"#,
-        user_id.as_str()
-    )
-    .fetch_one(&app_state.pool)
-    .await
-    .context("can't find user")?
-    .password_hash;
+    let password_hash = sqlx::query!(r#"SELECT password_hash FROM users WHERE id = $1"#, user_id)
+        .fetch_one(&app_state.pool)
+        .await
+        .context("can't find user")?
+        .password_hash;
     if !check_pass(&password_hash, &query.password) {
         return Ok((StatusCode::BAD_REQUEST, "invalid password").into_response());
     }
@@ -137,7 +134,7 @@ pub async fn post_delete_account(
         r#"DELETE FROM temp_codes WHERE code = $1 AND purpose = $2 AND user_id = $3 RETURNING created_at"#,
         query.code.as_str(),
         TempCodePurpose::DeleteAccount as TempCodePurpose,
-        user_id.as_str(),
+        user_id,
     )
     .fetch_optional(&app_state.pool)
     .await
@@ -154,7 +151,7 @@ pub async fn post_delete_account(
         }
     };
 
-    sqlx::query!(r#"DELETE FROM users WHERE id = $1"#, user_id.as_str())
+    sqlx::query!(r#"DELETE FROM users WHERE id = $1"#, user_id)
         .execute(&app_state.pool)
         .await
         .context("can't delete user")?;

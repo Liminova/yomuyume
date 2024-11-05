@@ -11,7 +11,7 @@ use axum_extra::extract::cookie::{Cookie, SameSite};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{routes::check_pass, types::custom_id::SessionSecret, AppError, AppState};
+use crate::{routes::check_pass, AppError, AppState};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct LoginRequestBody {
@@ -73,24 +73,24 @@ pub async fn post_login(
         .and_then(|value| value.to_str().ok())
         .map(|user_agent_str| user_agent_str.to_string());
 
-    let session_secret = SessionSecret::new();
+    let session_secret = app_state.generate_secure_id();
 
     sqlx::query!(
         "INSERT INTO session_tokens
-            (session_secret, user_id, created_at, user_agent, ip_address, last_used_at)
+            (id, session_secret, user_id, user_agent, ip_address, last_used_at)
         VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (session_secret) DO UPDATE SET
+        ON CONFLICT (id) DO UPDATE SET
+            session_secret = EXCLUDED.session_secret,
             user_id = EXCLUDED.user_id,
-            created_at = EXCLUDED.created_at,
             user_agent = EXCLUDED.user_agent,
             ip_address = EXCLUDED.ip_address,
             last_used_at = EXCLUDED.last_used_at",
+        app_state.generate_snowflake_id().await?,
         session_secret.as_str(),
-        user_id.as_str(),
-        chrono::Utc::now(),
+        user_id,
         user_agent,
         ip_address.as_str(),
-        chrono::Utc::now()
+        chrono::Utc::now(),
     )
     .execute(&app_state.pool)
     .await

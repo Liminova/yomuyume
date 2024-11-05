@@ -10,7 +10,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{routes::hash_pass, types::custom_id::UserID, AppError, AppState};
+use crate::{routes::hash_pass, AppError, AppState};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct RegisterRequestBody {
@@ -60,18 +60,13 @@ pub async fn post_register(
         return Ok((StatusCode::BAD_REQUEST, "password must be between 8 and 100 characters long and contain at least one uppercase letter, one lowercase letter, one number and one special character").into_response());
     }
 
-    let username = query.username.to_string();
-    let email = query.email.to_string().to_ascii_lowercase();
-    let created_at = chrono::Utc::now();
-
     sqlx::query!(
         "INSERT INTO users
-            (id, username, email, created_at, password_hash)
-        VALUES ($1, $2, $3, $4, $5)",
-        UserID::new().to_string(),
-        username.as_str(),
-        email.as_str(),
-        created_at,
+            (id, username, email, password_hash)
+        VALUES ($1, $2, $3, $4)",
+        app_state.generate_snowflake_id().await?,
+        query.username.as_str(),
+        query.email.to_string().to_ascii_lowercase(),
         hash_pass(p)?
     )
     .execute(&app_state.pool)

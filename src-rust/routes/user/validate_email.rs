@@ -13,7 +13,7 @@ use utoipa::ToSchema;
 
 use crate::{
     routes::Mailer,
-    types::{custom_id::CustomID, temp_code_purpose::TempCodePurpose},
+    types::{temp_code_purpose::TempCodePurpose, UserID},
     AppError, AppState,
 };
 
@@ -27,14 +27,14 @@ use crate::{
 ))]
 pub async fn get_validate_email(
     State(app_state): State<Arc<AppState>>,
-    Extension(user_id): Extension<String>,
+    Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
     let mailer = Mailer::from(&app_state.config)?;
 
     // check user
     let user_record = sqlx::query!(
         r#"SELECT id, username, email, verified_at FROM users WHERE id = $1"#,
-        user_id.as_str()
+        user_id
     )
     .fetch_one(&app_state.pool)
     .await
@@ -53,7 +53,7 @@ pub async fn get_validate_email(
         FROM temp_codes
         WHERE purpose = $1 AND user_id = $2"#,
         TempCodePurpose::ValidateEmail as TempCodePurpose,
-        user_record.id.as_str()
+        user_record.id
     )
     .fetch_optional(&app_state.pool)
     .await
@@ -67,7 +67,7 @@ pub async fn get_validate_email(
     }
 
     // get temp code
-    let new_code = CustomID::new();
+    let new_code = app_state.generate_secure_id();
     let code = sqlx::query!(
         r#"INSERT INTO temp_codes (purpose, user_id, code, created_at)
         VALUES ($1, $2, $3, $4)
@@ -75,7 +75,7 @@ pub async fn get_validate_email(
         DO UPDATE SET created_at = $4
         RETURNING code"#,
         TempCodePurpose::ValidateEmail as TempCodePurpose,
-        user_record.id.as_str(),
+        user_record.id,
         new_code.as_str(),
         Utc::now()
     )
@@ -117,13 +117,13 @@ pub struct ValidateEmailRequestBody {
 ))]
 pub async fn post_validate_email(
     State(app_state): State<Arc<AppState>>,
-    Extension(user_id): Extension<String>,
+    Extension(user_id): Extension<UserID>,
     Json(query): Json<ValidateEmailRequestBody>,
 ) -> Result<Response, AppError> {
     // check user
     let user_record = sqlx::query!(
         r#"SELECT id, username, email, verified_at FROM users WHERE id = $1"#,
-        user_id.as_str()
+        user_id
     )
     .fetch_one(&app_state.pool)
     .await
@@ -145,7 +145,7 @@ pub async fn post_validate_email(
         RETURNING created_at"#,
         query.code.as_str(),
         TempCodePurpose::ValidateEmail as TempCodePurpose,
-        user_record.id.as_str()
+        user_record.id
     )
     .fetch_optional(&app_state.pool)
     .await
@@ -162,7 +162,7 @@ pub async fn post_validate_email(
     sqlx::query!(
         r#"UPDATE users SET verified_at = $1 WHERE id = $2"#,
         Utc::now(),
-        user_record.id.as_str()
+        user_record.id
     )
     .execute(&app_state.pool)
     .await

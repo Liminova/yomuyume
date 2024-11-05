@@ -14,7 +14,7 @@ use utoipa::ToSchema;
 
 use crate::{
     routes::{hash_pass, Mailer},
-    types::{custom_id::CustomID, temp_code_purpose::TempCodePurpose},
+    types::temp_code_purpose::TempCodePurpose,
     AppError, AppState,
 };
 
@@ -56,7 +56,7 @@ pub async fn get_reset_password(
         FROM temp_codes
         WHERE purpose = $1 AND user_id = $2"#,
         TempCodePurpose::ResetPassword as TempCodePurpose,
-        user_record.id.as_str()
+        user_record.id
     )
     .fetch_optional(&app_state.pool)
     .await
@@ -70,7 +70,7 @@ pub async fn get_reset_password(
     }
 
     // get temp code
-    let new_code = CustomID::new();
+    let new_code = app_state.generate_secure_id();
     let code = sqlx::query!(
         r#"INSERT INTO temp_codes (purpose, user_id, code, created_at)
         VALUES ($1, $2, $3, $4)
@@ -78,7 +78,7 @@ pub async fn get_reset_password(
         DO UPDATE SET created_at = $4
         RETURNING code"#,
         TempCodePurpose::ResetPassword as TempCodePurpose,
-        user_record.id.as_str(),
+        user_record.id,
         new_code.as_str(),
         Utc::now()
     )
@@ -152,7 +152,7 @@ pub async fn post_reset_password(
         r#"UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3"#,
         password_hash.as_str(),
         Utc::now(),
-        temp_code_record.user_id.as_str()
+        temp_code_record.user_id
     )
     .execute(&app_state.pool)
     .await

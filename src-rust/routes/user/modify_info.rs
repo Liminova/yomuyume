@@ -1,10 +1,5 @@
 use std::sync::Arc;
 
-use crate::{
-    routes::{check_pass, hash_pass},
-    AppError, AppState,
-};
-
 use anyhow::Context;
 use axum::{
     extract::State,
@@ -14,6 +9,12 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+use crate::{
+    routes::{check_pass, hash_pass},
+    types::UserID,
+    AppError, AppState,
+};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct ModifyRequestBody {
@@ -32,7 +33,7 @@ pub struct ModifyRequestBody {
 ))]
 pub async fn post_modify_info(
     State(app_state): State<Arc<AppState>>,
-    Extension(user_id): Extension<String>,
+    Extension(user_id): Extension<UserID>,
     Json(body): Json<ModifyRequestBody>,
 ) -> Result<Response, AppError> {
     let mut new_password_hash = String::new();
@@ -45,14 +46,12 @@ pub async fn post_modify_info(
                 .into_response());
         }
         (Some(current_password), Some(new_password)) => {
-            let current_password_hash = sqlx::query!(
-                r#"SELECT password_hash FROM users WHERE id = $1"#,
-                user_id.as_str()
-            )
-            .fetch_one(&app_state.pool)
-            .await
-            .context("can't get user")?
-            .password_hash;
+            let current_password_hash =
+                sqlx::query!(r#"SELECT password_hash FROM users WHERE id = $1"#, user_id)
+                    .fetch_one(&app_state.pool)
+                    .await
+                    .context("can't get user")?
+                    .password_hash;
             if !check_pass(&current_password_hash, &current_password) {
                 return Ok((StatusCode::BAD_REQUEST, "invalid current password").into_response());
             }
@@ -70,7 +69,7 @@ pub async fn post_modify_info(
         body.username.unwrap_or_default(),
         body.email.unwrap_or_default(),
         new_password_hash,
-        user_id.as_str()
+        user_id
     )
     .execute(&app_state.pool)
     .await

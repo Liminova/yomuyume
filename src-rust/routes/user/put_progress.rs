@@ -7,7 +7,7 @@ use axum::{
     Extension,
 };
 
-use crate::{AppError, AppState};
+use crate::{types::UserID, AppError, AppState};
 
 #[utoipa::path(put, path = "/api/user/progress/{title_id}/{page}", responses(
     (status = 200, description = "Set progress successfully"),
@@ -16,8 +16,8 @@ use crate::{AppError, AppState};
 ))]
 pub async fn put_progress(
     State(app_state): State<Arc<AppState>>,
-    Extension(user_id): Extension<String>,
-    Path((title_id, page)): Path<(String, i64)>,
+    Extension(user_id): Extension<UserID>,
+    Path((title_id, page)): Path<(i64, i64)>,
 ) -> Result<Response, AppError> {
     let result = sqlx::query!(
         "INSERT INTO progresses (user_id, title_id, last_read_at, page) VALUES ($1, $2, $3, $4)",

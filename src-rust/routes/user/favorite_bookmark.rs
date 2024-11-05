@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use crate::{AppError, AppState};
-
 use anyhow::Context;
 use axum::{
     extract::{Path, State},
@@ -9,6 +7,8 @@ use axum::{
     response::{IntoResponse, Response},
     Extension,
 };
+
+use crate::{types::UserID, AppError, AppState};
 
 #[utoipa::path(put, path = "/api/user/favorite/{id}", responses(
     (status = 200, description = "Add favorite successful"),
@@ -18,12 +18,12 @@ use axum::{
 ))]
 pub async fn put_favorite(
     State(app_state): State<Arc<AppState>>,
-    Extension(user_id): Extension<String>,
-    Path(title_id): Path<String>,
+    Extension(user_id): Extension<UserID>,
+    Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
     let title_exists = sqlx::query!(
         r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
-        &title_id
+        title_id
     )
     .fetch_one(&app_state.pool)
     .await
@@ -38,8 +38,8 @@ pub async fn put_favorite(
         VALUES ($1, $2)
         ON CONFLICT (title_id, user_id)
         DO NOTHING"#,
-        &title_id,
-        user_id.as_str()
+        title_id,
+        user_id
     )
     .execute(&app_state.pool)
     .await
@@ -56,12 +56,12 @@ pub async fn put_favorite(
 ))]
 pub async fn put_bookmark(
     State(app_state): State<Arc<AppState>>,
-    Extension(user_id): Extension<String>,
-    Path(title_id): Path<String>,
+    Extension(user_id): Extension<UserID>,
+    Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
     let title_exists = sqlx::query!(
         r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
-        &title_id
+        title_id
     )
     .fetch_one(&app_state.pool)
     .await
@@ -76,7 +76,7 @@ pub async fn put_bookmark(
         VALUES ($1, $2)
         ON CONFLICT (title_id, user_id)
         DO NOTHING"#,
-        &title_id,
+        title_id,
         &user_id
     )
     .execute(&app_state.pool)
@@ -94,12 +94,12 @@ pub async fn put_bookmark(
 ))]
 pub async fn delete_favorite(
     State(data): State<Arc<AppState>>,
-    Extension(user_id): Extension<String>,
-    Path(title_id): Path<String>,
+    Extension(user_id): Extension<UserID>,
+    Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
     let title_exists = sqlx::query!(
         r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
-        &title_id
+        title_id
     )
     .fetch_one(&data.pool)
     .await
@@ -111,8 +111,8 @@ pub async fn delete_favorite(
 
     sqlx::query!(
         r#"DELETE FROM favorites WHERE title_id = $1 AND user_id = $2"#,
-        &title_id,
-        user_id.as_str()
+        title_id,
+        user_id
     )
     .execute(&data.pool)
     .await
@@ -129,12 +129,12 @@ pub async fn delete_favorite(
 ))]
 pub async fn delete_bookmark(
     State(data): State<Arc<AppState>>,
-    Extension(user_id): Extension<String>,
-    Path(title_id): Path<String>,
+    Extension(user_id): Extension<UserID>,
+    Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
     let title_exists = sqlx::query!(
         r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
-        &title_id
+        title_id
     )
     .fetch_one(&data.pool)
     .await
@@ -146,7 +146,7 @@ pub async fn delete_bookmark(
 
     sqlx::query!(
         r#"DELETE FROM bookmarks WHERE title_id = $1 AND user_id = $2"#,
-        &title_id,
+        title_id,
         &user_id
     )
     .execute(&data.pool)
