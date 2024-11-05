@@ -120,7 +120,7 @@ impl Cover {
             .extension()
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_default();
-        if !SUPPORTED_IMAGE_FORMATS.contains_key(ext.as_str()) {
+        if !SUPPORTED_IMAGE_FORMATS.contains(&ext.as_str()) {
             return Err(serde::de::Error::custom(format!(
                 "cover file is not a supported image format: {ext}"
             )));
