@@ -17,7 +17,7 @@ pub(super) const SECURE_ID_CHARSET: &[char; 64] = &[
     'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4',
     '5', '6', '7', '8', '9', '-', '_',
 ];
-pub(super) const SECURE_ID_MASK: usize = SECURE_ID_CHARSET.len() - 1;
+pub(super) const SECURE_ID_MASK: usize = SECURE_ID_CHARSET.len().next_power_of_two() - 1;
 
 const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
