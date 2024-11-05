@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS sessions_tokens;
+DROP TABLE IF EXISTS session_tokens;
 DROP TABLE IF EXISTS temp_codes;
 DROP TABLE IF EXISTS progresses;
 DROP TABLE IF EXISTS favorites;
