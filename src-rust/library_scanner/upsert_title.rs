@@ -51,13 +51,14 @@ pub async fn upsert_title(
         .context("can't list files in archive")?
         .into_iter()
         .filter(|item| {
-            SUPPORTED_IMAGE_FORMATS.contains_key(
+            SUPPORTED_IMAGE_FORMATS.contains(
                 &item
                     .path
                     .split('.')
                     .last()
                     .unwrap_or_default()
-                    .to_ascii_lowercase(),
+                    .to_ascii_lowercase()
+                    .as_str(),
             )
         })
         .collect::<Vec<_>>();
