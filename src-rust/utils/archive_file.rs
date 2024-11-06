@@ -329,6 +329,69 @@ impl ArchiveFile {
 
         Ok(())
     }
+
+    /// Returns a [`Stream`]-able object that can be pass to
+    /// [`axum::body::Body::from_stream`] to stream the content of a specified
+    /// file in the archive directly without extracting the whole file.
+    ///
+    /// To avoid an additional call to the 7z CLI, the file size is manually
+    /// provided, it's just to tell clients what the size of file they get,
+    /// not affecting the streaming process.
+    pub fn stream_file(
+        &self,
+        file_name: impl ToString,
+        filesize: Option<i64>,
+    ) -> Result<impl Stream<Item = Result<Bytes>>> {
+        let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
+            .arg("e")
+            .arg(format!("{}", self.path.display()))
+            .arg("-so")
+            .arg(file_name.to_string())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .context("can't spawn 7zz")?;
+        let buf = BufReader::new(child.stdout.take().context("can't take stdout")?);
+
+        Ok(ArchiveItemStream {
+            reader: buf,
+            filesize,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct ArchiveItemStream {
+    reader: BufReader<ChildStdout>,
+    filesize: Option<i64>,
+}
+
+impl Stream for ArchiveItemStream {
+    type Item = Result<Bytes>;
+
+    fn poll_next(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        let _ = cx;
+        let mut buf = vec![0; 65536];
+        match self.reader.read(&mut buf) {
+            Ok(0) => Poll::Ready(None),
+            Ok(n) => Poll::Ready(Some(Ok(Bytes::from(buf[..n].to_vec())))),
+            Err(e) => Poll::Ready(Some(Err(anyhow!("can't read stdout: {e:#}")))),
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (
+            0,
+            self.filesize.and_then(|filesize| match filesize {
+                size if size <= 0 => None,
+                size if size > usize::MAX as i64 => None,
+                size => Some(size as usize),
+            }),
+        )
+    }
 }
 
 #[cfg(test)]
