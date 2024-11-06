@@ -2,8 +2,9 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Context;
 use axum::{
+    body::Body,
     extract::{Path, State},
-    http::{header, StatusCode},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
 
@@ -19,43 +20,39 @@ pub async fn get_page(
     State(app_state): State<Arc<AppState>>,
     Path(page_id): Path<i64>,
 ) -> Result<Response, AppError> {
-    let (title_id, path_in_content_file) =
-        match sqlx::query!("SELECT id, path FROM pages WHERE id = $1", page_id)
-            .fetch_optional(&app_state.pool)
-            .await
-            .context("can't find page")?
-        {
-            Some(page) => (page.id, page.path),
-            None => {
-                return Ok((StatusCode::NOT_FOUND, "page not found".to_string()).into_response())
-            }
-        };
-
-    // TODO: join these queries
-    let path = match sqlx::query!("SELECT path FROM titles WHERE id = $1", title_id)
-        .fetch_optional(&app_state.pool)
-        .await
-        .context("can't find title")?
-    {
-        Some(title) => title.path,
-        None => return Ok((StatusCode::NOT_FOUND, "title not found".to_string()).into_response()),
-    };
-
-    let page_file_buf = ArchiveFile::from(PathBuf::from(&path))
-        .context("can't create ArchiveFile from content file")
-        .and_then(|mut archive_file| archive_file.read_file(&path_in_content_file))
-        .context("can't get page file from content file")?;
-
-    Ok((
-        StatusCode::OK,
-        [(
-            header::CONTENT_TYPE,
-            match path_in_content_file.split('.').last().unwrap_or_default() {
-                "jpg" => "image/jpeg".to_string(),
-                v => format!("image/{v}"),
-            },
-        )],
-        page_file_buf,
+    let result = sqlx::query!(
+        r#"
+        SELECT
+            pages.path AS page_path,
+            titles.path AS title_path,
+            pages.filesize AS page_filesize
+        FROM pages JOIN titles
+            ON pages.title_id = titles.id
+        WHERE pages.id = $1
+        "#,
+        page_id
     )
-        .into_response())
+    .fetch_one(&app_state.pool)
+    .await
+    .context("title not found from page id")?;
+
+    let mut headers = HeaderMap::new();
+    if let Ok(content_type) = match result.page_path.split('.').last().unwrap_or_default() {
+        "jpg" => "image/jpeg".parse(),
+        v => format!("image/{v}").parse(),
+    } {
+        headers.insert(header::CONTENT_TYPE, content_type);
+    }
+    if let Some(filesize) = result.page_filesize {
+        if let Ok(filesize) = filesize.to_string().parse::<HeaderValue>() {
+            headers.insert(header::CONTENT_LENGTH, filesize);
+        }
+    }
+
+    let content = Body::from_stream(
+        ArchiveFile::from(PathBuf::from(&result.title_path))?
+            .stream_file(result.page_path.clone(), result.page_filesize)?,
+    );
+
+    Ok((StatusCode::OK, headers, content).into_response())
 }
