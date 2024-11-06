@@ -220,6 +220,8 @@ pub async fn upsert_title(
         tokio::fs::metadata(&title_file_path)
             .await
             .and_then(|m| { m.modified().map(|d| DateTime::<Utc>::from(d)) })
+            .map_err(|e| warn!("can't get modified date of title file: {}", e))
+            .ok()
             .unwrap_or_default(),
     )
     .fetch_one(&mut *txn)
