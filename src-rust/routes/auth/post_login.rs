@@ -78,13 +78,7 @@ pub async fn post_login(
     sqlx::query!(
         "INSERT INTO session_tokens
             (id, session_secret, user_id, user_agent, ip_address, last_used_at)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (id) DO UPDATE SET
-            session_secret = EXCLUDED.session_secret,
-            user_id = EXCLUDED.user_id,
-            user_agent = EXCLUDED.user_agent,
-            ip_address = EXCLUDED.ip_address,
-            last_used_at = EXCLUDED.last_used_at",
+        VALUES ($1, $2, $3, $4, $5, $6)",
         app_state.generate_snowflake_id().await?,
         session_secret.as_str(),
         user_id,
