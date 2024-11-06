@@ -7,8 +7,8 @@ use image::{imageops::FilterType::Gaussian, DynamicImage, GenericImageView};
 #[derive(Debug, Clone)]
 pub struct BlurhashResult {
     pub blurhash: String,
-    pub width: u32,
-    pub height: u32,
+    pub width: i32,
+    pub height: i32,
 }
 
 /// A [`blurhash::encode`] wrapper that handles
@@ -30,7 +30,7 @@ pub fn encode(decoded_img: &DynamicImage) -> Result<BlurhashResult> {
             smaller_height,
             &decoded_img.to_rgba8().into_vec(),
         )?,
-        width,
-        height,
+        width: width as i32,
+        height: height as i32,
     })
 }
