@@ -294,48 +294,6 @@ impl ArchiveFile {
         Ok(stdout_buf)
     }
 
-    /// Write the content of a specified file in the archive to the buffer.
-    ///
-    /// https://superuser.com/a/148501
-    pub async fn write_to_buffer(
-        &mut self,
-        file_name: impl ToString,
-        buf: &mut Vec<u8>,
-    ) -> Result<()> {
-        if !self.path.exists() {
-            return Err(anyhow!("archive not exists"));
-        }
-
-        let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
-            .arg("e")
-            .arg(format!("{}", self.path.display()))
-            .arg("-so")
-            .arg(file_name.to_string())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .context("can't spawn 7zz")?;
-
-        let mut stderr_buf: Vec<u8> = vec![];
-        std::io::BufReader::new(child.stdout.take().context("can't read stdout")?)
-            .read_to_end(buf)
-            .context("can't read stdout to buffer")?;
-        std::io::BufReader::new(child.stderr.take().context("can't read stderr")?)
-            .read_to_end(&mut stderr_buf)
-            .context("can't read stderr to buffer")?;
-
-        if !stderr_buf.is_empty() {
-            return Err(anyhow!(
-                "7zz error: {:#}",
-                String::from_utf8_lossy(&stderr_buf).trim()
-            ));
-        }
-
-        child.wait().context("can't wait 7zz process to complete")?;
-
-        Ok(())
-    }
-
     /// Upsert a buffer to a specified file in the archive.
     pub fn upsert_file(&mut self, file_name: impl ToString, content: Arc<Vec<u8>>) -> Result<()> {
         if !self.path.exists() {
