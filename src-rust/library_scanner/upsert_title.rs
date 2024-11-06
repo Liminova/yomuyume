@@ -277,16 +277,10 @@ pub async fn upsert_title(
 
     'upsert_tags: {
         if comic_info.tags.is_empty() {
-            sqlx::query!(
-                r#"
-                DELETE FROM titles_tags
-                WHERE title_id = $1
-                "#,
-                title_id
-            )
-            .execute(&mut *txn)
-            .await
-            .context("can't delete tags")?;
+            sqlx::query!(r#"DELETE FROM titles_tags WHERE title_id = $1"#, title_id)
+                .execute(&mut *txn)
+                .await
+                .context("can't delete tags")?;
             break 'upsert_tags;
         }
 
