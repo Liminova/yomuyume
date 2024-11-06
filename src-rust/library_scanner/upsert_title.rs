@@ -75,8 +75,8 @@ pub async fn upsert_title(
     let (cover_path, cover_blurhash, cover_width, cover_height): (
         Option<String>,
         Option<String>,
-        Option<u32>,
-        Option<u32>,
+        Option<i32>,
+        Option<i32>,
     ) = 'scoped: {
         // if found a FrontCover page in ComicInfo.xml
         if let Some((cover, cover_path)) = comic_info
@@ -109,8 +109,8 @@ pub async fn upsert_title(
                     break 'scoped (
                         Some(cover_path.clone()),
                         Some(blurhash.clone()),
-                        Some(cover.image_width as u32),
-                        Some(cover.image_height as u32),
+                        Some(cover.image_width),
+                        Some(cover.image_height),
                     );
                 }
             }
@@ -124,14 +124,14 @@ pub async fn upsert_title(
             match blurhash_result {
                 Ok(blurhash_result) => {
                     cover.blurhash = Some(blurhash_result.blurhash.clone());
-                    cover.image_width = blurhash_result.width as i32;
-                    cover.image_height = blurhash_result.height as i32;
+                    cover.image_width = blurhash_result.width;
+                    cover.image_height = blurhash_result.height;
                     cover.modified_date_at_encode = real_modified_date;
                     break 'scoped (
                         Some(cover_path.clone()),
                         Some(blurhash_result.blurhash),
-                        Some(cover.image_width as u32),
-                        Some(cover.image_height as u32),
+                        Some(cover.image_width),
+                        Some(cover.image_height),
                     );
                 }
                 Err(e) => {
@@ -154,8 +154,8 @@ pub async fn upsert_title(
                     page_type: ComicPageType::FrontCover,
                     blurhash: Some(blurhash_result.blurhash.clone()),
                     image_path: Some(item.path.clone()),
-                    image_width: blurhash_result.width as i32,
-                    image_height: blurhash_result.height as i32,
+                    image_width: blurhash_result.width,
+                    image_height: blurhash_result.height,
                     modified_date_at_encode: Some(item.last_modified),
                     ..Default::default()
                 });
@@ -215,8 +215,8 @@ pub async fn upsert_title(
         title_file_path_string.to_string(),
         cover_path,
         cover_blurhash,
-        cover_width.map(|w| w as i32),
-        cover_height.map(|h| h as i32),
+        cover_width,
+        cover_height,
         tokio::fs::metadata(&title_file_path)
             .await
             .and_then(|m| { m.modified().map(|d| DateTime::<Utc>::from(d)) })
