@@ -40,6 +40,8 @@ sqlx = { version = "0.8.2", features = ["runtime-tokio", "postgres", "chrono"] }
 snowflake = { git = "https://github.com/Liminova/snowflake-rs", version = "1.0.0" }
 num_cpus = "1.16.0"
 async-channel = "2.3.1"
+futures-core = "0.3.31"
+futures-util = "0.3.31"
 
 [dev-dependencies]
 axum-test = "14.0.0"
