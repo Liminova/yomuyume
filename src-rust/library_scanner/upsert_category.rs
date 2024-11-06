@@ -132,8 +132,8 @@ pub async fn upsert_category(
         &category_dir_path_string,
         cover_path,
         cover_blurhash,
-        cover_width.map(|w| w as i32),
-        cover_height.map(|h| h as i32)
+        cover_width,
+        cover_height
     )
     .fetch_one(&app_state.pool)
     .await
