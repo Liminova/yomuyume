@@ -2,6 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Context;
 use axum::{
+    body::Body,
     extract::{Path, State},
     http::{header, StatusCode},
     response::{IntoResponse, Response},
@@ -19,40 +20,43 @@ pub async fn get_cover(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
-    let (content_file_path, cover_path) = match sqlx::query!(
-        "SELECT path, cover_path FROM titles WHERE id = $1",
+    let record = match sqlx::query!(
+        "SELECT titles.path as title_file_path, cover_path, pages.filesize as cover_size
+        FROM titles
+            LEFT JOIN pages ON pages.title_id = titles.id
+            AND pages.path = cover_path
+        WHERE titles.id = $1",
         title_id
     )
     .fetch_optional(&app_state.pool)
     .await
     .context("can't find title path")?
     {
-        Some(result) => (result.path, result.cover_path),
+        Some(record) => record,
         None => return Ok((StatusCode::NOT_FOUND, "title not found".to_string()).into_response()),
     };
 
-    let cover_path = match cover_path {
+    let cover_path = match record.cover_path {
         Some(path) => path,
         None => {
             return Ok((StatusCode::NOT_FOUND, "title has no cover".to_string()).into_response())
         }
     };
 
-    let cover_file_buf = ArchiveFile::from(PathBuf::from(content_file_path))
-        .context("can't create ArchiveFile from content file")
-        .and_then(|mut archive_file| archive_file.read_file(&cover_path))
-        .context("can't get cover file from content file")?;
+    let headers = [(
+        header::CONTENT_TYPE,
+        // TODO: works but too janky
+        match cover_path.split('.').last().unwrap_or_default() {
+            "" => "image".to_string(),
+            "jpg" => "image/jpeg".to_string(),
+            v => format!("image/{v}"),
+        },
+    )];
 
-    Ok((
-        StatusCode::OK,
-        [(
-            header::CONTENT_TYPE,
-            match cover_path.split('.').last().unwrap_or_default() {
-                "jpg" => "image/jpeg".to_string(),
-                v => format!("image/{v}"),
-            },
-        )],
-        cover_file_buf,
-    )
-        .into_response())
+    let content = Body::from_stream(
+        ArchiveFile::from(PathBuf::from(record.title_file_path))?
+            .stream_file(cover_path, record.cover_size)?,
+    );
+
+    Ok((StatusCode::OK, headers, content).into_response())
 }
