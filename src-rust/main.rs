@@ -12,7 +12,7 @@ use axum::{
     Router,
 };
 use sqlx::postgres::PgPoolOptions;
-use tokio::{net::TcpListener, sync::Mutex};
+use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
 use utoipa::OpenApi;
