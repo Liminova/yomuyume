@@ -12,8 +12,6 @@ use tokio::{
 use super::{SECURE_ID_CHARSET, SECURE_ID_LENGTH, SECURE_ID_MASK};
 use crate::utils::config::Config;
 
-type SnowflakeIDGeneratorRequest = Box<dyn FnOnce(i64) + Send>;
-
 #[derive(Debug)]
 pub struct AppState {
     pub pool: sqlx::PgPool,
@@ -21,17 +19,18 @@ pub struct AppState {
     pub scanning_complete: Mutex<bool>,
     pub scanning_progress: Mutex<f64>,
 
-    snowflake_id_generator_request: Sender<SnowflakeIDGeneratorRequest>,
+    snowflake_id_generator_request: Sender<oneshot::Sender<i64>>,
 }
 
 impl AppState {
     pub fn new(pool: sqlx::PgPool, config: Config) -> Self {
         let task_count = num_cpus::get_physical().min(1024);
 
+        // a shared mpmc channel between all the snowflake id generators
         let (request_sender, request_receiver): (
-            Sender<SnowflakeIDGeneratorRequest>,
-            Receiver<SnowflakeIDGeneratorRequest>,
-        ) = bounded(task_count);
+            Sender<oneshot::Sender<i64>>,
+            Receiver<oneshot::Sender<i64>>,
+        ) = bounded(physical_cpu_count);
 
         for _ in 0..task_count {
             let receiver = request_receiver.clone();
@@ -41,9 +40,15 @@ impl AppState {
                     .with_sequence_bits(10)
                     .build()
                     .expect("can't build snowflake generator");
+
+                // waiting for requests
                 loop {
                     match receiver.recv().await {
-                        Ok(callback) => callback(sfgen.generate_id() as i64),
+                        Ok(oneshot_sender) => {
+                            if oneshot_sender.send(sfgen.generate_id() as i64).is_err() {
+                                tracing::error!("can't send snowflake id to oneshot channel");
+                            }
+                        }
                         Err(_) => {
                             tracing::error!("snowflake generator channel closed");
                             continue;
@@ -65,12 +70,9 @@ impl AppState {
 
     pub async fn generate_snowflake_id(&self) -> Result<i64> {
         let (tx, rx) = oneshot::channel();
+
         self.snowflake_id_generator_request
-            .send(Box::new(|new_id| {
-                if tx.send(new_id).is_err() {
-                    tracing::error!("can't send new snowflake id to oneshot channel");
-                };
-            }))
+            .send(tx)
             .await
             .map_err(|e| anyhow!("can't request to generate snowflake id: {e:?}"))?;
 
