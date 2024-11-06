@@ -24,7 +24,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(pool: sqlx::PgPool, config: Config) -> Self {
-        let task_count = num_cpus::get_physical().min(1024);
+        let physical_cpu_count = num_cpus::get_physical().min(1024);
 
         // a shared mpmc channel between all the snowflake id generators
         let (request_sender, request_receiver): (
@@ -32,10 +32,11 @@ impl AppState {
             Receiver<oneshot::Sender<i64>>,
         ) = bounded(physical_cpu_count);
 
-        for _ in 0..task_count {
+        // spin up the snowflake id generators
+        for worker_id in 0..physical_cpu_count {
             let receiver = request_receiver.clone();
             tokio::spawn(async move {
-                let mut sfgen = Snowflake::new(0, 0, 0)
+                let mut sfgen = Snowflake::new(0, worker_id as u64, 0)
                     .with_datacenter_id_bits(0)
                     .with_sequence_bits(10)
                     .build()
