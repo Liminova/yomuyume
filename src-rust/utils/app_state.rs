@@ -38,7 +38,7 @@ impl AppState {
             tokio::spawn(async move {
                 let mut sfgen = Snowflake::new(0, worker_id as u64, 0)
                     .with_datacenter_id_bits(0)
-                    .with_sequence_bits(10)
+                    .with_worker_id_bits(10)
                     .build()
                     .expect("can't build snowflake generator");
 
