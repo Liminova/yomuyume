@@ -232,6 +232,7 @@ pub async fn upsert_title(
     '_upsert_pages: {
         let mut page_ids = Vec::with_capacity(pages_in_archive.len());
         let mut page_paths = Vec::with_capacity(pages_in_archive.len());
+        let mut page_filesizes = Vec::with_capacity(pages_in_archive.len());
         let mut page_descriptions = Vec::with_capacity(pages_in_archive.len());
 
         for item in pages_in_archive.iter() {
@@ -242,6 +243,7 @@ pub async fn upsert_title(
                     .context("can't generate page id")?,
             );
             page_paths.push(item.path.clone());
+            page_filesizes.push(item.size.unwrap_or_default());
             page_descriptions.push(
                 comic_info
                     .get_page_description(&item.path)
@@ -252,10 +254,10 @@ pub async fn upsert_title(
         sqlx::query!(
             r#"
             WITH _ AS (
-            INSERT INTO pages (id, title_id, path, description)
-            SELECT id, $1, path, NULLIF(description, '')
-                FROM UNNEST($2::bigint[], $3::text[], $4::text[])
-                AS t(id, path, description)
+            INSERT INTO pages (id, title_id, path, filesize, description)
+            SELECT id, $1, path, NULLIF(filesize, 0), NULLIF(description, '')
+                FROM UNNEST($2::bigint[], $3::text[], $4::bigint[], $5::text[])
+                AS t(id, path, filesize, description)
             ON CONFLICT (title_id, path) DO UPDATE
                 SET description = EXCLUDED.description
             )
@@ -265,6 +267,7 @@ pub async fn upsert_title(
             title_id,
             &page_ids,
             &page_paths,
+            &page_filesizes,
             &page_descriptions
         )
         .execute(&mut *txn)
