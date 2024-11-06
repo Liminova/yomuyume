@@ -4,7 +4,7 @@ use anyhow::Context;
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode},
+    http::{header, StatusCode},
     response::{IntoResponse, Response},
 };
 
@@ -36,18 +36,14 @@ pub async fn get_page(
     .await
     .context("title not found from page id")?;
 
-    let mut headers = HeaderMap::new();
-    if let Ok(content_type) = match result.page_path.split('.').last().unwrap_or_default() {
-        "jpg" => "image/jpeg".parse(),
-        v => format!("image/{v}").parse(),
-    } {
-        headers.insert(header::CONTENT_TYPE, content_type);
-    }
-    if let Some(filesize) = result.page_filesize {
-        if let Ok(filesize) = filesize.to_string().parse::<HeaderValue>() {
-            headers.insert(header::CONTENT_LENGTH, filesize);
-        }
-    }
+    let headers = [(
+        header::CONTENT_TYPE,
+        match result.page_path.split('.').last().unwrap_or_default() {
+            "" => "image".to_string(),
+            "jpg" => "image/jpeg".to_string(),
+            v => format!("image/{v}"),
+        },
+    )];
 
     let content = Body::from_stream(
         ArchiveFile::from(PathBuf::from(&result.title_path))?
