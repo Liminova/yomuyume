@@ -111,6 +111,8 @@ impl Scanner {
         .await
         .context("can't delete categories")?;
 
+        tracing::info!("scanner finished");
+
         Ok(())
     }
 }
