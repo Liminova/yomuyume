@@ -29,6 +29,7 @@ use routes::*;
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
     let config = Config::init();
+    let addr = format!("{}:{}", config.listen_address, config.server_port);
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
@@ -105,8 +106,7 @@ async fn main() -> Result<()> {
         .with_state(app_state.clone());
 
     let server_handle = tokio::spawn(async move {
-        let addr = format!("{}:{}", config.listen_address, config.server_port);
-        debug!("listening on: {addr}");
+        info!("listening on: {addr}");
 
         if let Err(e) = axum::serve(
             TcpListener::bind(&addr)
