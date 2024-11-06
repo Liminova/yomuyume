@@ -17,14 +17,14 @@ use crate::{types::UserID, AppError, AppState};
 pub async fn put_progress(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
-    Path((title_id, page)): Path<(i64, i64)>,
+    Path((title_id, page)): Path<(i64, i32)>,
 ) -> Result<Response, AppError> {
     let result = sqlx::query!(
         "INSERT INTO progresses (user_id, title_id, last_read_at, page) VALUES ($1, $2, $3, $4)",
         user_id,
         title_id,
         chrono::Utc::now(),
-        page as i32
+        page
     )
     .execute(&app_state.pool)
     .await;
