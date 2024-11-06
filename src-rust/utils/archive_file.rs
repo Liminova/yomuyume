@@ -26,6 +26,7 @@ pub struct ArchiveFile {
 pub struct ItemInArchive {
     pub path: String,
     pub last_modified: DateTime<Utc>,
+    pub size: Option<i64>,
 }
 
 impl PartialEq for ItemInArchive {
@@ -176,17 +177,12 @@ impl ArchiveFile {
                     })
                     .collect();
 
-                let path = attributes.get("Path").map(|val| val.trim().to_string());
-                let path = match path {
-                    Some(path) => path,
-                    None => {
-                        warn!(
-                            "can't get file path for an entry in {}",
-                            self.path.display()
-                        );
-                        break 'scoped None;
-                    }
-                };
+                let path = attributes
+                    .get("Path")
+                    .map(|val| val.trim().to_string())
+                    .filter(|val| !val.is_empty())
+                    .ok_or_else(|| warn!("can't get path for item {}", self.path.display()))
+                    .ok()?;
 
                 let is_dir = attributes
                     .get("Folder")
@@ -204,7 +200,7 @@ impl ArchiveFile {
                             })
                     });
                 if is_dir {
-                    return None;
+                    break 'scoped None;
                 }
 
                 let last_modified = attributes
@@ -220,21 +216,34 @@ impl ArchiveFile {
                             .single()
                             .context("can't convert modified date to local datetime")
                     })
-                    .map(|local_datetime| local_datetime.to_utc());
-                let last_modified = match last_modified {
-                    Ok(last_modified) => last_modified,
-                    Err(e) => {
+                    .map(|local_datetime| local_datetime.to_utc())
+                    .map_err(|e| {
                         warn!(
-                            "can't get last modified date for file {path} in {}: {e:#}",
+                            "can't get last modified date for {path} in {}: {e:#}",
                             self.path.display()
-                        );
-                        break 'scoped None;
-                    }
-                };
+                        )
+                    })
+                    .ok()?;
+
+                let size = attributes
+                    .get("Size")
+                    .ok_or_else(|| {
+                        warn!("can't get size for item {path} in {}", self.path.display())
+                    })
+                    .and_then(|val| {
+                        val.trim().parse::<i64>().map_err(|e| {
+                            warn!(
+                                "can't parse size for {path} in {}: {e:#}",
+                                self.path.display()
+                            )
+                        })
+                    })
+                    .ok();
 
                 Some(ItemInArchive {
                     path,
                     last_modified,
+                    size,
                 })
             })
             .collect();
