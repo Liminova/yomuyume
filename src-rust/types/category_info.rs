@@ -85,9 +85,9 @@ pub struct Cover {
     )]
     pub blurhash: Option<String>,
     #[serde(rename = "@Width", default, skip_serializing_if = "Cover::is_zero")]
-    pub width: u32,
+    pub width: i32,
     #[serde(rename = "@Height", default, skip_serializing_if = "Cover::is_zero")]
-    pub height: u32,
+    pub height: i32,
     #[serde(
         rename = "@ModifiedDateAtEncode",
         default,
@@ -144,7 +144,7 @@ impl Cover {
         }
     }
 
-    fn is_zero(number: &u32) -> bool {
+    fn is_zero(number: &i32) -> bool {
         *number == 0
     }
 
