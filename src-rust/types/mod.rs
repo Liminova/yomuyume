@@ -4,6 +4,7 @@ pub mod temp_code_purpose;
 
 use serde::{Deserialize, Deserializer};
 
+pub type TitleID = i64;
 pub type CategoryID = i64;
 pub type UserID = i64;
 
