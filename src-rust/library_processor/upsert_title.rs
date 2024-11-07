@@ -90,6 +90,7 @@ pub async fn upsert_title(
         .context("can't list files in archive")?;
 
     if files_in_archive.iter().any(|item| item.path == ".nomedia") {
+        debug!(".nomedia in {title_file_path_string}");
         return Err(UpsertTitleError::IsIgnored);
     }
 
