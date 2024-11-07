@@ -346,16 +346,17 @@ pub async fn upsert_title(
             break 'upsert_tags;
         }
 
-        let mut tag_ids = Vec::with_capacity(comic_info.tags.len());
-        for _ in 0..comic_info.tags.len() {
-            tag_ids.push(
-                app_state
-                    .id_generator
-                    .snowflake()
-                    .await
-                    .context("can't generate tag id")?,
-            );
-        }
+        let tag_ids: anyhow::Result<Vec<i64>> = join_all(
+            (0..comic_info.tags.len())
+                .into_iter()
+                .map(|_| app_state.id_generator.snowflake()),
+        )
+        .await
+        .into_iter()
+        .collect();
+        let tag_ids = tag_ids
+            .context("can't generate enough tag ids")
+            .map_err(UpsertTitleError::Other)?;
 
         sqlx::query!(
             r#"
