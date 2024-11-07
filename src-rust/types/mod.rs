@@ -5,7 +5,6 @@ pub mod temp_code_purpose;
 use serde::{Deserialize, Deserializer};
 
 pub type CategoryID = i64;
-pub type TitleID = i64;
 pub type UserID = i64;
 
 fn option_blurhash_deserializer<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
