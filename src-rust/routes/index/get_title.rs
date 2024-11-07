@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Context;
 use axum::{
@@ -13,11 +13,16 @@ use utoipa::ToSchema;
 use crate::{types::UserID, AppError, AppState};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-pub struct ResponsePage {
+pub struct TitlePageResponse {
     pub id: String,
-    pub format: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
+pub struct TitleTagResponse {
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
@@ -30,8 +35,6 @@ pub struct TitleResponseBody {
     pub author: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub release_date: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cover_blurhash: Option<String>,
@@ -40,9 +43,9 @@ pub struct TitleResponseBody {
     pub cover_height: Option<i32>,
 
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub tag_ids: Vec<String>,
+    pub tags: Vec<TitleTagResponse>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub pages: Vec<ResponsePage>,
+    pub pages: Vec<TitlePageResponse>,
     pub favorites: i64,
     pub bookmarks: i64,
     pub is_favorite: bool,
@@ -65,130 +68,123 @@ pub async fn get_title(
     Path(title_id): Path<i64>,
     Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
-    let title_record = match sqlx::query!("SELECT * FROM titles WHERE id = $1", title_id)
-        .fetch_optional(&app_state.pool)
-        .await
-        .context("can't find title")?
-    {
-        Some(result) => result,
-        None => return Ok((StatusCode::NOT_FOUND, "no title found").into_response()),
-    };
+    let title_record = match sqlx::query!(
+        r#"
+        SELECT
+            t.title AS title,
+            c.name AS "category?",
+            t.author AS author,
+            t.release AS release,
+            t.description AS "description?",
 
-    let pages = sqlx::query!(
-        "SELECT * FROM pages WHERE title_id = $1 ORDER BY path ASC",
-        title_id
-    )
-    .fetch_all(&app_state.pool)
-    .await
-    .context("can't find pages")?;
+            t.cover_path AS cover_path,
+            t.cover_blurhash AS cover_blurhash,
+            t.cover_width AS cover_width,
+            t.cover_height AS cover_height,
 
-    // place the cover.path at the front of the Vec<pages::Model>
-    // and convert it to Vec<ResponsePage>
-    let pages = pages
-        .into_iter()
-        .fold(Vec::new(), |mut list, page_model| {
-            match &title_record.cover_path {
-                Some(cover_path) => match page_model.path.as_str() == cover_path {
-                    true => list.insert(0, page_model),
-                    false => list.push(page_model),
-                },
-                None => list.push(page_model),
-            }
-            list
-        })
-        .into_iter()
-        .map(|page| ResponsePage {
-            id: page.id.to_string(),
-            format: PathBuf::from(page.path)
-                .extension()
-                .map(|s| s.to_str().unwrap_or(""))
-                .unwrap_or("")
-                .to_ascii_lowercase(),
-            description: page.description,
-        })
-        .collect::<Vec<_>>();
+            t.date_updated AS date_updated,
 
-    let is_favorite = sqlx::query!(
-        r#"SELECT EXISTS(SELECT 1 FROM favorites WHERE user_id = $1 AND title_id = $2) AS "exists!""#,
-        &user_id,
-        title_record.id
-    )
-    .fetch_one(&app_state.pool)
-    .await
-    .context("can't check if user is favorite")?
-    .exists;
+            ARRAY_AGG(DISTINCT CONCAT(tg.name, '-', tg.id)) AS "tags",
+            ARRAY_AGG(DISTINCT CONCAT(p.id, '-', p.description)) AS "pages",
 
-    let is_bookmark = sqlx::query!(
-        r#"SELECT EXISTS(SELECT 1 FROM bookmarks WHERE user_id = $1 AND title_id = $2) AS "exists!""#,
-        &user_id,
-        title_record.id
-    )
-    .fetch_one(&app_state.pool)
-    .await
-    .context("can't check if user is bookmark")?
-    .exists;
+            COALESCE(fav.count, 0) AS "favorites_count!",
+            COALESCE(bkm.count, 0) AS "bookmarks_count!",
+            CASE WHEN fav_user.count = 1 THEN TRUE ELSE FALSE END AS "is_favorite!",
+            CASE WHEN bkm_user.count = 1 THEN TRUE ELSE FALSE END AS "is_bookmark!",
+            pr.page AS "page_read?"
 
-    let page_read = sqlx::query!(
-        r#"SELECT page FROM progresses WHERE user_id = $1 AND title_id = $2"#,
-        &user_id,
-        title_record.id
+        FROM titles t
+            LEFT JOIN categories c ON c.id = t.category_id
+            LEFT JOIN pages p ON p.title_id = t.id
+            LEFT JOIN titles_tags tt ON tt.title_id = t.id
+            LEFT JOIN tags tg ON tg.id = tt.tag_id
+            LEFT JOIN progresses pr ON (pr.title_id = t.id AND pr.user_id = $2)
+
+            -- count favorites and bookmarks
+            LEFT JOIN (
+                SELECT title_id, COUNT(*) AS count
+                FROM favorites WHERE title_id = $1
+                GROUP BY title_id
+            ) fav ON fav.title_id = t.id
+            LEFT JOIN (
+                SELECT title_id, COUNT(*) AS count
+                FROM bookmarks WHERE title_id = $1
+                GROUP BY title_id
+            ) bkm ON bkm.title_id = t.id
+
+            -- count favorites and bookmarks by user (either 1 or NULL)
+            LEFT JOIN (
+                SELECT title_id, COUNT(*) AS count
+                FROM favorites
+                WHERE title_id = $1 AND user_id = $2
+                GROUP BY title_id
+            ) fav_user ON fav_user.title_id = t.id
+            LEFT JOIN (
+                SELECT title_id, COUNT(*) AS count
+                FROM bookmarks
+                WHERE title_id = $1 AND user_id = $2
+                GROUP BY title_id
+            ) bkm_user ON bkm_user.title_id = t.id
+
+        WHERE t.id = $1
+        GROUP BY
+            t.id, c.name, t.description,
+            fav.count, bkm.count, fav_user.count, bkm_user.count, pr.page
+        "#,
+        title_id,
+        user_id
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't check if user is bookmark")?
-    .map(|p| p.page);
+    .context("can't execute experimental query")?
+    {
+        Some(title_record) => title_record,
+        None => return Ok((StatusCode::NOT_FOUND, "no title found").into_response()),
+    };
 
-    let favorites = sqlx::query!(
-        r#"SELECT COUNT(*) AS "count!" FROM favorites WHERE title_id = $1"#,
-        title_record.id
-    )
-    .fetch_one(&app_state.pool)
-    .await
-    .context("can't check if user is bookmark")?
-    .count;
+    let body = TitleResponseBody {
+        category_id: title_record.category,
+        title: title_record.title,
+        author: title_record.author,
+        description: title_record.description,
+        cover_blurhash: title_record.cover_blurhash,
+        cover_width: title_record.cover_width,
+        cover_height: title_record.cover_height,
+        tags: title_record
+            .tags
+            .map(|tags| {
+                tags.into_iter()
+                    .map(|s| {
+                        let parts = s.split('-').collect::<Vec<_>>();
+                        TitleTagResponse {
+                            id: parts.get(1).map(|s| s.to_string()).unwrap_or_default(),
+                            name: parts.get(0).map(|s| s.to_string()).unwrap_or_default(),
+                        }
+                    })
+                    .collect()
+            })
+            .unwrap_or_else(|| vec![]),
+        pages: title_record
+            .pages
+            .map(|p| {
+                p.into_iter()
+                    .map(|s| {
+                        let parts = s.split('-').collect::<Vec<_>>();
+                        TitlePageResponse {
+                            id: parts.get(0).map(|s| s.to_string()).unwrap_or_default(),
+                            description: parts.get(1).map(|s| s.to_string()),
+                        }
+                    })
+                    .collect()
+            })
+            .unwrap_or_else(|| vec![]),
+        favorites: title_record.favorites_count,
+        bookmarks: title_record.bookmarks_count,
+        is_favorite: title_record.is_favorite,
+        is_bookmark: title_record.is_bookmark,
+        page_read: title_record.page_read,
+        date_updated: title_record.date_updated.map(|d| d.to_rfc3339()),
+    };
 
-    let bookmarks = sqlx::query!(
-        r#"SELECT COUNT(*) AS "count!" FROM bookmarks WHERE title_id = $1"#,
-        title_record.id
-    )
-    .fetch_one(&app_state.pool)
-    .await
-    .context("can't check if user is bookmark")?
-    .count;
-
-    let tag_ids = sqlx::query!(
-        r#"SELECT tag_id FROM titles_tags WHERE title_id = $1"#,
-        title_record.id
-    )
-    .fetch_all(&app_state.pool)
-    .await
-    .context("can't check if user is bookmark")?
-    .into_iter()
-    .map(|tag| tag.tag_id)
-    .collect::<Vec<_>>();
-
-    Ok((
-        StatusCode::OK,
-        Json(TitleResponseBody {
-            category_id: title_record.category_id.map(|id| id.to_string()),
-            title: title_record.title,
-            author: title_record.author,
-            description: title_record.description,
-            release_date: title_record
-                .release
-                .map(|d| d.format("%Y-%m-%dT00:00:00Z").to_string()),
-            cover_blurhash: title_record.cover_blurhash,
-            cover_width: title_record.cover_width,
-            cover_height: title_record.cover_height,
-            tag_ids: tag_ids.into_iter().map(|id| id.to_string()).collect(),
-            pages,
-            favorites,
-            bookmarks,
-            is_favorite,
-            is_bookmark,
-            page_read,
-            date_updated: title_record.date_updated.map(|d| d.to_rfc3339()),
-        }),
-    )
-        .into_response())
+    Ok((StatusCode::OK, Json(body)).into_response())
 }
