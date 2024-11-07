@@ -1,56 +1,82 @@
 use std::{path::PathBuf, sync::Arc};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context};
 use chrono::Timelike;
 use chrono::{DateTime, Utc};
+use tracing::warn;
 
 pub(super) const COMICINFO_FILENAME: &str = "ComicInfo.xml";
 
-use crate::library_processor::upsert_category::{upsert_category, UpsertCategoryError};
 use crate::{
-    library_processor::blurhash::encode,
+    library_processor::{
+        blurhash::encode,
+        upsert_category::{upsert_category, UpsertCategoryError},
+    },
     types::{
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
-        CategoryID,
+        CategoryID, TitleID,
     },
     AppState, ArchiveFile, IteratorExt, SUPPORTED_IMAGE_FORMATS,
 };
 
 #[derive(Debug)]
-pub struct UpsertTitleResult {
+pub struct UpsertTitleOk {
+    pub title_id: TitleID,
     pub category_id: Option<CategoryID>,
+}
+
+/// ONLY add errors that would need to handle differently, e.g. [`IsIgnored`]
+/// would tell the caller the function "failed" because the file is ignored,
+/// not something wrong happened.
+///
+/// [`IsIgnored`]: UpsertTitleError::IsIgnored
+#[derive(Debug)]
+pub enum UpsertTitleError {
+    IsIgnored,
+    Other(anyhow::Error),
+}
+
+impl From<anyhow::Error> for UpsertTitleError {
+    fn from(e: anyhow::Error) -> Self {
+        Self::Other(e)
+    }
 }
 
 /// Upsert a title to the database and return its ID and ComicInfo.
 pub async fn upsert_title(
     app_state: Arc<AppState>,
     title_file_path: &PathBuf,
-) -> Result<UpsertTitleResult> {
+) -> Result<UpsertTitleOk, UpsertTitleError> {
     tracing::debug!("processing {title_file_path:?}");
 
     '_pre_checks: {
         if !title_file_path.exists() {
-            return Err(anyhow!("content file not exists"));
+            return Err(anyhow!("content file not exists").into());
         }
         if !title_file_path.is_file() {
-            return Err(anyhow!("content file is not a file"));
+            return Err(anyhow!("content file is not a file").into());
         }
         if !title_file_path
             .extension()
             .map(|s| s.to_string_lossy() == "zip")
             .unwrap_or(false)
         {
-            return Err(anyhow!("content file is not a zip file"));
+            return Err(anyhow!("content file is not a zip file").into());
         }
     }
 
-    let mut txn = app_state.pool.begin().await?;
+    let mut txn = app_state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| UpsertTitleError::Other(anyhow!("can't begin transaction: {e:#?}")))?;
 
     let category_id = match upsert_category(app_state.clone(), title_file_path, &mut *txn).await {
         Ok(category_id) => Some(category_id),
         Err(UpsertCategoryError::DirIsInLibraryRoot) => None,
+        // TODO: rename this function to upsert_archive_title; create new upsert_directory_title, and call it instead
         Err(UpsertCategoryError::DirIsTitle) => None,
-        Err(UpsertCategoryError::Other(e)) => return Err(e),
+        Err(UpsertCategoryError::Other(e)) => return Err(e.into()),
     };
 
     // micro DX optimization, this value is used frequently
@@ -58,10 +84,16 @@ pub async fn upsert_title(
 
     let mut archive_file = ArchiveFile::from(title_file_path.clone())
         .context("can't create ArchiveFile from content file")?;
-    let pages_in_archive = archive_file
+    let files_in_archive = archive_file
         .list_files()
         .await
-        .context("can't list files in archive")?
+        .context("can't list files in archive")?;
+
+    if files_in_archive.iter().any(|item| item.path == ".nomedia") {
+        return Err(UpsertTitleError::IsIgnored);
+    }
+
+    let pages_in_archive = files_in_archive
         .into_iter()
         .filter(|item| {
             SUPPORTED_IMAGE_FORMATS.contains(
@@ -110,7 +142,7 @@ pub async fn upsert_title(
                 });
 
             if let Err(ref e) = real_modified_date {
-                tracing::warn!("can't get modified date for {cover_path_string} inside {title_file_path_string}: {e:#?}")
+                warn!("can't get modified date for {cover_path_string} inside {title_file_path_string}: {e:#?}")
             }
 
             // and all the following fields are valid
@@ -156,7 +188,7 @@ pub async fn upsert_title(
                     );
                 }
                 Err(e) => {
-                    tracing::warn!("can't encode {cover_path_string} in {title_file_path_string} to blurhash: {e:#?}");
+                    warn!("can't encode {cover_path_string} in {title_file_path_string} to blurhash: {e:#?}");
                 }
             }
         }
@@ -190,7 +222,7 @@ pub async fn upsert_title(
                 );
             }
             Err(e) => {
-                tracing::warn!("there's no file in {title_file_path_string} that can be encoded to blurhash: {e:#?}");
+                warn!("there's no file in {title_file_path_string} that can be encoded to blurhash: {e:#?}");
             }
         };
 
@@ -346,5 +378,8 @@ pub async fn upsert_title(
 
     txn.commit().await.context("can't commit transaction")?;
 
-    Ok(UpsertTitleResult { category_id })
+    Ok(UpsertTitleOk {
+        category_id,
+        title_id,
+    })
 }
