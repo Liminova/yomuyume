@@ -5,6 +5,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
+use tracing::warn;
 
 use super::upsert_title::COMICINFO_FILENAME;
 use crate::{
@@ -88,9 +89,7 @@ pub async fn upsert_category<'e>(
             })
             .map(|d| d.into());
         if let Err(ref e) = real_modified_date {
-            tracing::warn!(
-                "can't get modified date of cover file for {category_path_string}: {e:#?}"
-            );
+            warn!("can't get modified date of cover file for {category_path_string}: {e:#?}");
         }
 
         if let (Some(blurhash), Some(modified_date_at_encode), Ok(real_modified_date)) = (
@@ -130,9 +129,7 @@ pub async fn upsert_category<'e>(
                 );
             }
             Err(e) => {
-                tracing::warn!(
-                    "can't encode the configured cover of {category_path_string}: {e:#?}"
-                );
+                warn!("can't encode the configured cover of {category_path_string}: {e:#?}");
             }
         }
 
