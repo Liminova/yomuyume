@@ -22,6 +22,8 @@ pub async fn upsert_title(
     category_id: Option<CategoryID>,
     title_file_path: &PathBuf,
 ) -> Result<(TitleID, ComicInfo)> {
+    tracing::debug!("processing {title_file_path:?}");
+
     '_pre_checks: {
         if !title_file_path.exists() {
             return Err(anyhow!("content file not exists"));
@@ -77,63 +79,71 @@ pub async fn upsert_title(
         Option<i32>,
     ) = 'scoped: {
         // if found a FrontCover page in ComicInfo.xml
-        if let Some((cover, cover_path)) = comic_info
+        if let Some(cover_page_info) = comic_info
             .pages_mut()
             .iter_mut()
-            .find(|p| p.page_type == ComicPageType::FrontCover)
-            .and_then(|p| p.image_path.clone().map(|path| (p, path)))
+            .find(|p| (p.page_type == ComicPageType::FrontCover) && p.image_path.is_some())
         {
+            let cover_path_string = cover_page_info.image_path.clone().unwrap_or_default();
+
             let real_modified_date = pages_in_archive
                 .iter()
-                .find(|i| i.path == *cover_path)
-                .map(|i| i.last_modified);
+                .find(|i| i.path == cover_path_string)
+                .ok_or_else(|| anyhow!("file doesn't exist in archive"))
+                .and_then(|i| {
+                    i.last_modified
+                        .with_nanosecond(0)
+                        .ok_or_else(|| anyhow!("can't round the modified date {}", i.last_modified))
+                });
 
-            if real_modified_date.is_none() {
-                warn!("can't get modified date for files inside {title_file_path_string}")
+            if let Err(ref e) = real_modified_date {
+                warn!("can't get modified date for {cover_path_string} inside {title_file_path_string}: {e:?}")
             }
 
             // and all the following fields are valid
-            if let (Some(blurhash), Some(modified_date_at_encode), Some(ref real_modified_date)) = (
-                cover.blurhash.as_ref(),
-                cover.modified_date_at_encode,
-                real_modified_date,
+            if let (Some(blurhash), Some(modified_date_at_encode), Ok(real_modified_date)) = (
+                cover_page_info.blurhash.as_ref(),
+                cover_page_info.modified_date_at_encode.as_ref(),
+                real_modified_date.as_ref(),
             ) {
-                let valid_dimension = cover.image_width > 0 && cover.image_height > 0;
-                let modified_date_at_encode = modified_date_at_encode.with_nanosecond(0);
-                let real_modified_date = real_modified_date.with_nanosecond(0);
+                let valid_dimension =
+                    cover_page_info.image_width > 0 && cover_page_info.image_height > 0;
                 let unmodified = modified_date_at_encode == real_modified_date;
                 // then use them
                 if valid_dimension && unmodified {
+                    tracing::debug!("cover image no change");
                     break 'scoped (
-                        Some(cover_path.clone()),
+                        Some(cover_path_string),
                         Some(blurhash.clone()),
-                        Some(cover.image_width),
-                        Some(cover.image_height),
+                        Some(cover_page_info.image_width),
+                        Some(cover_page_info.image_height),
                     );
                 }
             }
 
             // else re-encode the page
             let blurhash_result = archive_file
-                .read_file(&cover_path)
+                .read_file(&cover_path_string)
                 .context("can't get cover file")
                 .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
                 .and_then(|img| encode(&img).context("can't encode image to blurhash"));
             match blurhash_result {
                 Ok(blurhash_result) => {
-                    cover.blurhash = Some(blurhash_result.blurhash.clone());
-                    cover.image_width = blurhash_result.width;
-                    cover.image_height = blurhash_result.height;
-                    cover.modified_date_at_encode = real_modified_date;
+                    tracing::debug!("re-encode cover image");
+
+                    cover_page_info.blurhash = Some(blurhash_result.blurhash.clone());
+                    cover_page_info.image_width = blurhash_result.width;
+                    cover_page_info.image_height = blurhash_result.height;
+                    cover_page_info.modified_date_at_encode = real_modified_date.ok();
                     break 'scoped (
-                        Some(cover_path.clone()),
+                        Some(cover_path_string),
                         Some(blurhash_result.blurhash),
-                        Some(cover.image_width),
-                        Some(cover.image_height),
+                        Some(cover_page_info.image_width),
+                        Some(cover_page_info.image_height),
                     );
                 }
                 Err(e) => {
-                    warn!("can't encode the configured cover of {title_file_path_string}: {e:#}");
+                    warn!("can't encode {cover_path_string} in {title_file_path_string} to blurhash: {e:?}");
                 }
             }
         }
@@ -148,6 +158,8 @@ pub async fn upsert_title(
                 .map(|blurhash_result| (item, blurhash_result))
         }) {
             Ok((item, blurhash_result)) => {
+                tracing::debug!("found new cover image");
+
                 comic_info.pages_mut().push(ComicPageInfo {
                     page_type: ComicPageType::FrontCover,
                     blurhash: Some(blurhash_result.blurhash.clone()),
