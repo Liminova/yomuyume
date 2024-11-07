@@ -51,7 +51,7 @@ pub async fn get_delete_account(
     }
 
     // get temp code
-    let new_code = app_state.generate_secure_id();
+    let new_code = app_state.id_generator.secure();
     let code = sqlx::query!(
         r#"INSERT INTO temp_codes (purpose, user_id, code, created_at)
         VALUES ($1, $2, $3, $4)

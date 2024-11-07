@@ -64,7 +64,7 @@ pub async fn post_register(
         "INSERT INTO users
             (id, username, email, password_hash)
         VALUES ($1, $2, $3, $4)",
-        app_state.generate_snowflake_id().await?,
+        app_state.id_generator.snowflake().await?,
         query.username.as_str(),
         query.email.to_string().to_ascii_lowercase(),
         hash_pass(p)?

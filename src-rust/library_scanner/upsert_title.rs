@@ -216,7 +216,7 @@ pub async fn upsert_title(
             date_updated = EXCLUDED.date_updated
         RETURNING id
         "#,
-        app_state.generate_snowflake_id().await?,
+        app_state.id_generator.snowflake().await?,
         comic_info.title,
         category_id,
         comic_info.penciller.as_ref(),
@@ -248,7 +248,8 @@ pub async fn upsert_title(
         for item in pages_in_archive.iter() {
             page_ids.push(
                 app_state
-                    .generate_snowflake_id()
+                    .id_generator
+                    .snowflake()
                     .await
                     .context("can't generate page id")?,
             );
@@ -298,7 +299,8 @@ pub async fn upsert_title(
         for _ in 0..comic_info.tags.len() {
             tag_ids.push(
                 app_state
-                    .generate_snowflake_id()
+                    .id_generator
+                    .snowflake()
                     .await
                     .context("can't generate tag id")?,
             );

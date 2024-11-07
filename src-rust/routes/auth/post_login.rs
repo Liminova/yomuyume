@@ -73,13 +73,13 @@ pub async fn post_login(
         .and_then(|value| value.to_str().ok())
         .map(|user_agent_str| user_agent_str.to_string());
 
-    let session_secret = app_state.generate_secure_id();
+    let session_secret = app_state.id_generator.secure();
 
     sqlx::query!(
         "INSERT INTO session_tokens
             (id, session_secret, user_id, user_agent, ip_address, last_used_at)
         VALUES ($1, $2, $3, $4, $5, $6)",
-        app_state.generate_snowflake_id().await?,
+        app_state.id_generator.snowflake().await?,
         session_secret.as_str(),
         user_id,
         user_agent,

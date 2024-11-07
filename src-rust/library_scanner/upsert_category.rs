@@ -124,7 +124,8 @@ pub async fn upsert_category(
         RETURNING id
     "#,
         app_state
-            .generate_snowflake_id()
+            .id_generator
+            .snowflake()
             .await
             .context("can't generate category id")?,
         category_info.name.clone().unwrap_or("Untitled".to_string()),
