@@ -6,21 +6,26 @@ use chrono::{DateTime, Utc};
 
 const COMICINFO_FILENAME: &str = "ComicInfo.xml";
 
+use crate::library_processor::upsert_category::{upsert_category, UpsertCategoryError};
 use crate::{
     library_processor::blurhash::encode,
     types::{
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
-        CategoryID, TitleID,
+        CategoryID,
     },
     AppState, ArchiveFile, IteratorExt, SUPPORTED_IMAGE_FORMATS,
 };
 
+#[derive(Debug)]
+pub struct UpsertTitleResult {
+    pub category_id: Option<CategoryID>,
+}
+
 /// Upsert a title to the database and return its ID and ComicInfo.
 pub async fn upsert_title(
     app_state: Arc<AppState>,
-    category_id: Option<CategoryID>,
     title_file_path: &PathBuf,
-) -> Result<(TitleID, ComicInfo)> {
+) -> Result<UpsertTitleResult> {
     tracing::debug!("processing {title_file_path:?}");
 
     '_pre_checks: {
@@ -39,7 +44,16 @@ pub async fn upsert_title(
         }
     }
 
-    // micro optimization, this value is used frequently
+    let mut txn = app_state.pool.begin().await?;
+
+    let category_id = match upsert_category(app_state.clone(), title_file_path, &mut *txn).await {
+        Ok(category_id) => Some(category_id),
+        Err(UpsertCategoryError::DirIsInLibraryRoot) => None,
+        Err(UpsertCategoryError::DirIsTitle) => None,
+        Err(UpsertCategoryError::Other(e)) => return Err(e),
+    };
+
+    // micro DX optimization, this value is used frequently
     let title_file_path_string = title_file_path.to_string_lossy().to_string();
 
     let mut archive_file = ArchiveFile::from(title_file_path.clone())
@@ -192,8 +206,6 @@ pub async fn upsert_title(
         )
         .context("can't write back metadata to content file")?;
 
-    let mut txn = app_state.pool.begin().await?;
-
     let title_id = sqlx::query!(
         r#"INSERT INTO titles
             (id, title, category_id, author, description, release,
@@ -334,5 +346,5 @@ pub async fn upsert_title(
 
     txn.commit().await.context("can't commit transaction")?;
 
-    Ok((title_id, comic_info))
+    Ok(UpsertTitleResult { category_id })
 }
