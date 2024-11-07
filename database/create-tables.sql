@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS pages (
     id BIGINT PRIMARY KEY,
     title_id BIGINT NOT NULL,
 
+    filesize BIGINT,
     path TEXT NOT NULL,
     description TEXT,
 
