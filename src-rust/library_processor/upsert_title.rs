@@ -83,6 +83,7 @@ pub async fn upsert_title(
     // micro DX optimization, this value is used frequently
     let title_file_path_string = title_file_path.to_string_lossy().to_string();
 
+    // list files in title
     let mut archive_file = ArchiveFile::from(title_file_path.clone())
         .context("can't create ArchiveFile from content file")?;
     let files_in_archive = archive_file
@@ -90,11 +91,13 @@ pub async fn upsert_title(
         .await
         .context("can't list files in archive")?;
 
+    // ignore if exists .nomedia
     if files_in_archive.iter().any(|item| item.path == ".nomedia") {
         debug!(".nomedia in {title_file_path_string}");
         return Err(UpsertTitleError::IsIgnored);
     }
 
+    // filter out non-image files
     let pages_in_archive = files_in_archive
         .into_iter()
         .filter(|item| {
@@ -110,6 +113,7 @@ pub async fn upsert_title(
         })
         .collect::<Vec<_>>();
 
+    // ComicInfo.xml
     let mut comic_info = archive_file
         .read_file(COMICINFO_FILENAME)
         .context(format!("can't get {COMICINFO_FILENAME} in content file"))
