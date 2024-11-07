@@ -158,12 +158,12 @@ pub async fn get_title(
                         let parts = s.split('-').collect::<Vec<_>>();
                         TitleTagResponse {
                             id: parts.get(1).map(|s| s.to_string()).unwrap_or_default(),
-                            name: parts.get(0).map(|s| s.to_string()).unwrap_or_default(),
+                            name: parts.first().map(|s| s.to_string()).unwrap_or_default(),
                         }
                     })
                     .collect()
             })
-            .unwrap_or_else(|| vec![]),
+            .unwrap_or_else(Vec::new),
         pages: title_record
             .pages
             .map(|p| {
@@ -171,13 +171,13 @@ pub async fn get_title(
                     .map(|s| {
                         let parts = s.split('-').collect::<Vec<_>>();
                         TitlePageResponse {
-                            id: parts.get(0).map(|s| s.to_string()).unwrap_or_default(),
+                            id: parts.first().map(|s| s.to_string()).unwrap_or_default(),
                             description: parts.get(1).map(|s| s.to_string()),
                         }
                     })
                     .collect()
             })
-            .unwrap_or_else(|| vec![]),
+            .unwrap_or_else(Vec::new),
         favorites: title_record.favorites_count,
         bookmarks: title_record.bookmarks_count,
         is_favorite: title_record.is_favorite,
