@@ -3,7 +3,8 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::{anyhow, Context};
 use chrono::Timelike;
 use chrono::{DateTime, Utc};
-use tracing::warn;
+use futures_util::future::join_all;
+use tracing::{debug, warn};
 
 pub(super) const COMICINFO_FILENAME: &str = "ComicInfo.xml";
 
@@ -286,19 +287,23 @@ pub async fn upsert_title(
     .id;
 
     '_upsert_pages: {
-        let mut page_ids = Vec::with_capacity(pages_in_archive.len());
+        let page_ids: anyhow::Result<Vec<i64>> = join_all(
+            (0..pages_in_archive.len())
+                .into_iter()
+                .map(|_| app_state.id_generator.snowflake()),
+        )
+        .await
+        .into_iter()
+        .collect();
+        let page_ids = page_ids
+            .context("can't generate enough page ids")
+            .map_err(UpsertTitleError::Other)?;
+
         let mut page_paths = Vec::with_capacity(pages_in_archive.len());
         let mut page_filesizes = Vec::with_capacity(pages_in_archive.len());
         let mut page_descriptions = Vec::with_capacity(pages_in_archive.len());
 
         for item in pages_in_archive.iter() {
-            page_ids.push(
-                app_state
-                    .id_generator
-                    .snowflake()
-                    .await
-                    .context("can't generate page id")?,
-            );
             page_paths.push(item.path.clone());
             page_filesizes.push(item.size.unwrap_or_default());
             page_descriptions.push(
