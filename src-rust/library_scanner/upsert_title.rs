@@ -1,5 +1,3 @@
-// NEW AND IMPROVED
-
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, Context, Result};
