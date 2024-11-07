@@ -4,7 +4,7 @@ use anyhow::{anyhow, Context, Result};
 use chrono::Timelike;
 use chrono::{DateTime, Utc};
 
-const COMICINFO_FILENAME: &str = "ComicInfo.xml";
+pub(super) const COMICINFO_FILENAME: &str = "ComicInfo.xml";
 
 use crate::library_processor::upsert_category::{upsert_category, UpsertCategoryError};
 use crate::{
