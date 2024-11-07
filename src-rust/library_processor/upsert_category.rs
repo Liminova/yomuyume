@@ -15,6 +15,11 @@ use crate::{
 
 const CATEGORY_INFO_FILENAME: &str = "CategoryInfo.xml";
 
+/// ONLY add errors that would need to handle differently, e.g.
+/// [`DirIsInLibraryRoot`] tells the title upsert fns to fill None for the
+/// category_id field in the database, not fail the whole upsert.
+///
+/// [`DirIsInLibraryRoot`]: UpsertCategoryError::DirIsInLibraryRoot
 pub(super) enum UpsertCategoryError {
     DirIsInLibraryRoot,
     DirIsTitle,
