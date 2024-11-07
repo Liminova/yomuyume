@@ -8,7 +8,6 @@ use std::{path::PathBuf, str::FromStr};
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
-use quick_xml::de::from_str;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::option_blurhash_deserializer;
@@ -626,7 +625,7 @@ impl ComicInfo {
         if s.is_empty() {
             return Ok(Self::default());
         }
-        from_str(s).context("can't parse ComicInfo from string")
+        quick_xml::de::from_str(s).context("can't parse ComicInfo from string")
     }
 
     pub fn to_pretty_string(&self) -> Result<String> {
