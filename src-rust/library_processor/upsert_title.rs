@@ -3,7 +3,6 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::{anyhow, Context, Result};
 use chrono::Timelike;
 use chrono::{DateTime, Utc};
-use tracing::warn;
 
 const COMICINFO_FILENAME: &str = "ComicInfo.xml";
 
@@ -97,7 +96,7 @@ pub async fn upsert_title(
                 });
 
             if let Err(ref e) = real_modified_date {
-                warn!("can't get modified date for {cover_path_string} inside {title_file_path_string}: {e:?}")
+                tracing::warn!("can't get modified date for {cover_path_string} inside {title_file_path_string}: {e:#?}")
             }
 
             // and all the following fields are valid
@@ -143,7 +142,7 @@ pub async fn upsert_title(
                     );
                 }
                 Err(e) => {
-                    warn!("can't encode {cover_path_string} in {title_file_path_string} to blurhash: {e:?}");
+                    tracing::warn!("can't encode {cover_path_string} in {title_file_path_string} to blurhash: {e:#?}");
                 }
             }
         }
@@ -177,7 +176,7 @@ pub async fn upsert_title(
                 );
             }
             Err(e) => {
-                warn!("there's no file in {title_file_path_string} that can be encoded to blurhash: {e:#}");
+                tracing::warn!("there's no file in {title_file_path_string} that can be encoded to blurhash: {e:#?}");
             }
         };
 
@@ -230,7 +229,9 @@ pub async fn upsert_title(
         tokio::fs::metadata(&title_file_path)
             .await
             .and_then(|m| { m.modified().map(|d| DateTime::<Utc>::from(d)) })
-            .map_err(|e| warn!("can't get modified date of title file: {}", e))
+            .map_err(|e| tracing::warn!(
+                "can't get modified date of {title_file_path_string}: {e:#?}"
+            ))
             .ok()
             .unwrap_or_default(),
     )
