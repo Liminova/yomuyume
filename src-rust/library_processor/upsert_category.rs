@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use tracing::warn;
 
 use crate::{
-    library_scanner::blurhash::encode,
+    library_processor::blurhash::encode,
     types::{category_info::CategoryInfo, CategoryID},
     AppState,
 };

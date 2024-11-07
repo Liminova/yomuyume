@@ -8,7 +8,7 @@ use tracing::warn;
 const COMICINFO_FILENAME: &str = "ComicInfo.xml";
 
 use crate::{
-    library_scanner::blurhash::encode,
+    library_processor::blurhash::encode,
     types::{
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
         CategoryID, TitleID,

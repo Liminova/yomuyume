@@ -1,4 +1,4 @@
-pub mod blurhash;
+mod blurhash;
 mod upsert_category;
 mod upsert_title;
 
