@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use quick_xml::de::from_str;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::option_blurhash_deserializer;
@@ -165,7 +164,7 @@ impl CategoryInfo {
         if s.is_empty() {
             return Ok(Self::default());
         }
-        from_str::<CategoryInfo>(s).context("can't parse CategoryInfo.xml")
+        quick_xml::de::from_str::<CategoryInfo>(s).context("can't parse CategoryInfo.xml")
     }
 
     pub fn to_pretty_string(&self) -> Result<String> {
@@ -235,7 +234,7 @@ mod tests {
     #[test]
     fn no_fields() {
         let category_info: CategoryInfo =
-            from_str::<CategoryInfo>(r#"<CategoryInfo></CategoryInfo>"#).unwrap();
+            quick_xml::de::from_str::<CategoryInfo>(r#"<CategoryInfo></CategoryInfo>"#).unwrap();
 
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
