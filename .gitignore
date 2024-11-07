@@ -25,11 +25,12 @@ logs
 !.env.example
 
 .idea
-/target
-/database
+target
 .eslintcache
 *.db
 
+.vscode
+docker-compose.yml
 .devcontainer/dav1d*
 .devcontainer/mold*
 .devcontainer/7zz
