@@ -13,7 +13,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use super::option_blurhash_deserializer;
 use crate::COMICINFO_SCHEMA;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ComicInfo {
     #[serde(
         rename = "Title",
@@ -308,6 +308,57 @@ pub struct ComicInfo {
         skip_serializing_if = "Option::is_none"
     )]
     pub gtin: Option<String>,
+}
+
+impl Default for ComicInfo {
+    fn default() -> Self {
+        Self {
+            title: None,
+            series: None,
+            number: None,
+            count: -1,
+            volume: -1,
+            alternate_series: None,
+            alternate_number: None,
+            alternate_count: -1,
+            summary: None,
+            notes: None,
+            year: -1,
+            month: -1,
+            day: -1,
+            writer: None,
+            penciller: None,
+            inker: None,
+            colorist: None,
+            letterer: None,
+            cover_artist: None,
+            editor: None,
+            translator: None,
+            publisher: None,
+            imprint: None,
+            genre: None,
+            tags: vec![],
+            web: None,
+            page_count: 0,
+            language_iso: None,
+            format: None,
+            black_and_white: YesNo::Unknown,
+            manga: Manga::Unknown,
+            characters: None,
+            teams: None,
+            locations: None,
+            scan_information: None,
+            story_arc: None,
+            story_arc_number: None,
+            series_group: None,
+            age_rating: AgeRating::Unknown,
+            pages_: ArrayOfComicPageInfo { pages_: vec![] },
+            community_rating: None,
+            main_character_or_team: None,
+            review: None,
+            gtin: None,
+        }
+    }
 }
 
 fn option_string_deserializer<'de, D: Deserializer<'de>>(
