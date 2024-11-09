@@ -1,17 +1,23 @@
-# yomuyume
+# Yomuyume
 
 <div align="center">
-  <img src="src/public/favicon/android-chrome-192x192.png" alt="yomuyume logo" width="192" height="192">
+  <img src="src/public/favicon/android-chrome-192x192.png" alt="Yomuyume logo" width="192" height="192">
 
   Self-hosted media server for manga and comics, written in Rust.
 </div>
 
 ## highlights
 
-- ⚡written in Rust for blazingly fast performance,
-- 🗃️ using `7zip` under-the-hood, support all the archive formats,
+- ⚡ written in Rust for blazingly fast performance,
+
+- 🛡️ no complex intermediate data, your library is the source of truth,
+- 🧠 automatically detect one shots, series, and **categories**,
+- ✅ compatible with your existing library directory structure,
+  > including but not limited to [`#recycle`](https://komga.org/docs/guides/libraries#directory-exclusions) and [`_oneshots`](https://komga.org/docs/guides/oneshots/) hacks in directory paths
+- 🗃️ support all the archive formats thanks to `7zip`,
 - 📄 manage metadata using (a modified version of) the latest version of [The Anansi Project's `ComicInfo.xml` schema](https://anansi-project.github.io/docs/comicinfo/intro),
 - 🌫️ [blurha.sh](https://blurha.sh) as placeholder for loading images,
+- ⭕ respect `.nomedia` files,
 
 and many more.
 
@@ -81,7 +87,7 @@ flowchart LR
   reverse_proxy["`**reverse proxy<br>_Caddy, NGINX, ..._**`"]
 
   server <-- postgres:5432 --> db
-  server <-- yomuyume:8080 --> reverse_proxy
+  server <-- Yomuyume:8080 --> reverse_proxy
   reverse_proxy <-- example.com<br>_with TLS_ --> browser
   server <-- server_ip:8080 --> browser
 
@@ -118,7 +124,7 @@ flowchart LR
 </details>
 
 <details>
-  <summary>production w/ cloudflare tunnel</summary>
+  <summary>production w/ Cloudflare tunnel</summary>
 
 ```mermaid
   flowchart LR
@@ -127,8 +133,8 @@ flowchart LR
     cloudflared["`**cloudflared**`"]
 
     server <-- postgres:5432 --> db
-    server <-- yomuyume:8080 --> cloudflared
-    cloudflared <-- secure tunnel --> cloudflare_cdn["`cloudflare<br>global CDN`"]
+    server <-- Yomuyume:8080 --> cloudflared
+    cloudflared <-- secure tunnel --> cloudflare_cdn["`Cloudflare<br>global CDN`"]
     cloudflare_cdn <-- example.com<br>_with TLS_ --> browser
 
     subgraph client_os["client OS"]
@@ -159,7 +165,7 @@ flowchart LR
     style docker fill:transparent
     style client_os fill:transparent
 ```
-- one advantage of this is if you use cloudflare access to protect applications running on your server, yomuyume (in the future) can read the authentication headers from cloudflare and access the app directly without re-login.
+- one advantage of this is if you use Cloudflare access to protect applications running on your server, Yomuyume (in the future) can read the authentication headers from Cloudflare and access the app directly without re-login.
 </details>
 
 ### 4. repo structure
@@ -170,9 +176,9 @@ flowchart LR
 - `src-rust/`: the rust server
 
 ### 5. interact with the database
-using `sqlx::query!()` to achieve compile-time syntactic and semantic checks, but it can only interact with one database inside a postgres server at a time (there's only one `DATABASE_URL` env var).
+using `sqlx::query!()` to achieve compile-time syntactic and semantic checks, but it can only interact with one database inside a Postgres server at a time (there's only one `DATABASE_URL` env var).
 
-as a result, we share the same database for the backend itself and the benchmarks, so try to keep eveerything in `database/` neat and tidy. sqltools allows you to `Run Selected Query` in the context menu, use that.
+as a result, we share the same database for the backend itself and the benchmarks, so try to keep everything in `database/` neat and tidy. `sqltools` allows you to `Run Selected Query` in the context menu, use that.
 
 ## license
 
