@@ -32,6 +32,7 @@ pub struct UpsertTitleOk {
 #[derive(Debug)]
 pub enum UpsertTitleError {
     IsIgnored,
+    IsEmpty,
     Other(anyhow::Error),
 }
 
@@ -110,6 +111,11 @@ pub async fn upsert_title(
             )
         })
         .collect::<Vec<_>>();
+
+    // ignore if is empty
+    if pages_in_archive.is_empty() {
+        return Err(UpsertTitleError::IsEmpty);
+    }
 
     // ComicInfo.xml
     let mut comic_info = archive_file
@@ -289,14 +295,11 @@ pub async fn upsert_title(
     .id;
 
     '_upsert_pages: {
-        let page_ids: anyhow::Result<Vec<i64>> = join_all(
-            (0..pages_in_archive.len())
+        let page_ids: anyhow::Result<Vec<i64>> =
+            join_all((0..pages_in_archive.len()).map(|_| app_state.id_generator.snowflake()))
+                .await
                 .into_iter()
-                .map(|_| app_state.id_generator.snowflake()),
-        )
-        .await
-        .into_iter()
-        .collect();
+                .collect();
         let page_ids = page_ids
             .context("can't generate enough page ids")
             .map_err(UpsertTitleError::Other)?;
@@ -348,14 +351,11 @@ pub async fn upsert_title(
             break 'upsert_tags;
         }
 
-        let tag_ids: anyhow::Result<Vec<i64>> = join_all(
-            (0..comic_info.tags.len())
+        let tag_ids: anyhow::Result<Vec<i64>> =
+            join_all((0..comic_info.tags.len()).map(|_| app_state.id_generator.snowflake()))
+                .await
                 .into_iter()
-                .map(|_| app_state.id_generator.snowflake()),
-        )
-        .await
-        .into_iter()
-        .collect();
+                .collect();
         let tag_ids = tag_ids
             .context("can't generate enough tag ids")
             .map_err(UpsertTitleError::Other)?;
