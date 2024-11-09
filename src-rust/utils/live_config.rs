@@ -4,39 +4,48 @@ use chrono::Utc;
 #[derive(Debug)]
 pub struct LiveConfig {
     pub nomedia_support: bool,
-    pub oneshot_postfix_support: bool,
+
+    pub komga_oneshot_support: bool,
+    pub komga_recycle_support: bool,
+
     pub rescan_interval_in_minutes: i32,
 }
 
 impl LiveConfig {
     pub async fn from_db(db: &sqlx::PgPool) -> Result<Self, sqlx::Error> {
-        let record = sqlx::query!(r#"SELECT value FROM live_config WHERE id = 'nomedia_support'"#)
-            .fetch_optional(db)
-            .await?;
-        let nomedia_support = record
-            .map(|record| record.value == "true")
-            .unwrap_or_default();
-
-        let record =
-            sqlx::query!(r#"SELECT value FROM live_config WHERE id = 'oneshot_postfix_support'"#)
+        let nomedia_support =
+            sqlx::query!(r#"SELECT value FROM live_config WHERE id = 'nomedia_support'"#)
                 .fetch_optional(db)
-                .await?;
-        let oneshot_postfix_support = record
-            .map(|record| record.value == "true")
-            .unwrap_or_default();
+                .await?
+                .map(|record| record.value == "true")
+                .unwrap_or_default();
 
-        let record = sqlx::query!(
+        let komga_oneshot_support =
+            sqlx::query!(r#"SELECT value FROM live_config WHERE id = 'komga_oneshot_support'"#)
+                .fetch_optional(db)
+                .await?
+                .map(|record| record.value == "true")
+                .unwrap_or_default();
+
+        let komga_recycle_support =
+            sqlx::query!(r#"SELECT value FROM live_config WHERE id = 'komga_recycle_support'"#)
+                .fetch_optional(db)
+                .await?
+                .map(|record| record.value == "true")
+                .unwrap_or_default();
+
+        let rescan_interval_in_minutes = sqlx::query!(
             r#"SELECT value FROM live_config WHERE id = 'rescan_interval_in_minutes'"#
         )
         .fetch_optional(db)
-        .await?;
-        let rescan_interval_in_minutes = record
-            .map(|record| record.value.parse::<i32>().unwrap_or_else(|_| 60))
-            .unwrap_or_else(|| 60);
+        .await?
+        .map(|record| record.value.parse::<i32>().unwrap_or_else(|_| 60))
+        .unwrap_or_else(|| 60);
 
         Ok(Self {
             nomedia_support,
-            oneshot_postfix_support,
+            komga_oneshot_support,
+            komga_recycle_support,
             rescan_interval_in_minutes,
         })
     }
@@ -62,7 +71,7 @@ impl LiveConfig {
         Ok(())
     }
 
-    pub async fn configure_oneshot_postfix_support(
+    pub async fn configure_komga_oneshot_support(
         &mut self,
         db: &sqlx::PgPool,
         value: bool,
@@ -71,14 +80,35 @@ impl LiveConfig {
             r#"INSERT INTO live_config (id, value, last_updated_at)
             VALUES ($1, $2, $3)
             ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3"#,
-            "oneshot_postfix_support",
+            "komga_oneshot_support",
             if value { "true" } else { "false" },
             Utc::now()
         )
         .execute(db)
         .await?;
 
-        self.oneshot_postfix_support = value;
+        self.komga_oneshot_support = value;
+
+        Ok(())
+    }
+
+    pub async fn configure_komga_recycle_support(
+        &mut self,
+        db: &sqlx::PgPool,
+        value: bool,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"INSERT INTO live_config (id, value, last_updated_at)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3"#,
+            "komga_recycle_support",
+            if value { "true" } else { "false" },
+            Utc::now()
+        )
+        .execute(db)
+        .await?;
+
+        self.komga_recycle_support = value;
 
         Ok(())
     }
