@@ -1,4 +1,5 @@
-CREATE TABLE IF NOT EXISTS categories (
+DROP TABLE IF EXISTS categories CASCADE;
+CREATE TABLE categories (
     id BIGINT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
@@ -12,6 +13,7 @@ CREATE TABLE IF NOT EXISTS categories (
     CONSTRAINT "uc-categories-path" UNIQUE (path)
 );
 
+DROP TABLE IF EXISTS titles CASCADE;
 CREATE TABLE IF NOT EXISTS titles (
     id BIGINT PRIMARY KEY,
     title TEXT,
@@ -35,6 +37,7 @@ CREATE TABLE IF NOT EXISTS titles (
     CONSTRAINT "uc-titles-path" UNIQUE (path)
 );
 
+DROP TABLE IF EXISTS pages CASCADE;
 CREATE TABLE IF NOT EXISTS pages (
     id BIGINT PRIMARY KEY,
     title_id BIGINT NOT NULL,
@@ -49,6 +52,7 @@ CREATE TABLE IF NOT EXISTS pages (
     CONSTRAINT "uc-pages-title_id-path" UNIQUE (title_id, path)
 );
 
+DROP TABLE IF EXISTS tags CASCADE;
 CREATE TABLE IF NOT EXISTS tags (
     id BIGINT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -56,6 +60,7 @@ CREATE TABLE IF NOT EXISTS tags (
     CONSTRAINT "uc-tags-name" UNIQUE (name)
 );
 
+DROP TABLE IF EXISTS titles_tags CASCADE;
 CREATE TABLE IF NOT EXISTS titles_tags (
     title_id BIGINT NOT NULL,
     tag_id BIGINT NOT NULL,
@@ -69,6 +74,7 @@ CREATE TABLE IF NOT EXISTS titles_tags (
     CONSTRAINT "uc-titles_tags-title_id-tag_id" UNIQUE (title_id, tag_id)
 );
 
+DROP TABLE IF EXISTS users CASCADE;
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT PRIMARY KEY,
     username TEXT NOT NULL,
@@ -80,6 +86,7 @@ CREATE TABLE IF NOT EXISTS users (
     verified_at TIMESTAMP WITH TIME ZONE
 );
 
+DROP TABLE IF EXISTS bookmarks CASCADE;
 CREATE TABLE IF NOT EXISTS bookmarks (
     id BIGINT PRIMARY KEY,
     user_id BIGINT NOT NULL,
@@ -94,6 +101,7 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     CONSTRAINT "uc-bookmarks-user_id-title_id" UNIQUE (user_id, title_id)
 );
 
+DROP TABLE IF EXISTS favorites CASCADE;
 CREATE TABLE IF NOT EXISTS favorites (
     id BIGINT PRIMARY KEY,
     user_id BIGINT NOT NULL,
@@ -108,6 +116,7 @@ CREATE TABLE IF NOT EXISTS favorites (
     CONSTRAINT "uc-favorites-user_id-title_id" UNIQUE (user_id, title_id)
 );
 
+DROP TABLE IF EXISTS progresses CASCADE;
 CREATE TABLE IF NOT EXISTS progresses (
     id BIGINT PRIMARY KEY,
     user_id BIGINT NOT NULL,
@@ -124,11 +133,14 @@ CREATE TABLE IF NOT EXISTS progresses (
     CONSTRAINT "uc-progresses-user_id-title_id" UNIQUE (user_id, title_id)
 );
 
+DROP TYPE IF EXISTS temp_codes_purpose CASCADE;
 DO $$ BEGIN
     CREATE TYPE temp_codes_purpose AS ENUM ('delete_account', 'reset_password', 'validate_email');
 EXCEPTION
     WHEN duplicate_object THEN RAISE NOTICE 'type already exists, skipping';
 END $$;
+
+DROP TABLE IF EXISTS temp_codes;
 CREATE TABLE IF NOT EXISTS temp_codes (
     id BIGINT PRIMARY KEY,
     secret TEXT NOT NULL,
@@ -143,6 +155,7 @@ CREATE TABLE IF NOT EXISTS temp_codes (
     CONSTRAINT "uc-temp-codes-purpose-user_id" UNIQUE (purpose, user_id)
 );
 
+DROP TABLE IF EXISTS session_tokens CASCADE;
 CREATE TABLE IF NOT EXISTS session_tokens (
     id BIGINT PRIMARY KEY,
     session_secret TEXT NOT NULL,
@@ -155,3 +168,10 @@ CREATE TABLE IF NOT EXISTS session_tokens (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
+
+DROP TABLE IF EXISTS live_config CASCADE;
+CREATE TABLE IF NOT EXISTS live_config (
+    id TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    last_updated_at TIMESTAMP WITH TIME ZONE
+)
