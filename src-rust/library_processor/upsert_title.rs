@@ -6,8 +6,6 @@ use chrono::{DateTime, Utc};
 use futures_util::future::join_all;
 use tracing::{debug, warn};
 
-pub(super) const COMICINFO_FILENAME: &str = "ComicInfo.xml";
-
 use crate::{
     library_processor::{
         blurhash::encode,
@@ -17,7 +15,7 @@ use crate::{
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
         CategoryID, TitleID,
     },
-    AppState, ArchiveFile, IteratorExt, SUPPORTED_IMAGE_FORMATS,
+    AppState, ArchiveFile, IteratorExt, COMICINFO_FILENAME, SUPPORTED_IMAGE_FORMATS,
 };
 
 #[derive(Debug)]

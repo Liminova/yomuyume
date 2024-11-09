@@ -7,14 +7,11 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use tracing::warn;
 
-use super::upsert_title::COMICINFO_FILENAME;
 use crate::{
     library_processor::blurhash::encode,
     types::{category_info::CategoryInfo, CategoryID},
     AppState,
 };
-
-const CATEGORY_INFO_FILENAME: &str = "CategoryInfo.xml";
 
 /// ONLY add errors that would need to handle differently, e.g.
 /// [`DirIsInLibraryRoot`] tells the title upsert fns to fill None for the
