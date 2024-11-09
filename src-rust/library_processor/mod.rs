@@ -1,7 +1,7 @@
 mod blurhash;
-mod directory_guesser;
+mod dir_entry_guesser;
 mod upsert_category;
-mod upsert_title;
+mod upsert_oneshot;
 
 use std::{
     collections::VecDeque,
@@ -12,7 +12,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use directory_guesser::{guess, DirEntryType};
+use dir_entry_guesser::{DirEntryType, DirEntryTypeGuesser};
 use futures_util::future::join_all;
 use tokio::sync::Semaphore;
 use tracing::{debug, error, info};
@@ -21,7 +21,7 @@ use crate::{
     types::{CategoryID, TitleID},
     AppState, SUPPORTED_ARCHIVE_FORMATS,
 };
-use upsert_title::{upsert_title, UpsertTitleError, UpsertTitleOk};
+use upsert_oneshot::{upsert_title, UpsertTitleError, UpsertTitleOk};
 
 #[derive(Debug)]
 pub struct LibraryProcessor {
@@ -122,8 +122,7 @@ impl LibraryProcessor {
         // BFS
         while let Some(scanned) = queue.pop_back() {
             let entry_path = scanned.entry.path();
-            match guess(
-                &scanned.entry,
+            match scanned.entry.guess(
                 nomedia_support,
                 komga_oneshot_support,
                 komga_recycle_support,
@@ -145,9 +144,6 @@ impl LibraryProcessor {
                     }
                     DirEntryType::OneShotArchiveFile => {
                         println!("TODO: handle one-shot archive file")
-                    }
-                    DirEntryType::ForcedOneShotDir => {
-                        println!("TODO: handle forced one-shot")
                     }
                     DirEntryType::Ignored => {
                         debug!("ignored directory {}", entry_path.display())
