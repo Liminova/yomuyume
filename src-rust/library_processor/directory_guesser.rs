@@ -22,9 +22,14 @@ pub enum DirEntryType {
 pub fn guess(
     entry: &DirEntry,
     nomedia_support: bool,
-    oneshot_postfix_support: bool,
+    komga_oneshot_support: bool,
+    komga_recycle_support: bool,
 ) -> Result<DirEntryType> {
     let entry_path = entry.path();
+
+    if komga_recycle_support && entry_path.to_string_lossy().contains("#recycle") {
+        return Ok(DirEntryType::Ignored);
+    }
 
     if entry
         .file_type()
@@ -45,7 +50,7 @@ pub fn guess(
     if nomedia_support && entry_path.join(".nomedia").exists() {
         return Ok(DirEntryType::Ignored);
     }
-    if oneshot_postfix_support
+    if komga_oneshot_support
         && entry_path.components().any(|component| {
             component
                 .as_os_str()
