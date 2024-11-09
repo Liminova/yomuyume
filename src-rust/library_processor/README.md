@@ -3,7 +3,7 @@
 > No, the diamond shaped ones are too big.
 
 - `Ignored` cases are ignored.
-- Explicit flags `.nomedia` and `_oneshot` are ignored in this diagram.
+- Explicit flags `.nomedia`, `_oneshot` and `#recycle` are ignored in this diagram.
 
 ```mermaid
 flowchart TD
