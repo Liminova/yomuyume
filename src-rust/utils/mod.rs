@@ -3,6 +3,7 @@ mod app_state;
 mod archive_file;
 mod config;
 mod id_generator;
+mod live_config;
 mod try_find_map;
 
 pub use app_error::*;
