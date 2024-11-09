@@ -18,60 +18,71 @@ pub enum DirEntryType {
     Ignored,
 }
 
-/// Check docs/managing-library.md for the decision tree diagram.
-///
-/// [`DirEntry`] in Rust represents both a file and a directory.
-pub fn guess_dir_entry(
-    entry: &DirEntry,
-    nomedia_support: bool,
-    komga_oneshot_support: bool,
-    komga_recycle_support: bool,
-) -> Result<DirEntryType> {
-    let entry_path = entry.path();
+pub trait DirEntryTypeGuesser {
+    fn guess(
+        &self,
+        nomedia_support: bool,
+        komga_oneshot_support: bool,
+        komga_recycle_support: bool,
+    ) -> Result<DirEntryType>;
+}
 
-    if entry
-        .is_supported_archive()
-        .context("can't check if entry is a supported archive")?
-    {
-        match entry_path.has_recycle_flag(komga_recycle_support) {
-            true => return Ok(DirEntryType::Ignored),
-            false => return Ok(DirEntryType::OneShotArchiveFile),
-        }
-    }
+impl DirEntryTypeGuesser for DirEntry {
+    /// Check docs/managing-library.md for the decision tree diagram.
+    ///
+    /// [`DirEntry`] in Rust represents both a file and a directory.
+    fn guess(
+        &self,
+        nomedia_support: bool,
+        komga_oneshot_support: bool,
+        komga_recycle_support: bool,
+    ) -> Result<DirEntryType> {
+        let entry_path = self.path();
 
-    if entry_path.contains_nomedia_file() {
-        return Ok(DirEntryType::Ignored);
-    }
-
-    let sub_dir_entries = entry_path
-        .get_sub_dir_entries(nomedia_support)
-        .context("can't get subdirs of the entry")?;
-
-    if entry_path.contains_category_info() {
-        return Ok(DirEntryType::CategoryDir(sub_dir_entries));
-    }
-
-    let (subdirs_and_archives, images) = sub_dir_entries
-        .organize_to_entries_and_images()
-        .context("can't organize subdirs to check for series pattern")?;
-
-    if !entry_path.has_oneshot_flag(komga_oneshot_support) {
-        if let Some(chap_path_and_number) = subdirs_and_archives.has_pattern_of_a_series() {
+        if self
+            .is_supported_archive()
+            .context("can't check if entry is a supported archive")?
+        {
             match entry_path.has_recycle_flag(komga_recycle_support) {
                 true => return Ok(DirEntryType::Ignored),
-                false => return Ok(DirEntryType::SeriesDir(chap_path_and_number)),
+                false => return Ok(DirEntryType::OneShotArchiveFile),
             }
         }
-    }
 
-    if images.len() > 1 {
-        match entry_path.has_recycle_flag(komga_recycle_support) {
-            true => return Ok(DirEntryType::Ignored),
-            false => return Ok(DirEntryType::OneShotDir(images)),
+        if entry_path.contains_nomedia_file() {
+            return Ok(DirEntryType::Ignored);
         }
-    }
 
-    Ok(DirEntryType::CategoryDir(sub_dir_entries))
+        let sub_dir_entries = entry_path
+            .get_sub_dir_entries(nomedia_support)
+            .context("can't get subdirs of the entry")?;
+
+        if entry_path.contains_category_info() {
+            return Ok(DirEntryType::CategoryDir(sub_dir_entries));
+        }
+
+        let (subdirs_and_archives, images) = sub_dir_entries
+            .organize_to_entries_and_images()
+            .context("can't organize subdirs to check for series pattern")?;
+
+        if !entry_path.has_oneshot_flag(komga_oneshot_support) {
+            if let Some(chap_path_and_number) = subdirs_and_archives.has_pattern_of_a_series() {
+                match entry_path.has_recycle_flag(komga_recycle_support) {
+                    true => return Ok(DirEntryType::Ignored),
+                    false => return Ok(DirEntryType::SeriesDir(chap_path_and_number)),
+                }
+            }
+        }
+
+        if images.len() > 1 {
+            match entry_path.has_recycle_flag(komga_recycle_support) {
+                true => return Ok(DirEntryType::Ignored),
+                false => return Ok(DirEntryType::OneShotDir(images)),
+            }
+        }
+
+        Ok(DirEntryType::CategoryDir(sub_dir_entries))
+    }
 }
 
 trait IsSupportedArchive {
