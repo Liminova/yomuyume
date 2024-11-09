@@ -39,7 +39,7 @@ impl LiveConfig {
         )
         .fetch_optional(db)
         .await?
-        .map(|record| record.value.parse::<i32>().unwrap_or_else(|_| 60))
+        .map(|record| record.value.parse::<i32>().unwrap_or(60))
         .unwrap_or_else(|| 60);
 
         Ok(Self {
