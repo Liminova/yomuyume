@@ -1,17 +1,15 @@
-mod library_scanner;
+mod library_processor;
 mod routes;
 mod types;
 mod utils;
 
-use std::sync::Arc;
-
-use anyhow::{Context, Result};
+use anyhow::Result;
 use axum::{
     middleware::from_fn_with_state as apply,
     routing::{get, post, put},
     Router,
 };
-use sqlx::postgres::PgPoolOptions;
+use library_processor::LibraryProcessor;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
@@ -28,22 +26,17 @@ use routes::*;
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
-    let config = Config::init();
-    let addr = format!("{}:{}", config.listen_address, config.server_port);
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
-        .with_env_filter("sqlx=warn,axum=info,yomuyume=debug")
+        .with_env_filter("sqlx=info,axum=info,yomuyume=debug")
         .init();
 
-    let app_state = Arc::new(AppState::new(
-        PgPoolOptions::new()
-            .max_connections(100)
-            .connect(&config.database_url)
-            .await
-            .context("can't connect to database")?,
-        config,
-    ));
+    let app_state = AppState::new().await;
+    let addr = format!(
+        "{}:{}",
+        app_state.config.listen_address, app_state.config.server_port
+    );
 
     let app = Router::new()
         .nest(
@@ -120,18 +113,12 @@ async fn main() -> Result<()> {
         };
     });
 
-    let library_scanner_handle = tokio::spawn(async move {
-        if let Err(e) = library_scanner::Scanner::new(app_state.clone())
-            .await
-            .run()
-            .await
-        {
-            error!("scanner error: {e:?}");
-        };
-    });
+    let lp = LibraryProcessor::new(app_state.clone());
 
-    let _ = server_handle.await;
-    let _ = library_scanner_handle.await;
+    let library_processor_handle = tokio::spawn(async move { lp.full_scan().await });
 
+    let _ = tokio::join!(server_handle, library_processor_handle);
+
+    debug!("server stopped gracefully");
     Ok(())
 }
