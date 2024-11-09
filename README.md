@@ -10,7 +10,7 @@
 
 - ⚡ written in Rust for blazingly fast performance,
 
-- 🛡️ no complex intermediate data, your library is the source of truth,
+- 🛡️ no complex intermediate data, your library is the **source of truth**,
 - 🧠 automatically detect one shots, series, and **categories**,
 - ✅ compatible with your existing library directory structure,
   > including but not limited to [`#recycle`](https://komga.org/docs/guides/libraries#directory-exclusions) and [`_oneshots`](https://komga.org/docs/guides/oneshots/) hacks in directory paths
