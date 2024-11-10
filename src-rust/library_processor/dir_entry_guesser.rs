@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use std::{collections::HashMap, fs::DirEntry, path::PathBuf};
 
 use crate::{
-    CATEGORY_INFO_FILENAME, COMICINFO_FILENAME, SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS,
+    ArchiveFile, CATEGORY_INFO_FILENAME, SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS,
 };
 
 type SubEntries = Vec<DirEntry>;
@@ -14,7 +14,7 @@ pub enum DirEntryType {
     CategoryDir(SubEntries),
     SeriesDir(ChapterPathAndNumber),
     OneShotDir(PagePaths),
-    OneShotArchiveFile,
+    OneShotArchiveFile(ArchiveFile),
     Ignored,
 }
 
@@ -39,14 +39,17 @@ impl DirEntryTypeGuesser for DirEntry {
     ) -> Result<DirEntryType> {
         let entry_path = self.path();
 
-        if self
-            .is_supported_archive()
-            .context("can't check if entry is a supported archive")?
-        {
-            match entry_path.has_recycle_flag(komga_recycle_support) {
-                true => return Ok(DirEntryType::Ignored),
-                false => return Ok(DirEntryType::OneShotArchiveFile),
+        match self.is_supported_archive()? {
+            DirEntryBasicType::File => return Ok(DirEntryType::Ignored),
+            DirEntryBasicType::SupportedArchive => {
+                if entry_path.has_recycle_flag(komga_recycle_support) {
+                    return Ok(DirEntryType::Ignored);
+                }
+                return Ok(DirEntryType::OneShotArchiveFile(
+                    ArchiveFile::from_unchecked(entry_path),
+                ));
             }
+            DirEntryBasicType::Directory => {}
         }
 
         if entry_path.contains_nomedia_file() {
