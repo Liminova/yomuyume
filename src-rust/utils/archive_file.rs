@@ -131,7 +131,7 @@ impl ArchiveFile {
     /// List all files in the archive.
     ///
     /// https://superuser.com/a/1073272
-    pub async fn list_files(&mut self) -> Result<Vec<ItemInArchive>> {
+    pub async fn list_files(&self) -> Result<Vec<ItemInArchive>> {
         if !self.path.exists() {
             return Err(anyhow!("archive not exists"));
         }
@@ -260,7 +260,7 @@ impl ArchiveFile {
     /// Read the content of a specified file in the archive.
     ///
     /// https://superuser.com/a/148501
-    pub fn read_file(&mut self, file_name: impl ToString) -> Result<Vec<u8>> {
+    pub fn read_file(&self, file_name: impl ToString) -> Result<Vec<u8>> {
         if !self.path.exists() {
             return Err(anyhow!("archive not exists"));
         }
@@ -299,7 +299,7 @@ impl ArchiveFile {
     }
 
     /// Upsert a buffer to a specified file in the archive.
-    pub fn upsert_file(&mut self, file_name: impl ToString, content: Arc<Vec<u8>>) -> Result<()> {
+    pub fn upsert_file(&self, file_name: impl ToString, content: Arc<Vec<u8>>) -> Result<()> {
         if !self.path.exists() {
             return Err(anyhow!("archive not exists"));
         }
@@ -447,10 +447,9 @@ mod tests {
         let test_file = temp_dir.path().join("test.txt");
         File::create(&test_file).unwrap();
 
-        let mut archive_file =
-            ArchiveFile::_create(&vec![test_file], &temp_dir.path().join("new.zip"))
-                .await
-                .unwrap();
+        let archive_file = ArchiveFile::_create(&vec![test_file], &temp_dir.path().join("new.zip"))
+            .await
+            .unwrap();
         let files = archive_file.list_files().await.unwrap();
 
         assert_eq!(files.len(), 1);
@@ -471,7 +470,7 @@ mod tests {
         file2.write_all(b"dolor sit amet").unwrap();
         file2.flush().unwrap();
 
-        let mut archive_file = ArchiveFile::_create(
+        let archive_file = ArchiveFile::_create(
             &vec![test_file1, test_file2],
             &temp_dir.path().join("new.zip"),
         )
@@ -494,7 +493,7 @@ mod tests {
 
         // create a zip file w/ one empty file
         let filename_1 = "test.txt";
-        let mut archive_file = ArchiveFile::_create(
+        let archive_file = ArchiveFile::_create(
             &vec![temp_dir.path().join(temp_file_name)],
             &temp_dir.path().join("new.zip"),
         )
@@ -533,7 +532,7 @@ mod tests {
         let test_file = temp_dir.path().join("test.txt");
         File::create(&test_file).unwrap();
 
-        let mut archive_file =
+        let archive_file =
             ArchiveFile::_create(&vec![test_file.clone()], &temp_dir.path().join("new.zip"))
                 .await
                 .unwrap();
