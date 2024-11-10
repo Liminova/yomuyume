@@ -16,6 +16,7 @@ pub struct BlurhashResult {
 pub fn encode(decoded_img: &DynamicImage) -> Result<BlurhashResult> {
     let (width, height) = decoded_img.dimensions();
     let decoded_img = decoded_img.resize_to_fill(32, 32, Gaussian);
+    // TODO: somehow these dimensions are always 32x32
     let (smaller_width, smaller_height) = decoded_img.dimensions();
     let (components_x, components_y) = {
         let scale = smaller_width.min(smaller_height) / 3;
