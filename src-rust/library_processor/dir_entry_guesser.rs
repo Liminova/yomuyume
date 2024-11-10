@@ -238,7 +238,6 @@ impl HasPatternOfSeries for Vec<PathBuf> {
 
 trait ContainsFile {
     fn contains_category_info(&self) -> bool;
-    fn contains_comic_info(&self) -> bool;
     fn contains_nomedia_file(&self) -> bool;
 }
 
@@ -248,13 +247,6 @@ impl ContainsFile for PathBuf {
     /// This method DOES NOT check if the given PathBuf is a directory.
     fn contains_category_info(&self) -> bool {
         self.join(CATEGORY_INFO_FILENAME).exists()
-    }
-
-    /// Check if the directory contains ComicInfo.xml
-    ///
-    /// This method DOES NOT check if the given PathBuf is a directory.
-    fn contains_comic_info(&self) -> bool {
-        self.join(COMICINFO_FILENAME).exists()
     }
 
     /// Check if the directory contains .nomedia
