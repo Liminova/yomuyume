@@ -46,8 +46,7 @@ pub async fn get_page(
     )];
 
     let content = Body::from_stream(
-        ArchiveFile::from(PathBuf::from(&result.title_path))?
-            .stream_file(result.page_path.clone(), result.page_filesize)?,
+        PathBuf::from(result.title_path).stream_file(result.page_path, result.page_filesize)?,
     );
 
     Ok((StatusCode::OK, headers, content).into_response())

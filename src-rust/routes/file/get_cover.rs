@@ -54,8 +54,7 @@ pub async fn get_cover(
     )];
 
     let content = Body::from_stream(
-        ArchiveFile::from(PathBuf::from(record.title_file_path))?
-            .stream_file(cover_path, record.cover_size)?,
+        PathBuf::from(record.title_file_path).stream_file(cover_path, record.cover_size)?,
     );
 
     Ok((StatusCode::OK, headers, content).into_response())
