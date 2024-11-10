@@ -1,131 +1,187 @@
+use std::collections::HashMap;
 use std::{path::PathBuf, sync::Arc};
 
-use anyhow::{anyhow, Context};
-use chrono::Timelike;
-use chrono::{DateTime, Utc};
+use anyhow::{anyhow, Context, Result};
+use chrono::{DateTime, Timelike, Utc};
 use futures_util::future::join_all;
-use tracing::{debug, warn};
+use tokio::sync::Mutex;
+use tracing::warn;
 
+use crate::library_processor::upsert_category::upsert_category;
 use crate::{
-    library_processor::{
-        blurhash::encode,
-        upsert_category::{upsert_category, UpsertCategoryError},
-    },
+    library_processor::blurhash::encode,
     types::{
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
-        CategoryID, TitleID,
+        TitleID,
     },
     AppState, ArchiveFile, IteratorExt, COMICINFO_FILENAME, SUPPORTED_IMAGE_FORMATS,
 };
-
-#[derive(Debug)]
-pub struct UpsertTitleOk {
-    pub title_id: TitleID,
-    pub category_id: Option<CategoryID>,
-}
 
 /// ONLY add errors that would need to handle differently, e.g. [`IsIgnored`]
 /// would tell the caller the function "failed" because the file is ignored,
 /// not something wrong happened.
 ///
-/// [`IsIgnored`]: UpsertTitleError::IsIgnored
+/// [`IsIgnored`]: UpsertOneshotErr::IsIgnored
 #[derive(Debug)]
-pub enum UpsertTitleError {
+pub enum UpsertOneshotErr {
     IsIgnored,
     IsEmpty,
     Other(anyhow::Error),
 }
 
-impl From<anyhow::Error> for UpsertTitleError {
+impl From<anyhow::Error> for UpsertOneshotErr {
     fn from(e: anyhow::Error) -> Self {
         Self::Other(e)
     }
 }
 
-/// Upsert a title to the database and return its ID and ComicInfo.
-pub async fn upsert_title(
-    app_state: Arc<AppState>,
-    title_file_path: &PathBuf,
-) -> Result<UpsertTitleOk, UpsertTitleError> {
-    tracing::debug!("processing {title_file_path:?}");
+#[derive(Debug)]
+pub enum OneshotType {
+    InArchive(ArchiveFile),
+    InDirectory(Vec<PathBuf>),
+}
 
-    '_pre_checks: {
-        if !title_file_path.exists() {
-            return Err(anyhow!("content file not exists").into());
-        }
-        if !title_file_path.is_file() {
-            return Err(anyhow!("content file is not a file").into());
-        }
-        if !title_file_path
-            .extension()
-            .map(|s| s.to_string_lossy() == "zip")
-            .unwrap_or(false)
-        {
-            return Err(anyhow!("content file is not a zip file").into());
-        }
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct PageInArchive {
+    path: String,
+    filesize: Option<i64>,
+    last_modified: DateTime<Utc>,
+}
+
+impl Ord for PageInArchive {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.path.cmp(&other.path)
     }
+}
+
+impl PartialOrd for PageInArchive {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Upsert a title to the database and return its ID and ComicInfo.
+pub async fn upsert_oneshot(
+    app_state: Arc<AppState>,
+    title_path: PathBuf,
+    oneshot_type: OneshotType,
+    parent_path: Option<PathBuf>,
+    category_path_to_id: Arc<Mutex<HashMap<PathBuf, i64>>>,
+    nomedia_support: bool,
+) -> Result<TitleID, UpsertOneshotErr> {
+    tracing::debug!("processing {title_path:?}");
 
     let mut txn = app_state
         .pool
         .begin()
         .await
-        .map_err(|e| UpsertTitleError::Other(anyhow!("can't begin transaction: {e:#?}")))?;
+        .context("can't begin transaction")?;
 
-    let category_id = match upsert_category(app_state.clone(), title_file_path, &mut *txn).await {
-        Ok(category_id) => Some(category_id),
-        Err(UpsertCategoryError::DirIsInLibraryRoot) => None,
-        // TODO: rename this function to upsert_archive_title; create new upsert_directory_title, and call it instead
-        Err(UpsertCategoryError::DirIsTitle) => None,
-        Err(UpsertCategoryError::Other(e)) => return Err(e.into()),
+    let category_id: Option<i64> = 'scoped: {
+        let parent_path = match parent_path {
+            Some(parent_path) => parent_path,
+            None => break 'scoped None,
+        };
+        if let Some(category_id) = category_path_to_id.lock().await.get(&parent_path) {
+            break 'scoped Some(*category_id);
+        }
+        let category_id = upsert_category(app_state.clone(), &parent_path, &mut *txn)
+            .await
+            .context(format!(
+                "can't upsert category {} to database",
+                parent_path.display()
+            ))?;
+        category_path_to_id
+            .lock()
+            .await
+            .insert(parent_path.to_path_buf(), category_id);
+        Some(category_id)
     };
 
     // micro DX optimization, this value is used frequently
-    let title_file_path_string = title_file_path.to_string_lossy().to_string();
+    let title_path_string = title_path.to_string_lossy().to_string();
 
-    // list files in title
-    let mut archive_file = ArchiveFile::from(title_file_path.clone())
-        .context("can't create ArchiveFile from content file")?;
-    let files_in_archive = archive_file
-        .list_files()
-        .await
-        .context("can't list files in archive")?;
-
-    // ignore if exists .nomedia
-    if files_in_archive.iter().any(|item| item.path == ".nomedia") {
-        debug!(".nomedia in {title_file_path_string}");
-        return Err(UpsertTitleError::IsIgnored);
-    }
-
-    // filter out non-image files
-    let pages_in_archive = files_in_archive
-        .into_iter()
-        .filter(|item| {
-            SUPPORTED_IMAGE_FORMATS.contains(
-                &item
-                    .path
-                    .split('.')
-                    .last()
-                    .unwrap_or_default()
-                    .to_ascii_lowercase()
-                    .as_str(),
-            )
-        })
-        .collect::<Vec<_>>();
+    // - archive: already have filesize & modified date -> filter out non-image files
+    // - directory: already have list of images -> get filesize & modified date
+    let pages_in_title = match oneshot_type {
+        OneshotType::InArchive(ref archive_file) => {
+            let files_in_archvie = archive_file
+                .list_files()
+                .context("can't list files in archive")?
+                .into_iter()
+                .filter_map(|item| {
+                    match SUPPORTED_IMAGE_FORMATS.contains(
+                        &item
+                            .path
+                            .split('.')
+                            .last()
+                            .unwrap_or_default()
+                            .to_ascii_lowercase()
+                            .as_str(),
+                    ) {
+                        true => Some(PageInArchive {
+                            path: item.path,
+                            filesize: item.size,
+                            last_modified: item.last_modified,
+                        }),
+                        false => None,
+                    }
+                })
+                .collect::<Vec<_>>();
+            if nomedia_support && files_in_archvie.iter().any(|item| item.path == ".nomedia") {
+                return Err(UpsertOneshotErr::IsIgnored);
+            }
+            files_in_archvie
+        }
+        OneshotType::InDirectory(ref files) => {
+            let mut files = files
+                .iter()
+                .try_fold(vec![], |mut acc, item| {
+                    let metadata = item.metadata().context("can't get metadata of page file")?;
+                    acc.push(PageInArchive {
+                        path: item.to_string_lossy().to_string(),
+                        filesize: Some(metadata.len() as i64),
+                        last_modified: metadata
+                            .modified()
+                            .context("can't get modified date of page file")?
+                            .into(),
+                    });
+                    Ok::<_, anyhow::Error>(acc)
+                })
+                .context("can't map page paths to PageInArchive")?;
+            files.sort();
+            files
+        }
+    };
 
     // ignore if is empty
-    if pages_in_archive.is_empty() {
-        return Err(UpsertTitleError::IsEmpty);
+    if pages_in_title.is_empty() {
+        return Err(UpsertOneshotErr::IsEmpty);
     }
 
     // ComicInfo.xml
-    let mut comic_info = archive_file
-        .read_file(COMICINFO_FILENAME)
-        .context(format!("can't get {COMICINFO_FILENAME} in content file"))
-        .and_then(|b| {
-            String::from_utf8(b)
-                .context(format!("can't decode {COMICINFO_FILENAME} in content file"))
-        })
-        .and_then(|s| ComicInfo::from_str(&s))?;
+    let mut comic_info = match oneshot_type {
+        OneshotType::InArchive(ref archive_file) => archive_file
+            .read_file(COMICINFO_FILENAME)
+            .context(format!("can't get {COMICINFO_FILENAME} in content file"))
+            .and_then(|b| {
+                String::from_utf8(b)
+                    .context(format!("can't decode {COMICINFO_FILENAME} in content file"))
+            })
+            .and_then(|s| ComicInfo::from_str(&s))?,
+        OneshotType::InDirectory(_) => {
+            let comic_info_path = title_path.join(COMICINFO_FILENAME);
+            if !comic_info_path.exists() {
+                std::fs::write(&comic_info_path, COMICINFO_FILENAME).context(format!(
+                    "can't write to {COMICINFO_FILENAME} in content file"
+                ))?;
+            }
+            ComicInfo::from_str(
+                &std::fs::read_to_string(&comic_info_path)
+                    .context(format!("can't read {COMICINFO_FILENAME} in content file"))?,
+            )?
+        }
+    };
 
     let (cover_path, cover_blurhash, cover_width, cover_height): (
         Option<String>,
@@ -134,14 +190,20 @@ pub async fn upsert_title(
         Option<i32>,
     ) = 'scoped: {
         // if found a FrontCover page in ComicInfo.xml
-        if let Some(cover_page_info) = comic_info
+        if let Some((cover_page_info, cover_path_string)) = comic_info
             .pages_mut()
             .iter_mut()
-            .find(|p| (p.page_type == ComicPageType::FrontCover) && p.image_path.is_some())
+            .rev()
+            .filter(|p| p.page_type == ComicPageType::FrontCover)
+            .filter_map(|p| p.image_path.clone().map(|path| (p, path)))
+            .find(|(_, page_path)| match &oneshot_type {
+                OneshotType::InArchive(_) => pages_in_title.iter().any(|i| &i.path == page_path),
+                OneshotType::InDirectory(pages_paths) => {
+                    pages_paths.contains(&PathBuf::from(&page_path))
+                }
+            })
         {
-            let cover_path_string = cover_page_info.image_path.clone().unwrap_or_default();
-
-            let real_modified_date = pages_in_archive
+            let real_modified_date = pages_in_title
                 .iter()
                 .find(|i| i.path == cover_path_string)
                 .ok_or_else(|| anyhow!("file doesn't exist in archive"))
@@ -152,7 +214,7 @@ pub async fn upsert_title(
                 });
 
             if let Err(ref e) = real_modified_date {
-                warn!("can't get modified date for {cover_path_string} inside {title_file_path_string}: {e:#?}")
+                warn!("can't get modified date for {cover_path_string} inside {title_path_string}: {e:?}")
             }
 
             // and all the following fields are valid
@@ -166,7 +228,6 @@ pub async fn upsert_title(
                 let unmodified = modified_date_at_encode == real_modified_date;
                 // then use them
                 if valid_dimension && unmodified {
-                    tracing::debug!("cover image no change");
                     break 'scoped (
                         Some(cover_path_string),
                         Some(blurhash.clone()),
@@ -177,15 +238,20 @@ pub async fn upsert_title(
             }
 
             // else re-encode the page
-            let blurhash_result = archive_file
-                .read_file(&cover_path_string)
-                .context("can't get cover file")
-                .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
-                .and_then(|img| encode(&img).context("can't encode image to blurhash"));
-            match blurhash_result {
-                Ok(blurhash_result) => {
-                    tracing::debug!("re-encode cover image");
+            let blurhash_result = match oneshot_type {
+                OneshotType::InArchive(ref archive_file) => archive_file
+                    .read_file(&cover_path_string)
+                    .context("can't get cover file"),
+                OneshotType::InDirectory(_) => {
+                    std::fs::read(&cover_path_string).context("can't get cover file")
+                }
+            };
 
+            match blurhash_result
+                .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
+                .and_then(|img| encode(&img).context("can't encode image to blurhash"))
+            {
+                Ok(blurhash_result) => {
                     cover_page_info.blurhash = Some(blurhash_result.blurhash.clone());
                     cover_page_info.image_width = blurhash_result.width;
                     cover_page_info.image_height = blurhash_result.height;
@@ -198,62 +264,90 @@ pub async fn upsert_title(
                     );
                 }
                 Err(e) => {
-                    warn!("can't encode {cover_path_string} in {title_file_path_string} to blurhash: {e:#?}");
+                    warn!("can't encode {cover_path_string} in {title_path_string} to blurhash: {e:?}");
                 }
             }
         }
 
         // else try every single pages
-        match pages_in_archive.iter().try_find_map(|item| {
-            archive_file
-                .read_file(&item.path)
-                .context("can't get file in archive")
-                .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
-                .and_then(|img| encode(&img).context("can't encode image to blurhash"))
-                .map(|blurhash_result| (item, blurhash_result))
-        }) {
-            Ok((item, blurhash_result)) => {
-                tracing::debug!("found new cover image");
+        let result = match oneshot_type {
+            OneshotType::InArchive(ref archive_file) => {
+                pages_in_title.iter().try_find_map(|item| {
+                    archive_file
+                        .read_file(&item.path)
+                        .context("can't get file in archive")
+                        .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
+                        .and_then(|img| encode(&img).context("can't encode image to blurhash"))
+                        .map(|blurhash_result| {
+                            (item.path.clone(), item.last_modified, blurhash_result)
+                        })
+                })
+            }
+            OneshotType::InDirectory(_) => pages_in_title.iter().try_find_map(|page| {
+                let page_last_modified = std::fs::metadata(page.path.clone())
+                    .and_then(|m| m.modified().map(DateTime::<Utc>::from))
+                    .context("can't get modified date of page file")?;
 
+                std::fs::read(&page.path)
+                    .context("can't get file in directory")
+                    .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
+                    .and_then(|img| encode(&img).context("can't encode image to blurhash"))
+                    .map(|blurhash_result| (page.path.clone(), page_last_modified, blurhash_result))
+            }),
+        };
+        match result {
+            Ok((page_path, page_last_modified, blurhash_result)) => {
                 comic_info.pages_mut().push(ComicPageInfo {
                     page_type: ComicPageType::FrontCover,
                     blurhash: Some(blurhash_result.blurhash.clone()),
-                    image_path: Some(item.path.clone()),
+                    image_path: Some(page_path.clone()),
                     image_width: blurhash_result.width,
                     image_height: blurhash_result.height,
-                    modified_date_at_encode: Some(item.last_modified),
+                    modified_date_at_encode: Some(page_last_modified),
                     ..Default::default()
                 });
-                break 'scoped (
-                    Some(item.path.clone()),
+                (
+                    Some(page_path),
                     Some(blurhash_result.blurhash),
                     Some(blurhash_result.width),
                     Some(blurhash_result.height),
-                );
+                )
             }
             Err(e) => {
-                warn!("there's no file in {title_file_path_string} that can be encoded to blurhash: {e:#?}");
+                warn!(
+                    "there's no file in {title_path_string} that can be encoded to blurhash: {e:?}"
+                );
+                (None, None, None, None)
             }
-        };
-
-        (None, None, None, None)
+        }
     };
 
     // no longer need to modify anything in the ComicInfo.xml
     // beside the cover page, so we can write it back here
-    archive_file
-        .upsert_file(
-            COMICINFO_FILENAME,
-            Arc::new(comic_info.to_pretty_string()?.as_bytes().to_vec()),
-        )
-        .context("can't write back metadata to content file")?;
+    match oneshot_type {
+        OneshotType::InArchive(ref archive_file) => {
+            archive_file
+                .upsert_file(
+                    COMICINFO_FILENAME,
+                    Arc::new(comic_info.to_pretty_string()?.as_bytes().to_vec()),
+                )
+                .context("can't write back metadata to content file")?;
+        }
+        OneshotType::InDirectory(_) => {
+            std::fs::write(
+                title_path.join(COMICINFO_FILENAME),
+                comic_info.to_pretty_string()?.as_bytes(),
+            )
+            .context("can't write back metadata to content file")?;
+        }
+    }
 
     let title_id = sqlx::query!(
         r#"INSERT INTO titles
             (id, title, category_id, author, description, release,
-            path, cover_path, cover_blurhash, cover_width,
+            path, is_dir, cover_path, cover_blurhash, cover_width,
             cover_height, date_updated)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         ON CONFLICT (path)
         DO UPDATE SET
             title = EXCLUDED.title,
@@ -262,6 +356,7 @@ pub async fn upsert_title(
             description = EXCLUDED.description,
             release = EXCLUDED.release,
             path = EXCLUDED.path,
+            is_dir = EXCLUDED.is_dir,
             cover_path = EXCLUDED.cover_path,
             cover_blurhash = EXCLUDED.cover_blurhash,
             cover_width = EXCLUDED.cover_width,
@@ -275,17 +370,18 @@ pub async fn upsert_title(
         comic_info.penciller.as_ref(),
         comic_info.summary.as_ref(),
         comic_info.get_release(),
-        title_file_path_string.to_string(),
+        title_path_string.to_string(),
+        match oneshot_type {
+            OneshotType::InArchive(_) => false,
+            OneshotType::InDirectory(_) => true,
+        },
         cover_path,
         cover_blurhash,
         cover_width,
         cover_height,
-        tokio::fs::metadata(&title_file_path)
-            .await
+        std::fs::metadata(&title_path)
             .and_then(|m| { m.modified().map(|d| DateTime::<Utc>::from(d)) })
-            .map_err(|e| tracing::warn!(
-                "can't get modified date of {title_file_path_string}: {e:#?}"
-            ))
+            .map_err(|e| tracing::warn!("can't get modified date of {title_path_string}: {e:?}"))
             .ok()
             .unwrap_or_default(),
     )
@@ -295,22 +391,20 @@ pub async fn upsert_title(
     .id;
 
     '_upsert_pages: {
-        let page_ids: anyhow::Result<Vec<i64>> =
-            join_all((0..pages_in_archive.len()).map(|_| app_state.id_generator.snowflake()))
+        let page_ids: Result<Vec<i64>> =
+            join_all((0..pages_in_title.len()).map(|_| app_state.id_generator.snowflake()))
                 .await
                 .into_iter()
                 .collect();
-        let page_ids = page_ids
-            .context("can't generate enough page ids")
-            .map_err(UpsertTitleError::Other)?;
+        let page_ids = page_ids.context("can't generate enough page ids")?;
 
-        let mut page_paths = Vec::with_capacity(pages_in_archive.len());
-        let mut page_filesizes = Vec::with_capacity(pages_in_archive.len());
-        let mut page_descriptions = Vec::with_capacity(pages_in_archive.len());
+        let mut page_paths = Vec::with_capacity(pages_in_title.len());
+        let mut page_filesizes = Vec::with_capacity(pages_in_title.len());
+        let mut page_descriptions = Vec::with_capacity(pages_in_title.len());
 
-        for item in pages_in_archive.iter() {
+        for item in pages_in_title.iter() {
             page_paths.push(item.path.clone());
-            page_filesizes.push(item.size.unwrap_or_default());
+            page_filesizes.push(item.filesize.unwrap_or_default());
             page_descriptions.push(
                 comic_info
                     .get_page_description(&item.path)
@@ -351,14 +445,12 @@ pub async fn upsert_title(
             break 'upsert_tags;
         }
 
-        let tag_ids: anyhow::Result<Vec<i64>> =
+        let tag_ids: Result<Vec<i64>> =
             join_all((0..comic_info.tags.len()).map(|_| app_state.id_generator.snowflake()))
                 .await
                 .into_iter()
                 .collect();
-        let tag_ids = tag_ids
-            .context("can't generate enough tag ids")
-            .map_err(UpsertTitleError::Other)?;
+        let tag_ids = tag_ids.context("can't generate enough tag ids")?;
 
         sqlx::query!(
             r#"
@@ -387,8 +479,5 @@ pub async fn upsert_title(
 
     txn.commit().await.context("can't commit transaction")?;
 
-    Ok(UpsertTitleOk {
-        category_id,
-        title_id,
-    })
+    Ok(title_id)
 }
