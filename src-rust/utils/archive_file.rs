@@ -6,25 +6,22 @@
 use std::{
     collections::HashMap,
     io::{BufReader, Read, Write},
-    path::{Path, PathBuf},
+    path::PathBuf,
     pin::Pin,
     sync::Arc,
     task::Poll,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context};
 use axum::body::Bytes;
 use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Utc};
 use futures_core::Stream;
 use memfd_exec::{ChildStdout, MemFdExecutable, Stdio};
 use tracing::warn;
 
-const SEVEN_ZIP_BIN: &[u8] = include_bytes!("../../.devcontainer/7zz");
+use super::SUPPORTED_ARCHIVE_FORMATS;
 
-#[derive(Debug)]
-pub struct ArchiveFile {
-    path: PathBuf,
-}
+const SEVEN_ZIP_BIN: &[u8] = include_bytes!("../../.devcontainer/7zz");
 
 #[derive(Debug, Clone, Eq)]
 pub struct ItemInArchive {
@@ -51,23 +48,120 @@ impl Ord for ItemInArchive {
     }
 }
 
-impl ArchiveFile {
-    /// Compress files in [`paths`] to [`target_path`].
+#[derive(Debug, thiserror::Error)]
+pub enum ArchiveFileError {
+    #[error("PathBuf points to nothing")]
+    NotExists,
+    #[error("PathBuf is not a file")]
+    NotAFile,
+    #[error("PathBuf is not an archive")]
+    NotAnArchive,
+    #[error("Can't spawn 7zz process: {0:?}")]
+    CantSpawn7z(anyhow::Error),
+    #[error("error from 7zz: {0}")]
+    SevenZipError(String),
+    #[error("can't wait 7zz process to complete: {0:?}")]
+    CantWaitToComplete(anyhow::Error),
+    #[error("can't take stdin pipe to write to 7zz input")]
+    CantTakeStdinPipe,
+    #[error("can't take stdout pipe to read 7zz output")]
+    CantTakeStdoutPipe,
+    #[error("can't take stderr pipe to read 7zz output")]
+    CantTakeStderrPipe,
+    #[error("can't write to stdin pipe: {0:?}")]
+    CantWriteToStdin(std::io::Error),
+    #[error("can't read from stdout pipe to buffer: {0:?}")]
+    CantReadStdout(std::io::Error),
+    #[error("can't read from stderr pipe to buffer: {0:?}")]
+    CantReadStderr(std::io::Error),
+    #[error("other error: {0:?}")]
+    Other(anyhow::Error),
+}
+
+impl From<anyhow::Error> for ArchiveFileError {
+    fn from(e: anyhow::Error) -> Self {
+        Self::Other(e)
+    }
+}
+
+impl From<std::io::Error> for ArchiveFileError {
+    fn from(e: std::io::Error) -> Self {
+        Self::Other(e.into())
+    }
+}
+
+pub trait ArchiveFile {
+    /// Check if the archive is a valid archive and supported.
+    fn validate(&self) -> Result<(), ArchiveFileError>;
+
+    /// Compress files in [`paths`] into [`PathBuf`].
     ///
     /// [`paths`]: Vec<PathBuf>
     /// [`target_path`]: PathBuf
-    /// https://superuser.com/a/940884
-    pub fn _create(paths: &[PathBuf], target_path: &Path) -> Result<Self> {
-        if target_path.exists() {
-            return Err(anyhow!(
-                "target path \"{}\" already exists",
-                target_path.display()
-            ));
+    fn _create_zip_file(&self, paths: &[PathBuf]) -> Result<(), ArchiveFileError>
+    where
+        Self: Sized;
+
+    /// List all files in the archive.
+    ///
+    /// https://superuser.com/a/1073272
+    fn list_files(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError>;
+
+    /// Read the content of a specified file in the archive.
+    ///
+    /// https://superuser.com/a/148501
+    fn read_file(&self, file_name: impl ToString) -> Result<Vec<u8>, ArchiveFileError>;
+
+    /// Upsert a buffer to a specified file in the archive.
+    fn upsert_file(
+        &self,
+        file_name: impl ToString,
+        content: Arc<Vec<u8>>,
+    ) -> Result<(), ArchiveFileError>;
+
+    /// Consume the [`PathBuf`] and returns a [`Stream`]-able object that can be pass to
+    /// [`axum::body::Body::from_stream`] to stream the content of a specified
+    /// file in the archive directly without extracting the whole file.
+    ///
+    /// To avoid an additional call to the 7z CLI, the file size is manually
+    /// provided, it's just to tell clients what the size of file they get,
+    /// not affecting the streaming process.
+    fn stream_file(
+        self,
+        file_name: impl ToString,
+        filesize: Option<i64>,
+    ) -> anyhow::Result<impl Stream<Item = Result<Bytes, ArchiveFileError>>>;
+}
+
+impl ArchiveFile for PathBuf {
+    fn validate(&self) -> Result<(), ArchiveFileError> {
+        if !self.exists() {
+            return Err(ArchiveFileError::NotExists);
+        }
+        if !self.is_file() {
+            return Err(ArchiveFileError::NotAFile);
+        }
+        if !SUPPORTED_ARCHIVE_FORMATS.contains(
+            &self
+                .extension()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string()
+                .as_str(),
+        ) {
+            return Err(ArchiveFileError::NotAnArchive);
+        }
+        Ok(())
+    }
+
+    fn _create_zip_file(&self, items: &[PathBuf]) -> Result<(), ArchiveFileError> {
+        if self.exists() {
+            return Err(anyhow!("target path \"{}\" already exists", self.display()).into());
         }
 
-        paths.iter().try_for_each(|path| {
+        items.iter().try_for_each(|path| {
             if !path.exists() {
-                return Err(anyhow!("path \"{}\" not exists", path.display()));
+                return Err(ArchiveFileError::NotExists);
             }
             Ok(())
         })?;
@@ -75,96 +169,90 @@ impl ArchiveFile {
         // 7z a -tzip DestinyTest.zip destiny1.txt destiny4.txt destiny6.txt
         let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
             .arg("a")
-            .arg(format!("{}", target_path.display()))
+            .arg(format!("{}", self.display()))
             .arg("-tzip")
-            .args(paths.iter().map(|path| format!("{}", path.display())))
+            .args(items.iter().map(|path| format!("{}", path.display())))
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .context("can't spawn 7zz")?;
-
-        let stdout = child.stdout.take().context("can't read stdout")?;
-        let stderr = child.stderr.take().context("can't read stderr")?;
+            .map_err(|e| ArchiveFileError::CantSpawn7z(e.into()))?;
 
         let mut stdout_buf: Vec<u8> = vec![];
-        let mut stderr_buf: Vec<u8> = vec![];
+        std::io::BufReader::new(
+            child
+                .stdout
+                .take()
+                .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?,
+        )
+        .read_to_end(&mut stdout_buf)
+        .map_err(ArchiveFileError::CantReadStdout)?;
 
-        std::io::BufReader::new(stdout)
-            .read_to_end(&mut stdout_buf)
-            .context("can't read stdout to buffer")?;
-        std::io::BufReader::new(stderr)
-            .read_to_end(&mut stderr_buf)
-            .context("can't read stderr to buffer")?;
+        let mut stderr_buf: Vec<u8> = vec![];
+        std::io::BufReader::new(
+            child
+                .stderr
+                .take()
+                .ok_or_else(|| ArchiveFileError::CantTakeStderrPipe)?,
+        )
+        .read_to_end(&mut stderr_buf)
+        .map_err(ArchiveFileError::CantReadStderr)?;
 
         if !stderr_buf.is_empty() {
-            return Err(anyhow!(
-                "7zz error: {:#}",
-                String::from_utf8_lossy(&stdout_buf).trim()
+            return Err(ArchiveFileError::SevenZipError(
+                String::from_utf8_lossy(&stdout_buf).trim().to_string(),
             ));
         }
 
-        child.wait().context("can't wait 7zz process to complete")?;
+        child
+            .wait()
+            .map_err(|e| ArchiveFileError::CantWaitToComplete(e.into()))?;
 
-        if !target_path.exists() {
-            return Err(anyhow!(
+        if !self.exists() {
+            return Err(ArchiveFileError::Other(anyhow!(
                 "process done without error, but target path \"{}\" not exists",
-                target_path.display()
-            ));
+                self.display()
+            )));
         }
 
-        Ok(ArchiveFile {
-            path: target_path.to_path_buf(),
-        })
+        Ok(())
     }
 
-    /// Create a [`ArchiveFile`] from a path.
-    pub fn from(path: PathBuf) -> Result<Self> {
-        if !path.exists() {
-            return Err(anyhow!("archive not exists"));
-        }
-        if !path.is_file() {
-            return Err(anyhow!("archive is not a file"));
-        }
-        Ok(ArchiveFile { path })
-    }
-
-    /// Create an [`ArchiveFile`] from a path without checking if the path is a file.
-    pub fn from_unchecked(path: PathBuf) -> Self {
-        Self { path }
-    }
-
-    /// List all files in the archive.
-    ///
-    /// https://superuser.com/a/1073272
-    pub fn list_files(&self) -> Result<Vec<ItemInArchive>> {
-        if !self.path.exists() {
-            return Err(anyhow!("archive not exists"));
-        }
+    fn list_files(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError> {
+        self.validate()?;
 
         let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
             .arg("l")
-            .arg(format!("{}", self.path.display()))
+            .arg(format!("{}", self.display()))
             .arg("-ba")
             .arg("-slt")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .context("can't spawn 7zz")?;
+            .map_err(|e| ArchiveFileError::CantSpawn7z(e.into()))?;
 
         let mut stdout_buf: Vec<u8> = vec![];
-        let mut stderr_buf: Vec<u8> = vec![];
+        std::io::BufReader::new(
+            child
+                .stdout
+                .take()
+                .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?,
+        )
+        .read_to_end(&mut stdout_buf)
+        .map_err(ArchiveFileError::CantReadStdout)?;
 
-        std::io::BufReader::new(child.stdout.take().context("can't read stdout")?)
-            .read_to_end(&mut stdout_buf)
-            .context("can't read stdout to buffer")?;
-        std::io::BufReader::new(child.stderr.take().context("can't read stderr")?)
-            .read_to_end(&mut stderr_buf)
-            .context("can't read stderr to buffer")?;
+        let mut stderr_buf: Vec<u8> = vec![];
+        std::io::BufReader::new(
+            child
+                .stderr
+                .take()
+                .ok_or_else(|| ArchiveFileError::CantTakeStderrPipe)?,
+        )
+        .read_to_end(&mut stderr_buf)
+        .map_err(ArchiveFileError::CantReadStderr)?;
 
         if !stderr_buf.is_empty() {
-            return Err(anyhow!(
-                "7zz error: {:#}",
-                String::from_utf8_lossy(&stdout_buf).trim()
+            return Err(ArchiveFileError::SevenZipError(
+                String::from_utf8_lossy(&stdout_buf).trim().to_string(),
             ));
         }
 
@@ -177,10 +265,10 @@ impl ArchiveFile {
                     .split("\n")
                     .collect::<Vec<_>>()
                     .iter()
-                    .filter_map(|line| 'scoped2: {
+                    .filter_map(|line| {
                         let mut split = line.split(" = ");
                         if let (Some(key), Some(value)) = (split.next(), split.next()) {
-                            break 'scoped2 Some((key, value));
+                            return Some((key, value));
                         }
                         None
                     })
@@ -190,7 +278,7 @@ impl ArchiveFile {
                     .get("Path")
                     .map(|val| val.trim().to_string())
                     .filter(|val| !val.is_empty())
-                    .ok_or_else(|| warn!("can't get path for item {}", self.path.display()))
+                    .ok_or_else(|| warn!("can't get path for item {}", self.display()))
                     .ok()?;
 
                 let is_dir = attributes
@@ -201,10 +289,7 @@ impl ArchiveFile {
                             .get("Size")
                             .map(|val| val.trim() == "0")
                             .unwrap_or_else(|| {
-                                warn!(
-                                    "can't check if {path} in {} is a directory",
-                                    self.path.display()
-                                );
+                                warn!("can't check if {path} in {} is a directory", self.display());
                                 true
                             })
                     });
@@ -229,22 +314,17 @@ impl ArchiveFile {
                     .map_err(|e| {
                         warn!(
                             "can't get last modified date for {path} in {}: {e:#}",
-                            self.path.display()
+                            self.display()
                         )
                     })
                     .ok()?;
 
                 let size = attributes
                     .get("Size")
-                    .ok_or_else(|| {
-                        warn!("can't get size for item {path} in {}", self.path.display())
-                    })
+                    .ok_or_else(|| warn!("can't get size for item {path} in {}", self.display()))
                     .and_then(|val| {
                         val.trim().parse::<i64>().map_err(|e| {
-                            warn!(
-                                "can't parse size for {path} in {}: {e:#}",
-                                self.path.display()
-                            )
+                            warn!("can't parse size for {path} in {}: {e:#}", self.display())
                         })
                     })
                     .ok();
@@ -262,105 +342,116 @@ impl ArchiveFile {
         Ok(files)
     }
 
-    /// Read the content of a specified file in the archive.
-    ///
-    /// https://superuser.com/a/148501
-    pub fn read_file(&self, file_name: impl ToString) -> Result<Vec<u8>> {
-        if !self.path.exists() {
-            return Err(anyhow!("archive not exists"));
-        }
+    fn read_file(&self, file_name: impl ToString) -> Result<Vec<u8>, ArchiveFileError> {
+        self.validate()?;
 
         // Read content of specified file to stdout
         // 7zz e -so <input> <file-to-extract>
         let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
             .arg("e")
-            .arg(format!("{}", self.path.display()))
+            .arg(format!("{}", self.display()))
             .arg("-so")
             .arg(file_name.to_string())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .context("can't spawn 7zz")?;
+            .map_err(|e| ArchiveFileError::CantSpawn7z(e.into()))?;
 
         let mut stdout_buf: Vec<u8> = vec![];
-        let mut stderr_buf: Vec<u8> = vec![];
-        std::io::BufReader::new(child.stdout.take().context("can't read stdout")?)
-            .read_to_end(&mut stdout_buf)
-            .context("can't read stdout to buffer")?;
-        std::io::BufReader::new(child.stderr.take().context("can't read stderr")?)
-            .read_to_end(&mut stderr_buf)
-            .context("can't read stderr to buffer")?;
+        std::io::BufReader::new(
+            child
+                .stdout
+                .take()
+                .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?,
+        )
+        .read_to_end(&mut stdout_buf)
+        .map_err(ArchiveFileError::CantReadStdout)?;
 
-        child.wait().context("can't wait 7zz process to complete")?;
+        let mut stderr_buf: Vec<u8> = vec![];
+        std::io::BufReader::new(
+            child
+                .stderr
+                .take()
+                .ok_or_else(|| ArchiveFileError::CantTakeStderrPipe)?,
+        )
+        .read_to_end(&mut stderr_buf)
+        .map_err(ArchiveFileError::CantReadStderr)?;
+
+        child
+            .wait()
+            .map_err(|e| ArchiveFileError::CantWaitToComplete(e.into()))?;
 
         if !stderr_buf.is_empty() {
-            return Err(anyhow!(
-                "7zz error: {:#}",
-                String::from_utf8_lossy(&stderr_buf).trim()
+            return Err(ArchiveFileError::SevenZipError(
+                String::from_utf8_lossy(&stderr_buf).trim().to_string(),
             ));
         }
 
         Ok(stdout_buf)
     }
 
-    /// Upsert a buffer to a specified file in the archive.
-    pub fn upsert_file(&self, file_name: impl ToString, content: Arc<Vec<u8>>) -> Result<()> {
-        if !self.path.exists() {
-            return Err(anyhow!("archive not exists"));
-        }
+    fn upsert_file(
+        &self,
+        file_name: impl ToString,
+        content: Arc<Vec<u8>>,
+    ) -> Result<(), ArchiveFileError> {
+        self.validate()?;
 
         let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
             .arg("u")
-            .arg(format!("{}", self.path.display()))
+            .arg(format!("{}", self.display()))
             .arg(format!("-si{}", file_name.to_string()))
             .arg(file_name.to_string())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .context("can't spawn 7zz")?;
+            .map_err(|e| ArchiveFileError::CantSpawn7z(e.into()))?;
         {
-            let mut child_stdin = child.stdin.take().context("can't take stdin")?;
-            child_stdin
+            child
+                .stdin
+                .take()
+                .ok_or_else(|| ArchiveFileError::CantTakeStdinPipe)?
                 .write_all((*content).as_ref())
-                .context("can't write to stdin")?;
+                .map_err(|e| ArchiveFileError::CantWriteToStdin(e))?;
         }
         let child_output = child
             .wait_with_output()
-            .context("can't wait 7zz process to complete")?;
+            .map_err(|e| ArchiveFileError::CantWaitToComplete(e.into()))?;
 
         if !child_output.stderr.is_empty() {
-            return Err(anyhow!(
-                "7zz error: {:#}",
-                String::from_utf8_lossy(&child_output.stderr).trim()
+            return Err(ArchiveFileError::SevenZipError(
+                String::from_utf8_lossy(&child_output.stderr)
+                    .trim()
+                    .to_string(),
             ));
         }
 
         Ok(())
     }
 
-    /// Returns a [`Stream`]-able object that can be pass to
-    /// [`axum::body::Body::from_stream`] to stream the content of a specified
-    /// file in the archive directly without extracting the whole file.
-    ///
-    /// To avoid an additional call to the 7z CLI, the file size is manually
-    /// provided, it's just to tell clients what the size of file they get,
-    /// not affecting the streaming process.
-    pub fn stream_file(
-        &self,
+    fn stream_file(
+        self,
         file_name: impl ToString,
         filesize: Option<i64>,
-    ) -> Result<impl Stream<Item = Result<Bytes>>> {
+    ) -> anyhow::Result<impl Stream<Item = Result<Bytes, ArchiveFileError>>> {
+        self.validate()?;
+
         let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
             .arg("e")
-            .arg(format!("{}", self.path.display()))
+            .arg(format!("{}", self.display()))
             .arg("-so")
             .arg(file_name.to_string())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .context("can't spawn 7zz")?;
-        let buf = BufReader::new(child.stdout.take().context("can't take stdout")?);
+            .map_err(|e| ArchiveFileError::CantSpawn7z(e.into()))?;
+        let buf = BufReader::new(
+            child
+                .stdout
+                .take()
+                .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?,
+        );
 
         Ok(ArchiveItemStream {
             reader: buf,
@@ -376,7 +467,7 @@ struct ArchiveItemStream {
 }
 
 impl Stream for ArchiveItemStream {
-    type Item = Result<Bytes>;
+    type Item = Result<Bytes, ArchiveFileError>;
 
     fn poll_next(
         mut self: Pin<&mut Self>,
@@ -387,7 +478,7 @@ impl Stream for ArchiveItemStream {
         match self.reader.read(&mut buf) {
             Ok(0) => Poll::Ready(None),
             Ok(n) => Poll::Ready(Some(Ok(Bytes::from(buf[..n].to_vec())))),
-            Err(e) => Poll::Ready(Some(Err(anyhow!("can't read stdout: {e:#}")))),
+            Err(e) => Poll::Ready(Some(Err(ArchiveFileError::CantReadStdout(e)))),
         }
     }
 
@@ -415,7 +506,7 @@ mod tests {
     use memfd_exec::{MemFdExecutable, Stdio};
     use tempdir::TempDir;
 
-    use super::{ArchiveFile, SEVEN_ZIP_BIN};
+    use super::*;
 
     #[test]
     fn available_only_on_x86_64_linux() {
@@ -452,8 +543,8 @@ mod tests {
         let test_file = temp_dir.path().join("test.txt");
         File::create(&test_file).unwrap();
 
-        let archive_file =
-            ArchiveFile::_create(&vec![test_file], &temp_dir.path().join("new.zip")).unwrap();
+        let archive_file = temp_dir.path().join("new.zip");
+        archive_file._create_zip_file(&vec![test_file]).unwrap();
         let files = archive_file.list_files().unwrap();
 
         assert_eq!(files.len(), 1);
@@ -474,11 +565,10 @@ mod tests {
         file2.write_all(b"dolor sit amet").unwrap();
         file2.flush().unwrap();
 
-        let archive_file = ArchiveFile::_create(
-            &vec![test_file1, test_file2],
-            &temp_dir.path().join("new.zip"),
-        )
-        .unwrap();
+        let archive_file = temp_dir.path().join("new.zip");
+        archive_file
+            ._create_zip_file(&vec![test_file1, test_file2])
+            .unwrap();
 
         assert_eq!(archive_file.read_file("test1.txt").unwrap(), b"lorem ipsum");
         assert_eq!(
@@ -496,11 +586,10 @@ mod tests {
 
         // create a zip file w/ one empty file
         let filename_1 = "test.txt";
-        let archive_file = ArchiveFile::_create(
-            &vec![temp_dir.path().join(temp_file_name)],
-            &temp_dir.path().join("new.zip"),
-        )
-        .unwrap();
+        let archive_file = temp_dir.path().join("new.zip");
+        archive_file
+            ._create_zip_file(&vec![temp_dir.path().join(temp_file_name)])
+            .unwrap();
 
         assert_eq!(archive_file.read_file(&filename_1).unwrap(), b"");
         assert_eq!(archive_file.list_files().unwrap().len(), 1);
@@ -534,9 +623,10 @@ mod tests {
         let test_file = temp_dir.path().join("test.txt");
         File::create(&test_file).unwrap();
 
-        let archive_file =
-            ArchiveFile::_create(&vec![test_file.clone()], &temp_dir.path().join("new.zip"))
-                .unwrap();
+        let archive_file = temp_dir.path().join("new.zip");
+        archive_file
+            ._create_zip_file(&vec![test_file.clone()])
+            .unwrap();
 
         let modified_date_in_zip = archive_file.list_files().unwrap()[0].last_modified;
         let real_modified_date: DateTime<Utc> = File::open(&test_file)
