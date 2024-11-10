@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{path::Path, sync::Arc};
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
@@ -10,61 +7,26 @@ use tracing::warn;
 use crate::{
     library_processor::blurhash::encode,
     types::{category_info::CategoryInfo, CategoryID},
-    AppState,
+    AppState, CATEGORY_INFO_FILENAME,
 };
 
-/// ONLY add errors that would need to handle differently, e.g.
-/// [`DirIsInLibraryRoot`] tells the title upsert fns to fill None for the
-/// category_id field in the database, not fail the whole upsert.
-///
-/// [`DirIsInLibraryRoot`]: UpsertCategoryError::DirIsInLibraryRoot
-pub(super) enum UpsertCategoryError {
-    DirIsInLibraryRoot,
-    DirIsTitle,
-    Other(anyhow::Error),
-}
-
-impl From<anyhow::Error> for UpsertCategoryError {
-    fn from(e: anyhow::Error) -> Self {
-        Self::Other(e)
-    }
-}
-
-/// Decide if a given title path is in any subdirectory of the library path,
-/// and if so, upsert the category to the database and return its ID.
 pub async fn upsert_category<'e>(
     app_state: Arc<AppState>,
-    title_path: &Path,
+    category_path: &Path,
     conn: impl sqlx::Executor<'e, Database = sqlx::Postgres> + 'e,
-) -> Result<CategoryID, UpsertCategoryError> {
-    let category_path = match title_path
-        .parent()
-        .filter(|p| {
-            p.strip_prefix(app_state.config.library_path.clone())
-                .map(|p| !p.to_string_lossy().to_string().is_empty())
-                .unwrap_or(false)
-        })
-        .map(PathBuf::from)
-    {
-        Some(category_path) => category_path,
-        None => return Err(UpsertCategoryError::DirIsInLibraryRoot),
-    };
-
-    // TODO: support directory-as-title
-    if category_path.join(COMICINFO_FILENAME).exists() {
-        return Err(UpsertCategoryError::DirIsTitle);
-    }
-
+) -> Result<CategoryID> {
     let category_path_string = category_path.to_string_lossy().to_string();
 
     let category_info_path = category_path.join(CATEGORY_INFO_FILENAME);
-    let mut category_info = CategoryInfo::from_str(
-        &std::fs::read_to_string(&category_info_path)
-            .context(format!("can't read {CATEGORY_INFO_FILENAME}"))
-            .map_err(UpsertCategoryError::Other)?,
-    )
-    .context(format!("can't parse {CATEGORY_INFO_FILENAME}"))
-    .map_err(UpsertCategoryError::Other)?;
+    let mut category_info = if category_info_path.exists() {
+        CategoryInfo::from_str(
+            &std::fs::read_to_string(&category_info_path)
+                .context(format!("can't read {CATEGORY_INFO_FILENAME}"))?,
+        )
+        .context(format!("can't parse {CATEGORY_INFO_FILENAME}"))?
+    } else {
+        CategoryInfo::default()
+    };
 
     let (cover_path, cover_blurhash, cover_width, cover_height) = 'scoped: {
         let cover = match category_info.cover.as_mut() {
@@ -86,7 +48,7 @@ pub async fn upsert_category<'e>(
             })
             .map(|d| d.into());
         if let Err(ref e) = real_modified_date {
-            warn!("can't get modified date of cover file for {category_path_string}: {e:#?}");
+            warn!("can't get modified date of cover file for {category_path_string}: {e:?}");
         }
 
         if let (Some(blurhash), Some(modified_date_at_encode), Ok(real_modified_date)) = (
@@ -106,8 +68,7 @@ pub async fn upsert_category<'e>(
             }
         }
 
-        let blurhash_result = tokio::fs::read(&path)
-            .await
+        let blurhash_result = std::fs::read(&path)
             .context("can't read cover file")
             .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
             .and_then(|img| encode(&img).context("can't encode image to blurhash"));
@@ -126,7 +87,7 @@ pub async fn upsert_category<'e>(
                 );
             }
             Err(e) => {
-                warn!("can't encode the configured cover of {category_path_string}: {e:#?}");
+                warn!("can't encode the configured cover of {category_path_string}: {e:?}");
             }
         }
 
@@ -134,14 +95,8 @@ pub async fn upsert_category<'e>(
     };
 
     '_save_category_info: {
-        std::fs::write(
-            &category_info_path,
-            category_info
-                .to_pretty_string()
-                .map_err(UpsertCategoryError::Other)?,
-        )
-        .context(format!("can't write to {CATEGORY_INFO_FILENAME}"))
-        .map_err(UpsertCategoryError::Other)?;
+        std::fs::write(&category_info_path, category_info.to_pretty_string()?)
+            .context(format!("can't write to {CATEGORY_INFO_FILENAME}"))?;
     }
 
     let category_id = sqlx::query!(
@@ -164,8 +119,7 @@ pub async fn upsert_category<'e>(
             .id_generator
             .snowflake()
             .await
-            .context("can't generate category id")
-            .map_err(UpsertCategoryError::Other)?,
+            .context("can't generate category id")?,
         category_info.name.clone().unwrap_or("Untitled".to_string()),
         category_info.description.as_ref(),
         &category_path_string,
@@ -176,8 +130,7 @@ pub async fn upsert_category<'e>(
     )
     .fetch_one(conn)
     .await
-    .context("can't upsert category to database")
-    .map_err(UpsertCategoryError::Other)?
+    .context("can't upsert category to database")?
     .id;
 
     Ok(category_id)
