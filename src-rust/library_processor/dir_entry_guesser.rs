@@ -70,18 +70,18 @@ impl DirEntryTypeGuesser for DirEntry {
 
         if !entry_path.has_oneshot_flag(komga_oneshot_support) {
             if let Some(chap_path_and_number) = subdirs_and_archives.has_pattern_of_a_series() {
-                match entry_path.has_recycle_flag(komga_recycle_support) {
-                    true => return Ok(DirEntryType::Ignored),
-                    false => return Ok(DirEntryType::SeriesDir(chap_path_and_number)),
+                if entry_path.has_recycle_flag(komga_recycle_support) {
+                    return Ok(DirEntryType::Ignored);
                 }
+                return Ok(DirEntryType::SeriesDir(chap_path_and_number));
             }
         }
 
         if images.len() > 1 {
-            match entry_path.has_recycle_flag(komga_recycle_support) {
-                true => return Ok(DirEntryType::Ignored),
-                false => return Ok(DirEntryType::OneShotDir(images)),
+            if entry_path.has_recycle_flag(komga_recycle_support) {
+                return Ok(DirEntryType::Ignored);
             }
+            return Ok(DirEntryType::OneShotDir(images));
         }
 
         Ok(DirEntryType::CategoryDir(sub_dir_entries))
