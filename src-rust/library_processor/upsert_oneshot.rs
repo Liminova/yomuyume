@@ -8,6 +8,7 @@ use tokio::sync::Mutex;
 use tracing::warn;
 
 use crate::library_processor::upsert_category::upsert_category;
+use crate::ItemInArchive;
 use crate::{
     library_processor::blurhash::encode,
     types::{
@@ -42,19 +43,29 @@ pub enum OneshotType {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-struct PageInArchive {
+struct PageInTitle {
     path: String,
     filesize: Option<i64>,
     last_modified: DateTime<Utc>,
 }
 
-impl Ord for PageInArchive {
+impl From<ItemInArchive> for PageInTitle {
+    fn from(item: ItemInArchive) -> Self {
+        PageInTitle {
+            path: item.path,
+            filesize: item.size,
+            last_modified: item.last_modified,
+        }
+    }
+}
+
+impl Ord for PageInTitle {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.path.cmp(&other.path)
     }
 }
 
-impl PartialOrd for PageInArchive {
+impl PartialOrd for PageInTitle {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
@@ -105,11 +116,11 @@ pub async fn upsert_oneshot(
     // - directory: already have list of images -> get filesize & modified date
     let pages_in_title = match oneshot_type {
         OneshotType::InArchive(ref archive_file) => {
-            let files_in_archvie = archive_file
+            let files_in_archive = archive_file
                 .list_files()
                 .context("can't list files in archive")?
                 .into_iter()
-                .filter_map(|item| {
+                .filter_map(|item: ItemInArchive| {
                     match SUPPORTED_IMAGE_FORMATS.contains(
                         &item
                             .path
@@ -119,26 +130,26 @@ pub async fn upsert_oneshot(
                             .to_ascii_lowercase()
                             .as_str(),
                     ) {
-                        true => Some(PageInArchive {
-                            path: item.path,
-                            filesize: item.size,
-                            last_modified: item.last_modified,
-                        }),
+                        true => Some(item.into()),
                         false => None,
                     }
                 })
                 .collect::<Vec<_>>();
-            if nomedia_support && files_in_archvie.iter().any(|item| item.path == ".nomedia") {
+            if nomedia_support
+                && files_in_archive
+                    .iter()
+                    .any(|item: &PageInTitle| item.path == ".nomedia")
+            {
                 return Err(UpsertOneshotErr::IsIgnored);
             }
-            files_in_archvie
+            files_in_archive
         }
         OneshotType::InDirectory(ref files) => {
             let mut files = files
                 .iter()
                 .try_fold(vec![], |mut acc, item| {
                     let metadata = item.metadata().context("can't get metadata of page file")?;
-                    acc.push(PageInArchive {
+                    acc.push(PageInTitle {
                         path: item.to_string_lossy().to_string(),
                         filesize: Some(metadata.len() as i64),
                         last_modified: metadata
@@ -148,7 +159,7 @@ pub async fn upsert_oneshot(
                     });
                     Ok::<_, anyhow::Error>(acc)
                 })
-                .context("can't map page paths to PageInArchive")?;
+                .context("can't map page paths to PageInTitle")?;
             files.sort();
             files
         }
