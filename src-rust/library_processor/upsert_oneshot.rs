@@ -23,10 +23,13 @@ use crate::{
 /// not something wrong happened.
 ///
 /// [`IsIgnored`]: UpsertOneshotErr::IsIgnored
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum UpsertOneshotErr {
+    #[error("content file is ignored")]
     IsIgnored,
+    #[error("content file is empty")]
     IsEmpty,
+    #[error("other error: {0:?}")]
     Other(anyhow::Error),
 }
 
