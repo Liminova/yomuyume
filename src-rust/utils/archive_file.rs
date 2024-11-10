@@ -57,7 +57,7 @@ impl ArchiveFile {
     /// [`paths`]: Vec<PathBuf>
     /// [`target_path`]: PathBuf
     /// https://superuser.com/a/940884
-    pub async fn _create(paths: &[PathBuf], target_path: &Path) -> Result<Self> {
+    pub fn _create(paths: &[PathBuf], target_path: &Path) -> Result<Self> {
         if target_path.exists() {
             return Err(anyhow!(
                 "target path \"{}\" already exists",
@@ -136,7 +136,7 @@ impl ArchiveFile {
     /// List all files in the archive.
     ///
     /// https://superuser.com/a/1073272
-    pub async fn list_files(&self) -> Result<Vec<ItemInArchive>> {
+    pub fn list_files(&self) -> Result<Vec<ItemInArchive>> {
         if !self.path.exists() {
             return Err(anyhow!("archive not exists"));
         }
@@ -446,23 +446,22 @@ mod tests {
         assert!(err.is_empty());
     }
 
-    #[tokio::test]
-    async fn create_zip_list_files() {
+    #[test]
+    fn create_zip_list_files() {
         let temp_dir = TempDir::new("create-zip-and-list-read-files").unwrap();
         let test_file = temp_dir.path().join("test.txt");
         File::create(&test_file).unwrap();
 
-        let archive_file = ArchiveFile::_create(&vec![test_file], &temp_dir.path().join("new.zip"))
-            .await
-            .unwrap();
-        let files = archive_file.list_files().await.unwrap();
+        let archive_file =
+            ArchiveFile::_create(&vec![test_file], &temp_dir.path().join("new.zip")).unwrap();
+        let files = archive_file.list_files().unwrap();
 
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].path, "test.txt");
     }
 
-    #[tokio::test]
-    async fn read_file() {
+    #[test]
+    fn read_file() {
         let temp_dir = TempDir::new("read-file").unwrap();
 
         let test_file1 = temp_dir.path().join("test1.txt");
@@ -479,7 +478,6 @@ mod tests {
             &vec![test_file1, test_file2],
             &temp_dir.path().join("new.zip"),
         )
-        .await
         .unwrap();
 
         assert_eq!(archive_file.read_file("test1.txt").unwrap(), b"lorem ipsum");
@@ -489,8 +487,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn upsert_file() {
+    #[test]
+    fn upsert_file() {
         let temp_dir = TempDir::new("upsert-file").unwrap();
 
         let temp_file_name = "test.txt";
@@ -502,11 +500,10 @@ mod tests {
             &vec![temp_dir.path().join(temp_file_name)],
             &temp_dir.path().join("new.zip"),
         )
-        .await
         .unwrap();
 
         assert_eq!(archive_file.read_file(&filename_1).unwrap(), b"");
-        assert_eq!(archive_file.list_files().await.unwrap().len(), 1);
+        assert_eq!(archive_file.list_files().unwrap().len(), 1);
 
         // overwrite that empty file
         let content_1 = Arc::new(b"lorem ipsum".to_vec());
@@ -515,7 +512,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(archive_file.read_file(&filename_1).unwrap(), *content_1);
-        assert_eq!(archive_file.list_files().await.unwrap().len(), 1);
+        assert_eq!(archive_file.list_files().unwrap().len(), 1);
 
         // add new file
         let filename_2 = "test2.txt";
@@ -527,11 +524,11 @@ mod tests {
 
         assert_eq!(archive_file.read_file(&filename_1).unwrap(), *content_1);
         assert_eq!(archive_file.read_file(&filename_2).unwrap(), *content_2);
-        assert_eq!(archive_file.list_files().await.unwrap().len(), 2);
+        assert_eq!(archive_file.list_files().unwrap().len(), 2);
     }
 
-    #[tokio::test]
-    async fn modified_date() {
+    #[test]
+    fn modified_date() {
         let temp_dir = TempDir::new("modified-date").unwrap();
 
         let test_file = temp_dir.path().join("test.txt");
@@ -539,10 +536,9 @@ mod tests {
 
         let archive_file =
             ArchiveFile::_create(&vec![test_file.clone()], &temp_dir.path().join("new.zip"))
-                .await
                 .unwrap();
 
-        let modified_date_in_zip = archive_file.list_files().await.unwrap()[0].last_modified;
+        let modified_date_in_zip = archive_file.list_files().unwrap()[0].last_modified;
         let real_modified_date: DateTime<Utc> = File::open(&test_file)
             .unwrap()
             .metadata()
