@@ -29,7 +29,7 @@ tokio = { version = "1.32.0", features = ["full"] }
 tower-http = { version = "0.5.0", features = ["tracing", "trace", "cors"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-utoipa = { version = "4.1.0", features = ["axum_extras", "chrono", "uuid"] }
+utoipa = { version = "4.1.0", features = ["axum_extras", "chrono"] }
 utoipa-redoc = { version = "4.0.0", features = ["axum"] }
 utoipa-swagger-ui = { version = "7.1.0", features = ["axum"] }
 anyhow = "1.0.89"
@@ -41,6 +41,7 @@ num_cpus = "1.16.0"
 async-channel = "2.3.1"
 futures-core = "0.3.31"
 futures-util = "0.3.31"
+thiserror = "2.0.2"
 
 [dev-dependencies]
 axum-test = "14.0.0"
