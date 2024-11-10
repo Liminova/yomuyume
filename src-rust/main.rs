@@ -57,7 +57,6 @@ async fn main() -> Result<()> {
             "/api/user",
             Router::new()
                 .route("/check", get(get_check))
-                .route("/reset", post(post_reset_password))
                 .route("/delete", get(get_delete_account).post(post_delete_account))
                 .route("/verify", get(get_validate_email).post(post_validate_email))
                 .route("/modify", post(post_modify_info))
@@ -90,6 +89,7 @@ async fn main() -> Result<()> {
             "/api",
             Router::new()
                 .route("/user/reset/:email", get(get_reset_password))
+                .route("/user/reset", post(post_reset_password))
                 .route("/utils/status", get(get_status).post(post_status)),
         )
         .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
