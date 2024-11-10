@@ -75,7 +75,7 @@ impl PartialOrd for PageInTitle {
 }
 
 /// Upsert a title to the database and return its ID and ComicInfo.
-pub async fn upsert_oneshot(
+pub(super) async fn upsert_oneshot(
     app_state: Arc<AppState>,
     title_path: PathBuf,
     oneshot_type: OneshotType,
