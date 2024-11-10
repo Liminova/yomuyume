@@ -9,7 +9,6 @@ use axum::{
     routing::{get, post, put},
     Router,
 };
-use library_processor::LibraryProcessor;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
@@ -113,9 +112,8 @@ async fn main() -> Result<()> {
         };
     });
 
-    let lp = LibraryProcessor::new(app_state.clone());
-
-    let library_processor_handle = tokio::spawn(async move { lp.full_scan().await });
+    let library_processor_handle =
+        tokio::spawn(async move { library_processor::full_scan(app_state.clone()).await });
 
     let _ = tokio::join!(server_handle, library_processor_handle);
 
