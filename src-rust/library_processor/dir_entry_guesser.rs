@@ -2,9 +2,7 @@ use std::{collections::HashMap, fs::DirEntry, path::PathBuf};
 
 use anyhow::{Context, Result};
 
-use crate::{
-    ArchiveFile, CATEGORY_INFO_FILENAME, SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS,
-};
+use crate::{CATEGORY_INFO_FILENAME, SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS};
 
 type SubEntries = Vec<DirEntry>;
 type ChapterPathAndNumber = HashMap<PathBuf, i32>;
@@ -15,7 +13,7 @@ pub enum DirEntryType {
     CategoryDir(SubEntries),
     SeriesDir(ChapterPathAndNumber),
     OneShotDir(PagePaths),
-    OneShotArchiveFile(ArchiveFile),
+    OneShotArchiveFile(PathBuf),
     Ignored,
 }
 
@@ -46,9 +44,7 @@ impl DirEntryTypeGuesser for DirEntry {
                 if entry_path.has_recycle_flag(komga_recycle_support) {
                     return Ok(DirEntryType::Ignored);
                 }
-                return Ok(DirEntryType::OneShotArchiveFile(
-                    ArchiveFile::from_unchecked(entry_path),
-                ));
+                return Ok(DirEntryType::OneShotArchiveFile(entry_path));
             }
             DirEntryBasicType::Directory => {}
         }
@@ -378,4 +374,6 @@ mod tests {
             ]))
         );
     }
+
+    // TODO: good luck writing more tests for this
 }
