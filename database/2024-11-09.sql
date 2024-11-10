@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS titles (
     description TEXT,
     release DATE,
     path TEXT NOT NULL,
+    is_dir BOOLEAN NOT NULL,
 
     cover_path TEXT,
     cover_blurhash TEXT,
