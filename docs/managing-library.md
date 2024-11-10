@@ -91,7 +91,7 @@ flowchart TD
     catinfo --> |no| komga-oneshot@{ shape: hex, label: "komga's \"_oneshot\"" }
     komga-oneshot --> |yes| pagecount
 
-    komga-oneshot --> |no| haspattern@{ shape: hex, label: "contains archives or dirs with pattern title_001, title_002" }
+    komga-oneshot --> |no| haspattern@{ shape: hex, label: "contains >1 archives or dirs with pattern title_001, title_002" }
 
     %% it's a series
     haspattern --> |yes| recycle-series@{ shape: hex, label: "komga's \"#recycle\"" }
