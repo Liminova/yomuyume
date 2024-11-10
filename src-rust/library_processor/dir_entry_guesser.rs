@@ -175,6 +175,10 @@ impl HasPatternOfSeries for Vec<PathBuf> {
     /// If the items have a pattern of a series, return their
     /// chapter numbers mapped respectively, None otherwise.
     fn has_pattern_of_a_series(&self) -> Option<ChapterPathAndNumber> {
+        if self.len() < 2 {
+            return None;
+        }
+
         let mut basename = "".to_string();
         let mut chapter_numbers: HashMap<PathBuf, i32> = HashMap::new();
 
