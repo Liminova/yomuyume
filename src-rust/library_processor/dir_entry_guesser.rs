@@ -61,6 +61,10 @@ impl DirEntryTypeGuesser for DirEntry {
             .get_sub_dir_entries(nomedia_support)
             .context("can't get subdirs of the entry")?;
 
+        if sub_dir_entries.is_empty() {
+            return Ok(DirEntryType::Ignored);
+        }
+
         if entry_path.contains_category_info() {
             return Ok(DirEntryType::CategoryDir(sub_dir_entries));
         }
