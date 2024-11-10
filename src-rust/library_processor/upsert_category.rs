@@ -68,7 +68,7 @@ pub(super) async fn upsert_category<'e>(
             }
         }
 
-        let blurhash_result = std::fs::read(&path)
+        let blurhash_result = std::fs::read(path)
             .context("can't read cover file")
             .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
             .and_then(|img| encode(&img).context("can't encode image to blurhash"));
