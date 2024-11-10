@@ -1,5 +1,6 @@
-use anyhow::{Context, Result};
 use std::{collections::HashMap, fs::DirEntry, path::PathBuf};
+
+use anyhow::{Context, Result};
 
 use crate::{
     ArchiveFile, CATEGORY_INFO_FILENAME, SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS,
