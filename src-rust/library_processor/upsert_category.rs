@@ -10,7 +10,7 @@ use crate::{
     AppState, CATEGORY_INFO_FILENAME,
 };
 
-pub async fn upsert_category<'e>(
+pub(super) async fn upsert_category<'e>(
     app_state: Arc<AppState>,
     category_path: &Path,
     conn: impl sqlx::Executor<'e, Database = sqlx::Postgres> + 'e,
