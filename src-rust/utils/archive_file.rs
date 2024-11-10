@@ -128,6 +128,11 @@ impl ArchiveFile {
         Ok(ArchiveFile { path })
     }
 
+    /// Create an [`ArchiveFile`] from a path without checking if the path is a file.
+    pub fn from_unchecked(path: PathBuf) -> Self {
+        Self { path }
+    }
+
     /// List all files in the archive.
     ///
     /// https://superuser.com/a/1073272
