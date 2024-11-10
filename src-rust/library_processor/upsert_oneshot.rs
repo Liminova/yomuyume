@@ -41,7 +41,7 @@ impl From<anyhow::Error> for UpsertOneshotErr {
 
 #[derive(Debug)]
 pub enum OneshotType {
-    InArchive(ArchiveFile),
+    InArchive(PathBuf),
     InDirectory(Vec<PathBuf>),
 }
 
