@@ -88,13 +88,20 @@ impl DirEntryTypeGuesser for DirEntry {
     }
 }
 
+#[derive(Debug)]
+enum DirEntryBasicType {
+    File,
+    Directory,
+    SupportedArchive,
+}
+
 trait IsSupportedArchive {
-    fn is_supported_archive(&self) -> Result<bool>;
+    fn is_supported_archive(&self) -> Result<DirEntryBasicType>;
 }
 
 impl IsSupportedArchive for DirEntry {
     /// Check if the [`DirEntry`] is a supported archive file.
-    fn is_supported_archive(&self) -> Result<bool> {
+    fn is_supported_archive(&self) -> Result<DirEntryBasicType> {
         if self
             .file_type()
             .context("can't get entry's file type")?
@@ -106,11 +113,12 @@ impl IsSupportedArchive for DirEntry {
                 .map(|e| e.to_string_lossy().to_string())
             {
                 if SUPPORTED_ARCHIVE_FORMATS.contains(&extension.as_str()) {
-                    return Ok(true);
+                    return Ok(DirEntryBasicType::SupportedArchive);
                 }
             }
+            return Ok(DirEntryBasicType::File);
         }
-        Ok(false)
+        Ok(DirEntryBasicType::Directory)
     }
 }
 
