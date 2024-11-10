@@ -9,7 +9,7 @@
 	"scripts": {
 		"commit": "czg",
 		"lint-client": "eslint --fix --cache src/**/*.{ts,vue}",
-		"lint-server": "cargo check && cargo fmt && cargo clippy",
+		"lint-server": "cargo fmt && cargo clippy",
 		"lint": "concurrently \"pnpm lint-client\" \"pnpm lint-server\"",
 		"dev-client": "nuxt dev",
 		"dev-server": "cargo run -p yomuyume",
