@@ -116,9 +116,42 @@ pub async fn upsert_oneshot(
 
     // micro DX optimization, this value is used frequently
     let title_path_string = title_path.to_string_lossy().to_string();
+    let comicinfo_path = title_path.join(COMICINFO_FILENAME);
+    let comicinfo_path_string = comicinfo_path.to_string_lossy().to_string();
 
-    // - archive: already have filesize & modified date -> filter out non-image files
-    // - directory: already have list of images -> get filesize & modified date
+    // right after this, we iterate through all the files in the title to filter
+    // out non-image files. Having this variable here enables us to get the most
+    // recently modified page if it's a directory, or we simply use the file's
+    // modified date if it's an archive.
+    let mut title_last_modified = if let OneshotType::InArchive(ref archive_file) = oneshot_type {
+        match archive_file
+            .metadata()
+            .context(format!("can't get metadata"))
+            .and_then(|m| {
+                m.modified()
+                    .map(|d| DateTime::<Utc>::from(d))
+                    .context("can't convert modified date to DateTime")
+            })
+            .and_then(|d| {
+                d.with_nanosecond(0)
+                    .context("can't round modified date to seconds")
+            })
+            .context(format!("can't get modified date of {title_path_string}"))
+        {
+            Ok(modified_date) => Some(modified_date),
+            Err(e) => {
+                warn!("{e:?}");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    // - archive: already have filesize & modified date
+    //   -> filter out non-image files
+    // - directory: already have list of images
+    //   -> get filesize & modified date (+ lastest modified page)
     let pages_in_title = match oneshot_type {
         OneshotType::InArchive(ref archive_file) => {
             let files_in_archive = archive_file
@@ -154,18 +187,57 @@ pub async fn upsert_oneshot(
                 .iter()
                 .try_fold(vec![], |mut acc, item| {
                     let metadata = item.metadata().context("can't get metadata of page file")?;
+                    let last_modified = metadata
+                        .modified()
+                        .context(format!("can't get modified date of {}", item.display()))?
+                        .into();
+
+                    match title_last_modified {
+                        None => title_last_modified = Some(last_modified),
+                        Some(ref mut title_last_modified) => {
+                            if last_modified > *title_last_modified {
+                                *title_last_modified = last_modified;
+                            }
+                        }
+                    }
+
                     acc.push(PageInTitle {
                         path: item.to_string_lossy().to_string(),
                         filesize: Some(metadata.len() as i64),
-                        last_modified: metadata
-                            .modified()
-                            .context("can't get modified date of page file")?
-                            .into(),
+                        last_modified,
                     });
                     Ok::<_, anyhow::Error>(acc)
                 })
                 .context("can't map page paths to PageInTitle")?;
             files.sort();
+
+            // don't forget we also consider the modified date of the ComicInfo.xml file
+            if let Some(ref title_modified_to_compare) = title_last_modified {
+                match std::fs::metadata(&comicinfo_path)
+                    .context(format!("can't get metadata"))
+                    .and_then(|m| {
+                        m.modified()
+                            .map(|d| DateTime::<Utc>::from(d))
+                            .context("can't convert modified date to DateTime")
+                    })
+                    .and_then(|d| {
+                        d.with_nanosecond(0)
+                            .context("can't round modified date to seconds")
+                    })
+                    .context(format!(
+                        "can't get modified date of ComicInfo.xml file {comicinfo_path_string}"
+                    )) {
+                    Ok(comic_info_modified) => {
+                        if comic_info_modified > *title_modified_to_compare {
+                            title_last_modified = Some(comic_info_modified);
+                        }
+                    }
+                    Err(e) => {
+                        warn!("{e:?}");
+                    }
+                }
+            }
+
             files
         }
     };
@@ -395,11 +467,7 @@ pub async fn upsert_oneshot(
         cover_blurhash,
         cover_width,
         cover_height,
-        std::fs::metadata(&title_path)
-            .and_then(|m| { m.modified().map(|d| DateTime::<Utc>::from(d)) })
-            .map_err(|e| tracing::warn!("can't get modified date of {title_path_string}: {e:?}"))
-            .ok()
-            .unwrap_or_default(),
+        title_last_modified,
     )
     .fetch_one(&mut *txn)
     .await
