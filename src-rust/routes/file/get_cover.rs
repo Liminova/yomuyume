@@ -34,17 +34,15 @@ pub async fn get_cover(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't find title path")?
+    .context("can't query title path")?
     {
         Some(record) => record,
-        None => return Ok((StatusCode::NOT_FOUND, "title not found".to_string()).into_response()),
+        None => return Ok((StatusCode::NOT_FOUND).into_response()),
     };
 
     let cover_path = match record.cover_path {
         Some(path) => path,
-        None => {
-            return Ok((StatusCode::NOT_FOUND, "title has no cover".to_string()).into_response())
-        }
+        None => return Ok((StatusCode::NO_CONTENT).into_response()),
     };
 
     let headers = [(

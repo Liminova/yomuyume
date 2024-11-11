@@ -43,7 +43,7 @@ pub async fn post_login(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't find user")?
+    .context("can't query user")?
     {
         Some(user) => (user.id, user.password_hash),
         None => {

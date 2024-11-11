@@ -45,7 +45,7 @@ pub async fn put_favorite(
     )
     .execute(&app_state.pool)
     .await
-    .context("can't insert favorite")?;
+    .context("can't upsert favorite")?;
 
     Ok((StatusCode::OK).into_response())
 }
@@ -85,7 +85,7 @@ pub async fn put_bookmark(
     )
     .execute(&app_state.pool)
     .await
-    .context("can't insert bookmark")?;
+    .context("can't upsert bookmark")?;
 
     Ok((StatusCode::OK).into_response())
 }

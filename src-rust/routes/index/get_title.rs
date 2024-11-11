@@ -138,10 +138,10 @@ pub async fn get_title(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't execute experimental query")?
+    .context("can't query title")?
     {
         Some(title_record) => title_record,
-        None => return Ok((StatusCode::NOT_FOUND, "no title found").into_response()),
+        None => return Ok((StatusCode::NOT_FOUND).into_response()),
     };
 
     let body = TitleResponseBody {

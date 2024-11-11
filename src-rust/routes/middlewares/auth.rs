@@ -48,9 +48,9 @@ pub async fn auth(
     };
 
     let (user_id, last_used_at) = match sqlx::query!(
-        r#"SELECT users.id, session_tokens.last_used_at FROM session_tokens
+        "SELECT users.id, session_tokens.last_used_at FROM session_tokens
         JOIN users ON session_tokens.user_id = users.id
-        WHERE session_tokens.id = $1 AND session_tokens.session_secret = $2"#,
+        WHERE session_tokens.id = $1 AND session_tokens.session_secret = $2",
         session_id,
         session_secret.as_str()
     )
@@ -67,13 +67,13 @@ pub async fn auth(
     let now = Utc::now();
     if now - last_used_at < chrono::Duration::minutes(2) {
         sqlx::query!(
-            r#"UPDATE session_tokens SET last_used_at = $1 WHERE id = $2"#,
+            "UPDATE session_tokens SET last_used_at = $1 WHERE id = $2",
             now,
             session_id
         )
         .execute(&data.pool)
         .await
-        .context("can't update last_used_at")?;
+        .context("can't update session token's last used time")?;
     }
 
     req.extensions_mut().insert(user_id);

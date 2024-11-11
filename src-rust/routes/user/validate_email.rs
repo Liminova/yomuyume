@@ -35,12 +35,12 @@ pub async fn get_validate_email(
 
     // check user
     let user_record = sqlx::query!(
-        r#"SELECT id, username, email, verified_at FROM users WHERE id = $1"#,
+        "SELECT id, username, email, verified_at FROM users WHERE id = $1",
         user_id
     )
     .fetch_one(&app_state.pool)
     .await
-    .context("can't find user")?;
+    .context("can't query user")?;
     if let Some(ref verified_at) = user_record.verified_at {
         return Ok((
             StatusCode::BAD_REQUEST,
@@ -51,15 +51,13 @@ pub async fn get_validate_email(
 
     // too many requests
     let temp_code_record = sqlx::query!(
-        r#"SELECT created_at
-        FROM temp_codes
-        WHERE purpose = $1 AND user_id = $2"#,
+        "SELECT created_at FROM temp_codes WHERE purpose = $1 AND user_id = $2",
         TempCodePurpose::ValidateEmail as TempCodePurpose,
         user_record.id
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't find temp code")?;
+    .context("can't query temp code")?;
     if let Some(ref record) = temp_code_record {
         if Utc::now() - record.created_at < chrono::Duration::minutes(5) {
             {
@@ -71,11 +69,11 @@ pub async fn get_validate_email(
     // get temp code
     let new_code = app_state.id_generator.secure();
     let code = sqlx::query!(
-        r#"INSERT INTO temp_codes (purpose, user_id, code, created_at)
-        VALUES ($1, $2, $3, $4)
+        "INSERT INTO temp_codes (purpose, user_id, code, created_at)
+            VALUES ($1, $2, $3, $4)
         ON CONFLICT (purpose, user_id)
-        DO UPDATE SET created_at = $4
-        RETURNING code"#,
+            DO UPDATE SET created_at = $4
+        RETURNING code",
         TempCodePurpose::ValidateEmail as TempCodePurpose,
         user_record.id,
         new_code.as_str(),
@@ -83,7 +81,7 @@ pub async fn get_validate_email(
     )
     .fetch_one(&app_state.pool)
     .await
-    .context("can't insert temp code")?
+    .context("can't upsert temp code")?
     .code;
 
     mailer
@@ -126,12 +124,12 @@ pub async fn post_validate_email(
 ) -> Result<Response, AppError> {
     // check user
     let user_record = sqlx::query!(
-        r#"SELECT id, username, email, verified_at FROM users WHERE id = $1"#,
+        "SELECT id, username, email, verified_at FROM users WHERE id = $1",
         user_id
     )
     .fetch_one(&app_state.pool)
     .await
-    .context("can't find user")?;
+    .context("can't query user")?;
     if let Some(ref verified_at) = user_record.verified_at {
         return Ok((
             StatusCode::BAD_REQUEST,
@@ -142,18 +140,15 @@ pub async fn post_validate_email(
 
     // check temp code
     let code_creation_time = sqlx::query!(
-        r#"DELETE FROM temp_codes
-        WHERE code = $1
-        AND purpose = $2
-        AND user_id = $3
-        RETURNING created_at"#,
+        "DELETE FROM temp_codes WHERE code = $1 AND purpose = $2 AND user_id = $3
+        RETURNING created_at",
         query.code.as_str(),
         TempCodePurpose::ValidateEmail as TempCodePurpose,
         user_record.id
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't find temp code")?
+    .context("can't query temp code")?
     .map(|record| record.created_at);
     if let Some(code_creation_time) = code_creation_time {
         if Utc::now() - code_creation_time > chrono::Duration::minutes(5) {
@@ -164,7 +159,7 @@ pub async fn post_validate_email(
     }
 
     sqlx::query!(
-        r#"UPDATE users SET verified_at = $1 WHERE id = $2"#,
+        "UPDATE users SET verified_at = $1 WHERE id = $2",
         Utc::now(),
         user_record.id
     )

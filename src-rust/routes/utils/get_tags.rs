@@ -29,7 +29,7 @@ pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response
     let data = sqlx::query!("SELECT id, name FROM tags")
         .fetch_all(&app_state.pool)
         .await
-        .context("can't fetch tags")?
+        .context("can't query tags")?
         .into_iter()
         .map(|record| TagResponseBody {
             id: record.id.to_string(),

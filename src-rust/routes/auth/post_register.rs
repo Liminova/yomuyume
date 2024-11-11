@@ -40,7 +40,7 @@ pub async fn post_register(
     )
     .fetch_one(&app_state.pool)
     .await
-    .context("can't check if email exists")?
+    .context("can't query to check if email exists")?
     .exists;
 
     if email_exists {
@@ -62,9 +62,7 @@ pub async fn post_register(
     }
 
     sqlx::query!(
-        "INSERT INTO users
-            (id, username, email, password_hash)
-        VALUES ($1, $2, $3, $4)",
+        "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4)",
         app_state.id_generator.snowflake().await?,
         query.username.as_str(),
         query.email.to_string().to_ascii_lowercase(),

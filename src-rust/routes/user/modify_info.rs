@@ -47,10 +47,10 @@ pub async fn post_modify_info(
         }
         (Some(current_password), Some(new_password)) => {
             let current_password_hash =
-                sqlx::query!(r#"SELECT password_hash FROM users WHERE id = $1"#, user_id)
+                sqlx::query!("SELECT password_hash FROM users WHERE id = $1", user_id)
                     .fetch_one(&app_state.pool)
                     .await
-                    .context("can't get user")?
+                    .context("can't query user")?
                     .password_hash;
             if !check_pass(&current_password_hash, &current_password) {
                 return Ok((StatusCode::BAD_REQUEST, "invalid current password").into_response());
@@ -61,11 +61,11 @@ pub async fn post_modify_info(
     }
 
     sqlx::query!(
-        r#"UPDATE users SET
+        "UPDATE users SET
             username = CASE WHEN $1 = '' THEN username ELSE $1 END,
             email = CASE WHEN $2 = '' THEN email ELSE $2 END,
             password_hash = CASE WHEN $3 = '' THEN password_hash ELSE $3 END,
-            updated_at = NOW() WHERE id = $4"#,
+            updated_at = NOW() WHERE id = $4",
         body.username.unwrap_or_default(),
         body.email.unwrap_or_default(),
         new_password_hash,

@@ -34,15 +34,15 @@ pub async fn get_delete_account(
 
     // too many request
     let temp_code_record = sqlx::query!(
-        r#"SELECT created_at
+        "SELECT created_at
         FROM temp_codes
-        WHERE purpose = $1 AND user_id = $2"#,
+        WHERE purpose = $1 AND user_id = $2",
         TempCodePurpose::DeleteAccount as TempCodePurpose,
         user_id
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't find temp code")?;
+    .context("can't query temp code")?;
     if let Some(ref record) = temp_code_record {
         if Utc::now() - record.created_at < chrono::Duration::minutes(5) {
             {
@@ -54,11 +54,11 @@ pub async fn get_delete_account(
     // get temp code
     let new_code = app_state.id_generator.secure();
     let code = sqlx::query!(
-        r#"INSERT INTO temp_codes (purpose, user_id, code, created_at)
-        VALUES ($1, $2, $3, $4)
+        "INSERT INTO temp_codes (purpose, user_id, code, created_at)
+            VALUES ($1, $2, $3, $4)
         ON CONFLICT (purpose, user_id)
-        DO UPDATE SET created_at = $4
-        RETURNING code"#,
+            DO UPDATE SET created_at = $4
+        RETURNING code",
         TempCodePurpose::DeleteAccount as TempCodePurpose,
         user_id,
         new_code.as_str(),
@@ -66,18 +66,16 @@ pub async fn get_delete_account(
     )
     .fetch_one(&app_state.pool)
     .await
-    .context("can't insert temp code")?
+    .context("can't upsert temp code")?
     .code;
 
     // in4 for email
-    let (username, user_email) = sqlx::query!(
-        r#"SELECT username, email FROM users WHERE id = $1"#,
-        user_id
-    )
-    .fetch_one(&app_state.pool)
-    .await
-    .context("can't find user")
-    .map(|record| (record.username, record.email))?;
+    let (username, user_email) =
+        sqlx::query!("SELECT username, email FROM users WHERE id = $1", user_id)
+            .fetch_one(&app_state.pool)
+            .await
+            .context("can't query user")
+            .map(|record| (record.username, record.email))?;
 
     mailer.send(
         &username,
@@ -122,10 +120,10 @@ pub async fn post_delete_account(
     }
 
     // check password
-    let password_hash = sqlx::query!(r#"SELECT password_hash FROM users WHERE id = $1"#, user_id)
+    let password_hash = sqlx::query!("SELECT password_hash FROM users WHERE id = $1", user_id)
         .fetch_one(&app_state.pool)
         .await
-        .context("can't find user")?
+        .context("can't query user")?
         .password_hash;
     if !check_pass(&password_hash, &query.password) {
         return Ok((StatusCode::BAD_REQUEST, "invalid password").into_response());
@@ -133,14 +131,14 @@ pub async fn post_delete_account(
 
     // check temp code
     let code_creation_time = sqlx::query!(
-        r#"DELETE FROM temp_codes WHERE code = $1 AND purpose = $2 AND user_id = $3 RETURNING created_at"#,
+        "DELETE FROM temp_codes WHERE code = $1 AND purpose = $2 AND user_id = $3 RETURNING created_at",
         query.code.as_str(),
         TempCodePurpose::DeleteAccount as TempCodePurpose,
         user_id,
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't get temp code creation time")?
+    .context("can't query temp code")?
     .map(|record| record.created_at);
     match code_creation_time {
         Some(creation_time) => {
@@ -153,7 +151,7 @@ pub async fn post_delete_account(
         }
     };
 
-    sqlx::query!(r#"DELETE FROM users WHERE id = $1"#, user_id)
+    sqlx::query!("DELETE FROM users WHERE id = $1", user_id)
         .execute(&app_state.pool)
         .await
         .context("can't delete user")?;

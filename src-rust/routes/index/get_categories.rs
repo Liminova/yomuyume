@@ -36,7 +36,7 @@ pub async fn get_categories(State(app_state): State<Arc<AppState>>) -> Result<Re
     let data = sqlx::query!("SELECT id, name, description FROM categories")
         .fetch_all(&app_state.pool)
         .await
-        .context("can't find categories")?
+        .context("can't query categories")?
         .into_iter()
         .map(|category| CategoryResponse {
             id: category.id.to_string(),
