@@ -173,6 +173,7 @@ pub async fn upsert_oneshot(
                     }
                 })
                 .collect::<Vec<_>>();
+
             if nomedia_support
                 && files_in_archive
                     .iter()
@@ -180,6 +181,7 @@ pub async fn upsert_oneshot(
             {
                 return Err(UpsertOneshotErr::IsIgnored);
             }
+
             files_in_archive
         }
         OneshotType::InDirectory(ref files) => {
