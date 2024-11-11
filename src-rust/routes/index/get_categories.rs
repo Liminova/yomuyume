@@ -13,15 +13,10 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-pub struct CategoryResponse {
+pub struct CategoryResponseBody {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
-}
-
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
-pub struct CategoriesResponseBody {
-    pub data: Vec<CategoryResponse>,
 }
 
 /// get categories
@@ -29,6 +24,7 @@ pub struct CategoriesResponseBody {
 /// with their information
 #[utoipa::path(get, path = "/api/index/categories", responses(
     (status = 200, description = "fetch all categories successful", body = Vec<CategoryResponseBody>),
+    (status = 204, description = "no category found"),
     (status = 401, description = "unauthorized", body = String),
     (status = 500, description = "internal server error", body = String),
 ), security(("session-id" = [], "session-secret" = [])))]
@@ -38,12 +34,15 @@ pub async fn get_categories(State(app_state): State<Arc<AppState>>) -> Result<Re
         .await
         .context("can't query categories")?
         .into_iter()
-        .map(|category| CategoryResponse {
+        .map(|category| CategoryResponseBody {
             id: category.id.to_string(),
             name: category.name,
             description: category.description,
         })
         .collect::<Vec<_>>();
 
-    Ok((StatusCode::OK, Json(CategoriesResponseBody { data })).into_response())
+    if data.is_empty() {
+        return Ok((StatusCode::NO_CONTENT).into_response());
+    }
+    Ok((StatusCode::OK, Json(data)).into_response())
 }
