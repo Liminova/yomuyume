@@ -260,15 +260,13 @@ pub async fn upsert_oneshot(
             })
             .and_then(|s| ComicInfo::from_str(&s))?,
         OneshotType::InDirectory(_) => {
-            let comic_info_path = title_path.join(COMICINFO_FILENAME);
-            if !comic_info_path.exists() {
-                std::fs::write(&comic_info_path, COMICINFO_FILENAME).context(format!(
-                    "can't write to {COMICINFO_FILENAME} in content file"
-                ))?;
+            if !comicinfo_path.exists() {
+                std::fs::write(&comicinfo_path, COMICINFO_FILENAME)
+                    .context(format!("can't write to {COMICINFO_FILENAME}"))?;
             }
             ComicInfo::from_str(
-                &std::fs::read_to_string(&comic_info_path)
-                    .context(format!("can't read {COMICINFO_FILENAME} in content file"))?,
+                &std::fs::read_to_string(&comicinfo_path)
+                    .context(format!("can't read {COMICINFO_FILENAME}"))?,
             )?
         }
     };
