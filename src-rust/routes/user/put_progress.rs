@@ -9,11 +9,15 @@ use axum::{
 
 use crate::{types::UserID, AppError, AppState};
 
+/// set progress
+///
+/// set the user's progress for a title
 #[utoipa::path(put, path = "/api/user/progress/{title_id}/{page}", responses(
-    (status = 200, description = "Set progress successfully"),
-    (status = 400, description = "Bad request", body = String),
-    (status = 401, description = "Unauthorized", body = String),
-))]
+    (status = 200, description = "set progress successfully"),
+    (status = 400, description = "bad request", body = String),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn put_progress(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,

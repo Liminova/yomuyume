@@ -15,6 +15,7 @@ use crate::{routes::check_pass, AppError, AppState};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct LoginRequestBody {
+    /// username or email
     pub login: String,
     pub password: String,
 }
@@ -24,11 +25,11 @@ pub struct LoginResponseBody {
     pub token: String,
 }
 
-/// Login with username and password and get the JWT token.
+/// login
 #[utoipa::path(post, path = "/api/auth/login", responses(
-    (status = 200, description = "Login successful"),
-    (status = 500, description = "Internal server error", body = String),
-    (status = 400, description = "Bad request", body = String),
+    (status = 200, description = "login successful"),
+    (status = 400, description = "bad request", body = String),
+    (status = 500, description = "internal server error", body = String),
 ))]
 pub async fn post_login(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,

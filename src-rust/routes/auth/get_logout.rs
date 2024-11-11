@@ -13,12 +13,14 @@ use axum_extra::extract::{
 
 use crate::{AppError, AppState};
 
-/// Reset all the cookies on the client side.
+/// logout
+///
+/// reset all the cookies on the client side
 #[utoipa::path(get, path = "/api/auth/logout", responses(
-    (status = 200, description = "Logout successful"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String),
-))]
+    (status = 200, description = "logout successful"),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_logout(
     cookie_jar: CookieJar,
     State(app_state): State<Arc<AppState>>,

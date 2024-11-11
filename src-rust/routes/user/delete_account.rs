@@ -17,14 +17,15 @@ use crate::{
     AppError, AppState,
 };
 
-/// Send an email to the user with a code to confirm the deletion.
+/// user delete
+///
+/// send an email to the user with a code to confirm the deletion
 #[utoipa::path(get, path = "/api/user/delete", responses(
     (status = 200, description = "code sent to user's email"),
-    (status = 400, description = "Bad request", body = String),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 429, description = "Too many requests", body = String),
-    (status = 500, description = "Internal server error", body = String),
-))]
+    (status = 401, description = "unauthorized", body = String),
+    (status = 429, description = "too many requests"),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_delete_account(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
@@ -102,14 +103,15 @@ pub struct DeleteRequestBody {
     pub password: String,
 }
 
-/// The user provides the code received by email to confirm the deletion.
+/// confirm user delete
+///
+/// the user provides the code received by email
 #[utoipa::path(post, path = "/api/user/delete", responses(
-    (status = 200, description = "User deleted"),
-    (status = 400, description = "Bad request", body = String),
-    (status = 401, description = "Unauthorized"),
-    (status = 429, description = "Too many requests", body = String),
-    (status = 500, description = "Internal server error", body = String),
-))]
+    (status = 200, description = "user deleted"),
+    (status = 400, description = "bad request", body = String),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn post_delete_account(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,

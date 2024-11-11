@@ -56,13 +56,15 @@ pub struct TitleResponseBody {
     pub date_updated: Option<String>,
 }
 
-/// Get everything about a title.
+/// get title
+///
+/// with all the information
 #[utoipa::path(get, path = "/api/index/title/{title_id}", responses(
-    (status = 200, description = "Fetch title successful", body = TitleResponseBody),
-    (status = 204, description = "No title found for the given id", body = String),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String)
-))]
+    (status = 200, description = "fetch title successful", body = TitleResponseBody),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 404, description = "no title found for the given id"),
+    (status = 500, description = "internal server error", body = String)
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_title(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,

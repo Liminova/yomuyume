@@ -10,12 +10,15 @@ use axum::{
 
 use crate::{AppError, AppState, ArchiveFile};
 
+/// get page
+///
+/// get the content of a page file for a title
 #[utoipa::path(get, path = "/api/file/page/{page_id}", responses(
-    (status = 200, description = "Fetch page successful.", body = Vec<u8>),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 404, description = "Page not found", body = String),
-    (status = 500, description = "Internal server error", body = String),
-))]
+    (status = 200, description = "fetch page successful", body = Vec<u8>),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 404, description = "page not found", body = String),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_page(
     State(app_state): State<Arc<AppState>>,
     Path(page_id): Path<i64>,

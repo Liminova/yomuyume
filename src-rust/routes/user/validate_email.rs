@@ -17,14 +17,16 @@ use crate::{
     AppError, AppState,
 };
 
-/// Send an email to the user with a code to validate their email address.
+/// validate email
+///
+/// send an email to the userwith a code to validate their email address
 #[utoipa::path(get, path = "/api/user/verify", responses(
-    (status = 200, description = "Verification email sent"),
-    (status = 400, description = "Bad request", body = String),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 429, description = "Too many requests", body = String),
-    (status = 500, description = "Internal server error", body = String),
-))]
+    (status = 200, description = "verification email sent"),
+    (status = 400, description = "bad request", body = String),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 429, description = "too many requests"),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_validate_email(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,

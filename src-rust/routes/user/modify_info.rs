@@ -24,13 +24,13 @@ pub struct ModifyRequestBody {
     pub new_password: Option<String>,
 }
 
-/// Modify user information.
+/// modify user
 #[utoipa::path(post, path = "/api/user/modify", responses(
-    (status = 200, description = "Modify user successful"),
-    (status = 400, description = "Bad request", body = String),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String)
-))]
+    (status = 200, description = "modify user successful"),
+    (status = 400, description = "bad request", body = String),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 500, description = "internal server error", body = String)
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn post_modify_info(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,

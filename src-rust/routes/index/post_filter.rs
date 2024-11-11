@@ -17,13 +17,13 @@ use utoipa::ToSchema;
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct FilterRequestBody {
-    /// Keywords to search for (search in title, description, author, tags)
+    /// keywords to search for (search in title, description, author, tags)
     pub keywords: Option<Vec<String>>,
-    /// Categories to filter by
+    /// categories to filter by
     pub category_ids: Option<Vec<String>>,
-    /// Tags to filter by
+    /// tags to filter by
     pub tag_ids: Option<Vec<i32>>,
-    /// Maximum number of results to return
+    /// maximum number of results to return
     pub limit: Option<u32>,
 
     pub is_reading: Option<bool>,
@@ -58,15 +58,15 @@ pub struct FilterResponseBody {
     pub data: Vec<FilterTitleResponseBody>,
 }
 
-/// Filtering titles by various parameters.
+/// filter titles
 ///
-/// And also sorting them by various options.
+/// and also sorting them by various options
 #[utoipa::path(post, path = "api/index/filter", responses(
-    (status = 200, description = "Fetch all items successful", body = FilterResponseBody),
-    (status = 204, description = "Fetch all items successful, but none were found", body = FilterResponseBody),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String)
-))]
+    (status = 200, description = "fetch all items successful", body = FilterResponseBody),
+    (status = 204, description = "fetch all items successful, but none were found", body = FilterResponseBody),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 500, description = "internal server error", body = String)
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn post_filter(
     State(app_state): State<Arc<AppState>>,
     Extension(user): Extension<users::Model>,

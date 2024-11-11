@@ -18,13 +18,15 @@ use crate::{
     AppError, AppState,
 };
 
-/// Send an email to the user with a code to reset the password.
+/// reset password
+///
+/// send an email to the user with a code to reset the password
 #[utoipa::path(get, path = "/api/user/reset", responses(
     (status = 200, description = "code sent to user's email"),
-    (status = 400, description = "Bad request", body = String),
-    (status = 429, description = "Too many requests"),
-    (status = 500, description = "Internal server error", body = String),
-))]
+    (status = 400, description = "bad request", body = String),
+    (status = 429, description = "too many requests"),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_reset_password(
     State(app_state): State<Arc<AppState>>,
     Path(email): Path<String>,

@@ -17,10 +17,12 @@ pub struct ScanningProgressResponseBody {
     pub scanning_progress: f64,
 }
 
+/// get library scanning progress
 #[utoipa::path(get, path = "/api/utils/scanning_progress", responses(
-    (status = 200, description = "", body = ScanningProgressResponseBody),
-    (status = 401, description = "Unauthorized", body = String),
-))]
+    (status = 200, description = "library scanning progress", body = ScanningProgressResponseBody),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_scanning_progress(
     State(app_state): State<Arc<AppState>>,
 ) -> Result<Response, AppError> {

@@ -14,7 +14,7 @@ use utoipa::{IntoParams, ToSchema};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize, IntoParams)]
 pub struct StatusRequestBody {
-    ///  A test string to test your request body.
+    /// a test string to test your request body.
     pub echo: Option<String>,
 }
 
@@ -28,8 +28,9 @@ pub struct StatusResponseBody {
     pub echo: Option<String>,
 }
 
+/// get server status
 #[utoipa::path(get, path = "/api/utils/status", responses(
-    (status = 200, description = "Status check successful", body = StatusResponseBody)
+    (status = 200, description = "status check successful", body = StatusResponseBody)
 ))]
 pub async fn get_status(
     State(app_state): State<Arc<AppState>>,
@@ -49,8 +50,9 @@ pub async fn get_status(
         .into_response()
 }
 
+/// post server status
 #[utoipa::path(post, path = "/api/utils/status", responses(
-    (status = 200, description = "Status check successful", body = StatusResponseBody)
+    (status = 200, description = "status check successful", body = StatusResponseBody)
 ))]
 pub async fn post_status(
     State(app_state): State<Arc<AppState>>,

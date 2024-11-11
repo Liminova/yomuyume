@@ -24,9 +24,11 @@ pub struct TagsMapResponseBody {
 }
 
 #[utoipa::path(get, path = "/api/utils/tags", responses(
-    (status = 200, description = "Tags map.", body = TagsMapResponseBody),
-    (status = 500, description = "Internal server error.", body = String),
-))]
+    (status = 200, description = "tags map", body = Vec<TagResponseBody>),
+    (status = 204, description = "no tags found"),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response, AppError> {
     let data = sqlx::query!("SELECT id, name FROM tags")
         .fetch_all(&app_state.pool)

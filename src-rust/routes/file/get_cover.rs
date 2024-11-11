@@ -10,12 +10,16 @@ use axum::{
 
 use crate::{AppError, AppState, ArchiveFile};
 
-#[utoipa::path(get, path = "/api/file/cover/{id}", responses(
-    (status = 200, description = "Fetch cover successful", body = Vec<u8>),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 404, description = "Cover not found", body = String),
-    (status = 500, description = "Internal server error", body = String),
-))]
+/// get cover
+///
+/// get the content of a cover file for a title
+#[utoipa::path(get, path = "/api/file/cover/{title_id}", responses(
+    (status = 200, description = "fetch cover successful", body = Vec<u8>),
+    (status = 204, description = "title has no cover"),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 404, description = "title not found"),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_cover(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,

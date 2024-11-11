@@ -38,21 +38,21 @@ use crate::AppError;
 #[openapi(
     modifiers(&SecurityAddon),
     info(
-        description = "yomuyume's backend documentations.",
+        description = "yomuyume's api documentations",
         license(name = "MIT or Apache-2.0"),
     ),
     tags(
         (
             name = "auth",
-            description = "login, register, logout."
+            description = "login, register, logout"
         ),
         (
             name = "index",
-            description = "all the routes related to fetching index data."
+            description = "all the routes related to fetching index data"
         ),
         (
             name = "user",
-            description = "all the routes related to user."
+            description = "all the routes related to user"
         ),
         (
             name = "utils",
@@ -60,7 +60,7 @@ use crate::AppError;
         ),
         (
             name = "file",
-            description = "all the routes related to file fetching."
+            description = "all the routes related to file fetching"
         )
     ),
     paths(
@@ -104,10 +104,13 @@ use crate::AppError;
         DeleteRequestBody,
         ModifyRequestBody,
         ResetRequestBody,
+        ValidateEmailRequestBody,
 
         // Index
-        CategoriesResponseBody,
+        CategoryResponseBody,
         TitleResponseBody,
+        TitlePageResponse,
+        TitleTagResponse,
         FilterRequestBody,
         FilterResponseBody,
         FilterTitleResponseBody,
@@ -116,8 +119,6 @@ use crate::AppError;
         StatusRequestBody,
         StatusResponseBody,
         TagResponseBody,
-        TagsMapResponseBody,
-        TitleResponseBody,
         ScanningProgressResponseBody,
     ))
 )]

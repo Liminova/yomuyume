@@ -13,6 +13,12 @@ use chrono::Utc;
 
 use crate::{AppError, AppState};
 
+/// A middleware that checks `session-id` and `session-secret` cookies.
+///
+/// Added possible response codes:
+/// - [`StatusCode::UNAUTHORIZED`]: if the cookies are invalid.
+/// - [`StatusCode::INTERNAL_SERVER_ERROR`]: if there's an error while querying
+///   the database to check the cookies.
 pub async fn auth(
     cookie_jar: CookieJar,
     State(data): State<Arc<AppState>>,
