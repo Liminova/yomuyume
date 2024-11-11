@@ -271,7 +271,7 @@ pub async fn upsert_oneshot(
         }
     };
 
-    let (cover_path, cover_blurhash, cover_width, cover_height): (
+    let (mut cover_path, cover_blurhash, cover_width, cover_height): (
         Option<String>,
         Option<String>,
         Option<i32>,
@@ -410,8 +410,22 @@ pub async fn upsert_oneshot(
         }
     };
 
-    // no longer need to modify anything in the ComicInfo.xml
-    // beside the cover page, so we can write it back here
+    // strip title's path from cover's path for shorter path
+    // don't need for title-in-archive since it's already relative to the file
+    if let OneshotType::InDirectory(_) = oneshot_type {
+        if let Some(ref p) = cover_path {
+            let err = format!("can't strip title's path {} from cover's path {}, maybe the cover is not in the title's directory?", title_path.display(), p);
+            cover_path = Some(
+                PathBuf::from(p)
+                    .strip_prefix(&title_path)
+                    .context(err)?
+                    .to_string_lossy()
+                    .to_string(),
+            );
+        }
+    }
+
+    // no need modify anything in the ComicInfo.xml so write it back to file
     match oneshot_type {
         OneshotType::InArchive(ref archive_file) => {
             archive_file
