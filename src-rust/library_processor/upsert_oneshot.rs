@@ -357,7 +357,7 @@ pub async fn upsert_oneshot(
     }
 
     let title_id = sqlx::query!(
-        r#"INSERT INTO titles
+        "INSERT INTO titles
             (id, title, category_id, author, description, release,
             path, is_dir, cover_path, cover_blurhash, cover_width,
             cover_height, date_updated)
@@ -376,8 +376,7 @@ pub async fn upsert_oneshot(
             cover_width = EXCLUDED.cover_width,
             cover_height = EXCLUDED.cover_height,
             date_updated = EXCLUDED.date_updated
-        RETURNING id
-        "#,
+        RETURNING id",
         app_state.id_generator.snowflake().await?,
         comic_info.title,
         category_id,
@@ -427,8 +426,7 @@ pub async fn upsert_oneshot(
         }
 
         sqlx::query!(
-            r#"
-            WITH _ AS (
+            "WITH _ AS (
             INSERT INTO pages (id, title_id, path, filesize, description)
             SELECT id, $1, path, NULLIF(filesize, 0), NULLIF(description, '')
                 FROM UNNEST($2::bigint[], $3::text[], $4::bigint[], $5::text[])
@@ -437,8 +435,7 @@ pub async fn upsert_oneshot(
                 SET description = EXCLUDED.description
             )
             DELETE FROM pages WHERE title_id = $1
-                AND path NOT IN (SELECT UNNEST($3::text[]))
-            "#,
+                AND path NOT IN (SELECT UNNEST($3::text[]))",
             title_id,
             &page_ids,
             &page_paths,
@@ -452,7 +449,7 @@ pub async fn upsert_oneshot(
 
     'upsert_tags: {
         if comic_info.tags.is_empty() {
-            sqlx::query!(r#"DELETE FROM titles_tags WHERE title_id = $1"#, title_id)
+            sqlx::query!("DELETE FROM titles_tags WHERE title_id = $1", title_id)
                 .execute(&mut *txn)
                 .await
                 .context("can't delete tags")?;
@@ -467,8 +464,7 @@ pub async fn upsert_oneshot(
         let tag_ids = tag_ids.context("can't generate enough tag ids")?;
 
         sqlx::query!(
-            r#"
-            WITH tag_ids AS (
+            "WITH tag_ids AS (
                 INSERT INTO tags (id, name)
                 SELECT id, name
                     FROM UNNEST($1::bigint[], $2::text[])
@@ -480,8 +476,7 @@ pub async fn upsert_oneshot(
             INSERT INTO titles_tags (title_id, tag_id)
                 SELECT $3, id
                 FROM tag_ids
-            ON CONFLICT DO NOTHING
-            "#,
+            ON CONFLICT DO NOTHING",
             &tag_ids,
             &comic_info.tags,
             title_id,
