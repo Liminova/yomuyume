@@ -18,11 +18,7 @@ pub struct TagResponseBody {
     pub name: String,
 }
 
-#[derive(Debug, ToSchema, Clone, Serialize, Deserialize)]
-pub struct TagsMapResponseBody {
-    pub data: Vec<TagResponseBody>,
-}
-
+/// get all tags
 #[utoipa::path(get, path = "/api/utils/tags", responses(
     (status = 200, description = "tags map", body = Vec<TagResponseBody>),
     (status = 204, description = "no tags found"),
@@ -41,5 +37,8 @@ pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response
         })
         .collect::<Vec<_>>();
 
-    Ok((StatusCode::OK, Json(TagsMapResponseBody { data })).into_response())
+    if data.is_empty() {
+        return Ok((StatusCode::NO_CONTENT).into_response());
+    }
+    Ok((StatusCode::OK, Json(data)).into_response())
 }
