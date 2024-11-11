@@ -110,13 +110,15 @@ pub struct ValidateEmailRequestBody {
     pub code: String,
 }
 
-/// The user provides the code received by email to verify their email address.
+/// confirm validate email
+///
+/// the user provides the code received by email to verify their email address
 #[utoipa::path(post, path = "/api/user/verify", responses(
-    (status = 200, description = "Account verification successful"),
-    (status = 400, description = "Bad request", body = String),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String),
-))]
+    (status = 200, description = "account verification successful"),
+    (status = 400, description = "bad request", body = String),
+    (status = 401, description = "unauthorized", body = String),
+    (status = 500, description = "internal server error", body = String),
+), security(("session-id" = [], "session-secret" = [])))]
 pub async fn post_validate_email(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
