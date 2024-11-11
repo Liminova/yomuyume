@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::AppState;
 
 use axum::{
-    extract::{Query, State},
+    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
@@ -32,19 +32,13 @@ pub struct StatusResponseBody {
 #[utoipa::path(get, path = "/api/utils/status", responses(
     (status = 200, description = "status check successful", body = StatusResponseBody)
 ))]
-pub async fn get_status(
-    State(app_state): State<Arc<AppState>>,
-    query: Query<StatusRequestBody>,
-) -> Response {
-    let echo = query.echo.clone();
-    let version = app_state.config.get_version();
-
+pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
     (
         StatusCode::OK,
         Json(StatusResponseBody {
             server_time: Local::now().to_string(),
-            version,
-            echo,
+            version: app_state.config.get_version(),
+            echo: None,
         }),
     )
         .into_response()
@@ -58,14 +52,12 @@ pub async fn post_status(
     State(app_state): State<Arc<AppState>>,
     query: Option<Json<StatusRequestBody>>,
 ) -> Response {
-    let echo = query.and_then(|q| q.echo.clone());
-    let version = app_state.config.get_version();
     (
         StatusCode::OK,
         Json(StatusResponseBody {
             server_time: Local::now().to_string(),
-            version,
-            echo,
+            version: app_state.config.get_version(),
+            echo: query.and_then(|q| q.echo.clone()),
         }),
     )
         .into_response()
