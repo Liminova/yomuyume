@@ -74,12 +74,12 @@ pub struct Config {
 
 impl Config {
     pub fn init() -> Self {
-        let library_path = PathBuf::from(var("LIBRARY_PATH").expect("LIBRARY_PATH must be set."));
+        let library_path = PathBuf::from(var("LIBRARY_PATH").expect("LIBRARY_PATH must be set"));
         if !library_path.exists() {
-            panic!("LIBRARY_PATH was set but doesn't exist.");
+            panic!("LIBRARY_PATH was set but doesn't exist");
         }
         if !library_path.is_dir() {
-            panic!("LIBRARY_PATH was set but isn't a directory.");
+            panic!("LIBRARY_PATH was set but isn't a directory");
         }
 
         Self {
@@ -113,7 +113,7 @@ impl Config {
             )
         } else {
             tracing::warn!(
-                "couldn't parse a semver out of Cargo.toml? defaulting to 0.0.0-unknown."
+                "couldn't parse a semver out of Cargo.toml? defaulting to 0.0.0-unknown"
             );
             String::from("0.0.0-unknown - No Version Name")
         }
