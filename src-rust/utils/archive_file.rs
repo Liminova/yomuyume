@@ -413,7 +413,7 @@ impl ArchiveFile for PathBuf {
                 .take()
                 .ok_or_else(|| ArchiveFileError::CantTakeStdinPipe)?
                 .write_all((*content).as_ref())
-                .map_err(|e| ArchiveFileError::CantWriteToStdin(e))?;
+                .map_err(ArchiveFileError::CantWriteToStdin)?;
         }
         let child_output = child
             .wait_with_output()
