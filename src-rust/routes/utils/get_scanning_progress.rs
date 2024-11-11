@@ -26,14 +26,11 @@ pub struct ScanningProgressResponseBody {
 pub async fn get_scanning_progress(
     State(app_state): State<Arc<AppState>>,
 ) -> Result<Response, AppError> {
-    let scanning_complete = app_state.scanning_complete.lock().await;
-    let scanning_progress = app_state.scanning_progress.lock().await;
-
     Ok((
         StatusCode::OK,
         Json(ScanningProgressResponseBody {
-            scanning_completed: *scanning_complete,
-            scanning_progress: *scanning_progress,
+            scanning_completed: *app_state.scanning_complete.lock().await,
+            scanning_progress: *app_state.scanning_progress.lock().await,
         }),
     )
         .into_response())
