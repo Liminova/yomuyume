@@ -7,6 +7,8 @@ use axum::{
     http::{header, StatusCode},
     response::{IntoResponse, Response},
 };
+use tokio::fs::File;
+use tokio_util::io::ReaderStream;
 
 use crate::{AppError, AppState, ArchiveFile};
 
@@ -25,7 +27,11 @@ pub async fn get_cover(
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
     let record = match sqlx::query!(
-        "SELECT titles.path as title_file_path, cover_path, pages.filesize as cover_size
+        "SELECT
+            titles.path AS title_path,
+            cover_path,
+            pages.filesize AS cover_filesize,
+            titles.is_dir AS title_is_dir
         FROM titles
             LEFT JOIN pages ON pages.title_id = titles.id
             AND pages.path = cover_path
@@ -55,9 +61,23 @@ pub async fn get_cover(
         },
     )];
 
-    let content = Body::from_stream(
-        PathBuf::from(record.title_file_path).stream_file(cover_path, record.cover_size)?,
-    );
+    let content = match record.title_is_dir {
+        true => {
+            let file_path = PathBuf::from(record.title_path).join(cover_path);
+            let file = File::open(file_path)
+                .await
+                .context("can't open page file")?;
+            let stream = ReaderStream::new(file);
+
+            Body::from_stream(stream)
+        }
+        false => {
+            let archive_file = PathBuf::from(record.title_path);
+            let stream = archive_file.stream_file(cover_path, record.cover_filesize)?;
+
+            Body::from_stream(stream)
+        }
+    };
 
     Ok((StatusCode::OK, headers, content).into_response())
 }

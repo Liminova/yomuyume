@@ -7,6 +7,8 @@ use axum::{
     http::{header, StatusCode},
     response::{IntoResponse, Response},
 };
+use tokio::fs::File;
+use tokio_util::io::ReaderStream;
 
 use crate::{AppError, AppState, ArchiveFile};
 
@@ -27,7 +29,8 @@ pub async fn get_page(
         "SELECT
             pages.path AS page_path,
             titles.path AS title_path,
-            pages.filesize AS page_filesize
+            pages.filesize AS page_filesize,
+            titles.is_dir AS title_is_dir
         FROM pages JOIN titles
             ON pages.title_id = titles.id
         WHERE pages.id = $1",
@@ -50,9 +53,23 @@ pub async fn get_page(
         },
     )];
 
-    let content = Body::from_stream(
-        PathBuf::from(record.title_path).stream_file(record.page_path, record.page_filesize)?,
-    );
+    let content = match record.title_is_dir {
+        true => {
+            let file_path = PathBuf::from(record.title_path).join(record.page_path);
+            let file = File::open(file_path)
+                .await
+                .context("can't open page file")?;
+            let stream = ReaderStream::new(file);
+
+            Body::from_stream(stream)
+        }
+        false => {
+            let archive_file = PathBuf::from(record.title_path);
+            let stream = archive_file.stream_file(record.page_path, record.page_filesize)?;
+
+            Body::from_stream(stream)
+        }
+    };
 
     Ok((StatusCode::OK, headers, content).into_response())
 }
