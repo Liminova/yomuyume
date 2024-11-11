@@ -115,12 +115,14 @@ pub struct ResetRequestBody {
     pub new_password: String,
 }
 
-/// The user provides the code received by email to confirm the password change.
+/// confirm reset password
+///
+/// the user provides the code received by email to confirm the password change
 #[utoipa::path(post, path = "/api/user/reset", responses(
-    (status = 200, description = "Password reset successful"),
-    (status = 500, description = "Internal server error", body = String),
-    (status = 400, description = "Bad request", body = String),
-    (status = 401, description = "Unauthorized", body = String),
+    (status = 200, description = "password reset successful"),
+    (status = 500, description = "internal server error", body = String),
+    (status = 400, description = "bad request", body = String),
+    (status = 401, description = "unauthorized", body = String),
 ))]
 pub async fn post_reset_password(
     State(app_state): State<Arc<AppState>>,
