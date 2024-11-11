@@ -114,7 +114,7 @@ pub async fn upsert_oneshot(
         Some(category_id)
     };
 
-    // micro DX optimization, this value is used frequently
+    // micro DX optimization, these values is used frequently
     let title_path_string = title_path.to_string_lossy().to_string();
     let comicinfo_path = title_path.join(COMICINFO_FILENAME);
     let comicinfo_path_string = comicinfo_path.to_string_lossy().to_string();
