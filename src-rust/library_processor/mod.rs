@@ -172,12 +172,12 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
     }
 
     if let Err(e) = sqlx::query!(
-        r#"WITH _ AS (
+        "WITH _ AS (
             DELETE FROM categories
                 WHERE id NOT IN (SELECT id FROM UNNEST($1::bigint[]))
         )
         DELETE FROM titles
-            WHERE id NOT IN (SELECT id FROM UNNEST($2::bigint[]))"#,
+            WHERE id NOT IN (SELECT id FROM UNNEST($2::bigint[]))",
         &category_path_to_id
             .lock()
             .await
