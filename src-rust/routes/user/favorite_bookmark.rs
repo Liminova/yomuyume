@@ -23,23 +23,14 @@ pub async fn put_favorite(
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
-    let title_exists = sqlx::query!(
-        r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
-        title_id
-    )
-    .fetch_one(&app_state.pool)
-    .await
-    .context("can't check if title exists")?
-    .exists;
-    if !title_exists {
-        return Ok((StatusCode::BAD_REQUEST, "invalid title id").into_response());
-    }
-
     sqlx::query!(
-        r#"INSERT INTO favorites (title_id, user_id)
-        VALUES ($1, $2)
-        ON CONFLICT (title_id, user_id)
-        DO NOTHING"#,
+        "INSERT INTO favorites (id, title_id, user_id) VALUES ($1, $2, $3)
+        ON CONFLICT (title_id, user_id) DO NOTHING",
+        app_state
+            .id_generator
+            .snowflake()
+            .await
+            .context("can't generate id")?,
         title_id,
         user_id
     )
@@ -63,23 +54,14 @@ pub async fn put_bookmark(
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
-    let title_exists = sqlx::query!(
-        r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
-        title_id
-    )
-    .fetch_one(&app_state.pool)
-    .await
-    .context("can't check if title exists")?
-    .exists;
-    if !title_exists {
-        return Ok((StatusCode::BAD_REQUEST, "invalid title id").into_response());
-    }
-
     sqlx::query!(
-        r#"INSERT INTO bookmarks (title_id, user_id)
-        VALUES ($1, $2)
-        ON CONFLICT (title_id, user_id)
-        DO NOTHING"#,
+        "INSERT INTO bookmarks (id, title_id, user_id) VALUES ($1, $2, $3)
+        ON CONFLICT (title_id, user_id) DO NOTHING",
+        app_state
+            .id_generator
+            .snowflake()
+            .await
+            .context("can't generate id")?,
         title_id,
         &user_id
     )
@@ -103,20 +85,8 @@ pub async fn delete_favorite(
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
-    let title_exists = sqlx::query!(
-        r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
-        title_id
-    )
-    .fetch_one(&data.pool)
-    .await
-    .context("can't check if title exists")?
-    .exists;
-    if !title_exists {
-        return Ok((StatusCode::BAD_REQUEST, "invalid title id").into_response());
-    }
-
     sqlx::query!(
-        r#"DELETE FROM favorites WHERE title_id = $1 AND user_id = $2"#,
+        "DELETE FROM favorites WHERE title_id = $1 AND user_id = $2",
         title_id,
         user_id
     )
@@ -140,20 +110,8 @@ pub async fn delete_bookmark(
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
-    let title_exists = sqlx::query!(
-        r#"SELECT EXISTS(SELECT 1 FROM titles WHERE id = $1) AS "exists!""#,
-        title_id
-    )
-    .fetch_one(&data.pool)
-    .await
-    .context("can't check if title exists")?
-    .exists;
-    if !title_exists {
-        return Ok((StatusCode::BAD_REQUEST, "invalid title id").into_response());
-    }
-
     sqlx::query!(
-        r#"DELETE FROM bookmarks WHERE title_id = $1 AND user_id = $2"#,
+        "DELETE FROM bookmarks WHERE title_id = $1 AND user_id = $2",
         title_id,
         &user_id
     )
