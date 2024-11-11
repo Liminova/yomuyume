@@ -18,11 +18,10 @@ async fn format_method(
     title_id: Arc<String>,
 ) -> Result<(), String> {
     let raw = format!(
-        r#"
-        INSERT INTO pages_benchmark (id, title_id, path, description)
+        "INSERT INTO pages_benchmark (id, title_id, path, description)
             VALUES {}
         ON CONFLICT (title_id, path) DO UPDATE
-            SET description = EXCLUDED.description"#,
+            SET description = EXCLUDED.description",
         (0..pages.len())
             .collect::<Vec<_>>()
             .iter()
@@ -66,14 +65,12 @@ async fn unnest_method(
     });
 
     sqlx::query!(
-        r#"
-        INSERT INTO pages_benchmark (id, title_id, path, description)
+        "INSERT INTO pages_benchmark (id, title_id, path, description)
             SELECT id, $1, path, NULLIF(description, '')
             FROM UNNEST($2::text[], $3::text[], $4::text[])
             AS t(id, path, description)
         ON CONFLICT (title_id, path) DO UPDATE
-            SET description = EXCLUDED.description
-        "#,
+            SET description = EXCLUDED.description",
         title_id.as_ref(),
         &page_ids,
         &page_paths,
@@ -94,14 +91,12 @@ async fn json_to_recordset_method(
     title_id: Arc<String>,
 ) -> Result<(), String> {
     sqlx::query!(
-        r#"
-        INSERT INTO pages_benchmark (id, title_id, path, description)
+        "INSERT INTO pages_benchmark (id, title_id, path, description)
             SELECT id, $1, path, NULLIF(description, '')
             FROM json_to_recordset($2::json)
             AS t(id text, path text, description text)
         ON CONFLICT (title_id, path) DO UPDATE
-            SET description = EXCLUDED.description;
-        "#,
+            SET description = EXCLUDED.description;",
         title_id.as_ref(),
         serde_json::to_value(pages.as_ref()).unwrap()
     )
@@ -120,8 +115,7 @@ async fn json_table_method(
     title_id: Arc<String>,
 ) -> Result<(), String> {
     sqlx::query!(
-        r#"
-        INSERT INTO pages_benchmark (id, title_id, path, description)
+        "INSERT INTO pages_benchmark (id, title_id, path, description)
             SELECT id, $1, path, NULLIF(description, '')
             FROM json_table($2, '$[*]' COLUMNS (
                 id TEXT PATH '$.id',
@@ -129,8 +123,7 @@ async fn json_table_method(
                 description TEXT PATH '$.description'
             ))
         ON CONFLICT (title_id, path) DO UPDATE
-            SET description = EXCLUDED.description;
-        "#,
+            SET description = EXCLUDED.description;",
         title_id.as_ref(),
         serde_json::to_string(pages.as_ref()).unwrap()
     )
