@@ -91,6 +91,8 @@ pub async fn upsert_oneshot(
         .await
         .context("can't begin transaction")?;
 
+    // get from provided hashmap if possible,
+    // else upsert to db and insert to hashmap
     let category_id: Option<i64> = 'scoped: {
         let parent_path = match parent_path {
             Some(parent_path) => parent_path,
@@ -356,6 +358,7 @@ pub async fn upsert_oneshot(
         }
     }
 
+    // upsert title and get its id
     let title_id = sqlx::query!(
         "INSERT INTO titles
             (id, title, category_id, author, description, release,
