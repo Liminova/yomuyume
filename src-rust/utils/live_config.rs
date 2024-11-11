@@ -14,33 +14,32 @@ pub struct LiveConfig {
 impl LiveConfig {
     pub async fn from_db(db: &sqlx::PgPool) -> Result<Self, sqlx::Error> {
         let nomedia_support =
-            sqlx::query!(r#"SELECT value FROM live_config WHERE id = 'nomedia_support'"#)
+            sqlx::query!("SELECT value FROM live_config WHERE id = 'nomedia_support'")
                 .fetch_optional(db)
                 .await?
                 .map(|record| record.value == "true")
                 .unwrap_or_default();
 
         let komga_oneshot_support =
-            sqlx::query!(r#"SELECT value FROM live_config WHERE id = 'komga_oneshot_support'"#)
+            sqlx::query!("SELECT value FROM live_config WHERE id = 'komga_oneshot_support'")
                 .fetch_optional(db)
                 .await?
                 .map(|record| record.value == "true")
                 .unwrap_or_default();
 
         let komga_recycle_support =
-            sqlx::query!(r#"SELECT value FROM live_config WHERE id = 'komga_recycle_support'"#)
+            sqlx::query!("SELECT value FROM live_config WHERE id = 'komga_recycle_support'")
                 .fetch_optional(db)
                 .await?
                 .map(|record| record.value == "true")
                 .unwrap_or_default();
 
-        let rescan_interval_in_minutes = sqlx::query!(
-            r#"SELECT value FROM live_config WHERE id = 'rescan_interval_in_minutes'"#
-        )
-        .fetch_optional(db)
-        .await?
-        .map(|record| record.value.parse::<i32>().unwrap_or(60))
-        .unwrap_or_else(|| 60);
+        let rescan_interval_in_minutes =
+            sqlx::query!("SELECT value FROM live_config WHERE id = 'rescan_interval_in_minutes'")
+                .fetch_optional(db)
+                .await?
+                .map(|record| record.value.parse::<i32>().unwrap_or(60))
+                .unwrap_or_else(|| 60);
 
         Ok(Self {
             nomedia_support,
@@ -56,9 +55,9 @@ impl LiveConfig {
         value: bool,
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            r#"INSERT INTO live_config (id, value, last_updated_at)
+            "INSERT INTO live_config (id, value, last_updated_at)
             VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3"#,
+            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3",
             "nomedia_support",
             if value { "true" } else { "false" },
             Utc::now()
@@ -77,9 +76,9 @@ impl LiveConfig {
         value: bool,
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            r#"INSERT INTO live_config (id, value, last_updated_at)
+            "INSERT INTO live_config (id, value, last_updated_at)
             VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3"#,
+            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3",
             "komga_oneshot_support",
             if value { "true" } else { "false" },
             Utc::now()
@@ -98,9 +97,9 @@ impl LiveConfig {
         value: bool,
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            r#"INSERT INTO live_config (id, value, last_updated_at)
+            "INSERT INTO live_config (id, value, last_updated_at)
             VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3"#,
+            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3",
             "komga_recycle_support",
             if value { "true" } else { "false" },
             Utc::now()
@@ -119,9 +118,9 @@ impl LiveConfig {
         value: i32,
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            r#"INSERT INTO live_config (id, value, last_updated_at)
+            "INSERT INTO live_config (id, value, last_updated_at)
             VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3"#,
+            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3",
             "rescan_interval_in_minutes",
             format!("{}", value),
             Utc::now()
