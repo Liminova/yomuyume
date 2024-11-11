@@ -25,6 +25,6 @@ impl Display for AppError {
 
 impl From<anyhow::Error> for AppError {
     fn from(err: anyhow::Error) -> Self {
-        Self(err.into())
+        Self(err)
     }
 }
