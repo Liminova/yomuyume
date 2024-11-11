@@ -10,12 +10,33 @@ pub use middlewares::auth::auth;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use rand_core::OsRng;
-use utoipa::OpenApi;
+use utoipa::{
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    Modify, OpenApi,
+};
+
+struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "session-id",
+                SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new("session-id"))),
+            );
+            components.add_security_scheme(
+                "session-secret",
+                SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new("session-secret"))),
+            );
+        }
+    }
+}
 
 use crate::AppError;
 
 #[derive(OpenApi)]
 #[openapi(
+    modifiers(&SecurityAddon),
     info(
         description = "yomuyume's backend documentations.",
         license(name = "MIT or Apache-2.0"),
