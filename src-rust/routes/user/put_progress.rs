@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use anyhow::Context;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -23,23 +24,20 @@ pub async fn put_progress(
     Extension(user_id): Extension<UserID>,
     Path((title_id, page)): Path<(i64, i32)>,
 ) -> Result<Response, AppError> {
-    let result = sqlx::query!(
-        "INSERT INTO progresses (user_id, title_id, last_read_at, page) VALUES ($1, $2, $3, $4)",
+    sqlx::query!(
+        "INSERT INTO progresses (user_id, title_id, last_read_at, page)
+            VALUES ($1, $2, $3, $4)
+        ON CONFLICT (user_id, title_id) DO UPDATE SET
+            last_read_at = EXCLUDED.last_read_at,
+            page = EXCLUDED.page",
         user_id,
         title_id,
         chrono::Utc::now(),
         page
     )
     .execute(&app_state.pool)
-    .await;
+    .await
+    .context("can't upsert progress")?;
 
-    match result {
-        Ok(_) => Ok((StatusCode::OK).into_response()),
-        Err(sqlx::Error::Database(db_err))
-            if db_err.constraint() == Some("progresses_title_id_fkey") =>
-        {
-            Ok((StatusCode::BAD_REQUEST, "invalid title_id").into_response())
-        }
-        Err(e) => Ok((StatusCode::INTERNAL_SERVER_ERROR, format!("{e:#}")).into_response()),
-    }
+    Ok((StatusCode::OK).into_response())
 }
