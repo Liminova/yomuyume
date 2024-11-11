@@ -42,6 +42,7 @@ async-channel = "2.3.1"
 futures-core = "0.3.31"
 futures-util = "0.3.31"
 thiserror = "2.0.2"
+tokio-util = { version = "0.7.12", features = ["io"] }
 
 [dev-dependencies]
 axum-test = "14.0.0"
