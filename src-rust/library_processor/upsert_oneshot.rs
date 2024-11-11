@@ -501,7 +501,21 @@ pub async fn upsert_oneshot(
         let mut page_descriptions = Vec::with_capacity(pages_in_title.len());
 
         for item in pages_in_title.iter() {
-            page_paths.push(item.path.clone());
+            match oneshot_type {
+                OneshotType::InArchive(_) => page_paths.push(item.path.clone()),
+                OneshotType::InDirectory(_) => {
+                    let item_path = PathBuf::from(&item.path);
+                    let err = format!("can't strip title's path {} from page's path {}, maybe the page is not in the title's directory?", title_path.display(), item_path.display());
+
+                    page_paths.push(
+                        item_path
+                            .strip_prefix(&title_path)
+                            .context(err)?
+                            .to_string_lossy()
+                            .to_string(),
+                    );
+                }
+            }
             page_filesizes.push(item.filesize.unwrap_or_default());
             page_descriptions.push(
                 comic_info
