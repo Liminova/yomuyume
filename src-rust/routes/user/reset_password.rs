@@ -15,7 +15,7 @@ use utoipa::ToSchema;
 use crate::{
     routes::{hash_pass, Mailer},
     types::temp_code_purpose::TempCodePurpose,
-    AppError, AppState,
+    utils::{app_error::AppError, app_state::AppState},
 };
 
 /// reset password

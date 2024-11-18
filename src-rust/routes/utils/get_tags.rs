@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{AppError, AppState};
+use crate::utils::{app_error::AppError, app_state::AppState};
 
 use anyhow::Context;
 use axum::{

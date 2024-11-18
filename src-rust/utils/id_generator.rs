@@ -4,7 +4,7 @@ use rand_core::{OsRng, RngCore};
 use snowflake::Snowflake;
 use tokio::sync::oneshot;
 
-use super::{SECURE_ID_CHARSET, SECURE_ID_LENGTH, SECURE_ID_MASK};
+use crate::utils::config::{SECURE_ID_CHARSET, SECURE_ID_LENGTH, SECURE_ID_MASK};
 
 #[derive(Debug)]
 pub struct IDGenerator {

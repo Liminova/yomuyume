@@ -1,6 +1,6 @@
 //! ComicInfo Version 2.1 Extended
 //!
-//! Schema: [`crate::COMICINFO_SCHEMA`]
+//! Schema: [`crate::config::COMICINFO_SCHEMA`]
 //!
 //! Based on the [ComicInfo Version 2.1 Schema](https://anansi-project.github.io/docs/comicinfo/schemas/v2.1)
 
@@ -11,7 +11,7 @@ use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::option_blurhash_deserializer;
-use crate::COMICINFO_SCHEMA;
+use crate::config::COMICINFO_SCHEMA;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ComicInfo {

@@ -1,11 +1,9 @@
-use std::path::PathBuf;
-
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::option_blurhash_deserializer;
-use crate::{CATEGORY_INFO_SCHEMA, SUPPORTED_IMAGE_FORMATS};
+use crate::utils::config::CATEGORY_INFO_SCHEMA;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
 pub struct CategoryInfo {

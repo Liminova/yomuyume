@@ -13,7 +13,7 @@ use utoipa::ToSchema;
 use crate::{
     routes::{check_pass, hash_pass},
     types::UserID,
-    AppError, AppState,
+    utils::{app_error::AppError, app_state::AppState},
 };
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]

@@ -11,7 +11,7 @@ use axum_extra::extract::{
     CookieJar,
 };
 
-use crate::{AppError, AppState};
+use crate::utils::{app_error::AppError, app_state::AppState};
 
 /// logout
 ///

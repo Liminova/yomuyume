@@ -10,14 +10,16 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{types::UserID, AppError, AppState};
-
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct TitlePageResponse {
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
+use crate::{
+    types::UserID,
+    utils::{app_error::AppError, app_state::AppState},
+};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct TitleTagResponse {

@@ -4,6 +4,7 @@ mod types;
 mod utils;
 
 use anyhow::Result;
+use app_state::AppState;
 use axum::{
     middleware::from_fn_with_state as apply,
     routing::{get, post, put},

@@ -14,7 +14,7 @@ use utoipa::ToSchema;
 use crate::{
     routes::Mailer,
     types::{temp_code_purpose::TempCodePurpose, UserID},
-    AppError, AppState,
+    utils::{app_error::AppError, app_state::AppState},
 };
 
 /// validate email

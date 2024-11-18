@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use crate::{AppError, AppState};
-
 use axum::{
     extract::State,
     http::StatusCode,
@@ -10,6 +8,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+use crate::utils::{app_error::AppError, app_state::AppState};
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct ScanningProgressResponseBody {

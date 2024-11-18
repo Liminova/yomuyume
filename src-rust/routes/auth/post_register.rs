@@ -10,7 +10,10 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{routes::hash_pass, AppError, AppState};
+use crate::{
+    routes::hash_pass,
+    utils::{app_error::AppError, app_state::AppState},
+};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct RegisterRequestBody {
