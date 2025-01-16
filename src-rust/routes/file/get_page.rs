@@ -29,14 +29,14 @@ pub async fn get_page(
     Path(page_id): Path<i64>,
 ) -> Result<Response, AppError> {
     let record = match sqlx::query!(
-        "SELECT
-            pages.path AS page_path,
-            titles.path AS title_path,
-            pages.filesize AS page_filesize,
-            titles.is_dir AS title_is_dir
-        FROM pages JOIN titles
-            ON pages.title_id = titles.id
-        WHERE pages.id = $1",
+        r#"SELECT
+            p.path AS page_path,
+            t.path AS title_path,
+            p.filesize AS page_filesize,
+            t.is_dir AS "title_is_dir!"
+        FROM oneshots_pages p JOIN titles t
+            ON p.title_id = t.id
+        WHERE p.id = $1"#,
         page_id
     )
     .fetch_optional(&app_state.pool)
@@ -68,7 +68,8 @@ pub async fn get_page(
         }
         false => {
             let archive_file = PathBuf::from(record.title_path);
-            let stream = archive_file.stream_file(record.page_path, record.page_filesize)?;
+            let stream =
+                archive_file.stream_file_from_archive(record.page_path, record.page_filesize)?;
 
             Body::from_stream(stream)
         }
