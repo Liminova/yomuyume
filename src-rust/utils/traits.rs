@@ -31,7 +31,7 @@ impl<I: Iterator> IteratorExt for I {}
 pub trait PathBufUtils {
     fn has_image_ext(&self) -> bool;
     fn has_archive_ext(&self) -> bool;
-    fn scan_dir_recursively_for_image(&self, nomedia_support: bool) -> Result<Vec<PathBuf>>;
+    fn scan_dir_recursively_for_image(&self, nomedia_support: bool) -> Vec<PathBuf>;
     fn has_recycle_flag(&self, feature_enabled: bool) -> bool;
     fn has_oneshot_flag(&self, feature_enabled: bool) -> bool;
     fn contains_nomedia_file(&self, feature_enabled: bool) -> bool;
@@ -59,7 +59,7 @@ impl PathBufUtils for PathBuf {
     }
 
     /// Scan a path (assumed to be a directory) recursively for image files
-    fn scan_dir_recursively_for_image(&self, nomedia_support: bool) -> Result<Vec<PathBuf>> {
+    fn scan_dir_recursively_for_image(&self, nomedia_support: bool) -> Vec<PathBuf> {
         let mut files = vec![];
         let mut queue: VecDeque<PathBuf> = VecDeque::from([self.clone()]);
 
@@ -75,7 +75,7 @@ impl PathBufUtils for PathBuf {
             }
             queue.push_front(entry);
         }
-        Ok(files)
+        files
     }
 
     /// Check if any of the path's components contains Komga's `_oneshot`
