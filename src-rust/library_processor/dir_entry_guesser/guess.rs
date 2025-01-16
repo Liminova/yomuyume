@@ -6,6 +6,7 @@ use crate::{
     library_processor::dir_entry_guesser::{
         has_pattern_of_a_series::HasPatternOfSeries, ChapterInfo,
     },
+    macros::bail_if_empty,
     traits::PathBufUtils,
 };
 
@@ -78,9 +79,7 @@ impl DirEntryTypeGuesser for DirEntry {
             })
             .collect::<Vec<_>>();
 
-        if items_in_dir.is_empty() {
-            return Ok(DirEntryType::Ignored);
-        }
+        bail_if_empty!(items_in_dir, Ok(DirEntryType::Ignored));
 
         if dir.contains_category_info_file() {
             return Ok(DirEntryType::CategoryDir(items_in_dir));

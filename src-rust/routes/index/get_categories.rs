@@ -44,8 +44,6 @@ pub async fn get_categories(State(app_state): State<Arc<AppState>>) -> Result<Re
         })
         .collect::<Vec<_>>();
 
-    if data.is_empty() {
-        return Ok((StatusCode::NO_CONTENT).into_response());
-    }
+    bail_if_empty!(data, Ok(StatusCode::NO_CONTENT.into_response()));
     Ok((StatusCode::OK, Json(data)).into_response())
 }
