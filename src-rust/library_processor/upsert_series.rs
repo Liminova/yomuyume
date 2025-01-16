@@ -17,7 +17,8 @@ use crate::{
         upsert_tags::upsert_tags,
         UpsertTitleError,
     },
-    traits::{PathBufUtils, StringUtils},
+    macros::bail_if_empty,
+    traits::{PathBufUtils, StringUtils, WarnResultThenOk},
     types::{
         absolute_path::AbsolutePath,
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
@@ -109,17 +110,9 @@ pub async fn upsert_series(
                     None => title_last_modified = Some(chapter_file_last_modified),
                 });
 
-            let pages_in_chapter = items_in_archive
-                .filter_non_image_and_nomedia_subdirs(nomedia_support)
-                // TODO: do something about this
-                .cloned()
-                .collect::<Vec<_>>();
+            let pages_in_chapter = items_in_archive.keep_images(nomedia_support).to_vec();
 
-            if pages_in_chapter.is_empty() {
-                return Err(UpsertTitleError::IsEmpty);
-            }
-
-            let chapter_comicinfo = match title_path
+            let chapter_comicinfo = match chapter_path
                 .as_ref()
                 .read_file_from_archive(COMICINFO_FILENAME)
                 .context("can't extract ComicInfo.xml")
@@ -144,7 +137,7 @@ pub async fn upsert_series(
                         .into_iter()
                         .map(|p| ArchiveChapterPage {
                             description: chapter_comicinfo.get_page_description(&p.path),
-                            path: p.path,
+                            path: p.path.clone(),
                             size: p.size,
                             last_modified: p.last_modified,
                         })
@@ -196,36 +189,28 @@ pub async fn upsert_series(
                     }
                 };
 
-                if !entry_path.as_ref().has_image_extension() {
+                if !entry_path.as_ref().has_image_ext() {
                     continue 'next_item;
                 }
 
                 if metadata.is_dir() {
-                    let sub_pages = match entry_path
+                    let sub_pages = entry_path
                         .as_ref()
-                        .scan_dir_recursively_for_image(nomedia_support)
-                    {
-                        Ok(pages) => pages,
-                        Err(e) => {
-                            warn!("can't scan images in `{entry_path_string}`: {e:?}",);
-                            continue 'next_item;
-                        }
-                    };
+                        .scan_dir_recursively_for_image(nomedia_support);
 
                     'next_page: for page in sub_pages {
-                        let page_path = match AbsolutePath::from(&page, None) {
-                            Ok(p) => p,
-                            Err(e) => {
-                                warn!("can't convert `{}` to absolute: {e:?}", page.display());
-                                continue 'next_page;
-                            }
+                        let page_path = match AbsolutePath::from(&page, None)
+                            .okay(format!("can't convert `{}` to absolute", page.display()))
+                        {
+                            Some(p) => p,
+                            None => continue 'next_page,
                         };
-                        let page_string = page_path.to_string_lossy();
+                        let page_str = page_path.to_string_lossy();
 
                         let metadata = match page_path.as_ref().metadata() {
                             Ok(m) => m,
                             Err(e) => {
-                                warn!("can't get metadata of `{page_string}`: {e:?}");
+                                warn!("can't get metadata of `{page_str}`: {e:?}");
                                 continue 'next_page;
                             }
                         };
@@ -237,7 +222,7 @@ pub async fn upsert_series(
                         {
                             Ok(m) => m,
                             Err(e) => {
-                                warn!("can't get modified date of `{page_string}`: {e:?}");
+                                warn!("can't get modified date of `{page_str}`: {e:?}");
                                 continue 'next_page;
                             }
                         };
@@ -281,7 +266,7 @@ pub async fn upsert_series(
 
             if pages_in_chapter.is_empty() {
                 continue 'next_chapter;
-            }
+            };
 
             let chapter_comicinfo = match chapter_path.as_ref().join(COMICINFO_FILENAME).exists() {
                 true => {
@@ -312,24 +297,21 @@ pub async fn upsert_series(
                     pages_in_chapter
                         .into_iter()
                         .map(|p| {
-                            let page_path_string = match p
-                                .0
-                                .to_relative(Some(chapter_path.as_ref()))
-                                .map(|p| p.to_string_lossy().to_string())
-                            {
-                                Ok(p) => p,
-                                Err(e) => {
-                                    warn!(
-                                        "can't convert `{}` to relative, can't get page description: {e:?}",
-                                        p.0.as_ref().display(),
-                                    );
-                                    p.0.to_string_lossy().to_string()
-                                }
-                            };
-
                             DirChapterPage {
                                 description: chapter_comicinfo
-                                    .get_page_description(&page_path_string),
+                                    .get_page_description(&p
+                                        .0
+                                        .to_relative(Some(&chapter_path))
+                                        .map(|p| p.to_string_lossy().to_string())
+                                        .map_err(|e| {
+                                            warn!(
+                                                "can't convert `{}` to relative to chapter's path `{}`: {e:?}",
+                                                p.0.as_ref().display(),
+                                                chapter_path.as_ref().display()
+                                            );
+                                        })
+                                        .unwrap_or_default()
+                                    ),
                                 path: p.0,
                                 size: Some(p.2),
                                 last_modified: p.1,
@@ -342,11 +324,15 @@ pub async fn upsert_series(
         }
     }
 
-    if processed_chapters.is_empty() {
-        return Err(UpsertTitleError::IsEmpty);
-    }
+    bail_if_empty!(processed_chapters, Err(UpsertTitleError::IsEmpty));
 
     let comicinfo_path = title_path.as_ref().join(COMICINFO_FILENAME);
+    if !comicinfo_path.exists() {
+        std::fs::File::create(&comicinfo_path).context(format!(
+            "can't write `{}` to storage",
+            comicinfo_path.display()
+        ))?;
+    }
     let mut comicinfo = ComicInfo::from_str(
         &std::fs::read_to_string(&comicinfo_path)
             .context(format!("can't read `{}`", comicinfo_path.display()))?,
@@ -374,7 +360,7 @@ pub async fn upsert_series(
                 if !PathBuf::from(&configured_cover_path).exists() {
                     continue;
                 }
-                if !configured_cover_path.has_image_extension() {
+                if !configured_cover_path.has_image_ext() {
                     continue;
                 }
             }
@@ -386,7 +372,7 @@ pub async fn upsert_series(
             };
 
             // if configured cover reference to an archive-chapter
-            if components.0.to_string().has_archive_extension() {
+            if components.0.to_string().has_archive_ext() {
                 let matched_chapter = 'scoped: {
                     for chapter in &processed_chapters {
                         if chapter.path.as_ref() == &title_path.as_ref().join(components.0) {
@@ -544,91 +530,84 @@ pub async fn upsert_series(
         }
 
         'exhaustive: for chapter in &processed_chapters {
-            match chapter.chapter_type {
-                ChapterType::Archive(ref pages) => {
-                    for page in pages {
-                        match chapter
-                            .path
-                            .as_ref()
-                            .read_file_from_archive(&page.path)
-                            .context("can't read file")
-                            .and_then(|buf| {
-                                image::load_from_memory(&buf).context("can't decode image")
-                            })
-                            .and_then(|img| encode(&img).context("can't encode image to blurhash"))
-                        {
-                            Ok(bh_result) => {
-                                cover_path = Some(page.path.clone());
-                                cover_blurhash = Some(bh_result.blurhash.clone());
-                                cover_width = Some(bh_result.width);
-                                cover_height = Some(bh_result.height);
+            if let ChapterType::Archive(ref pages) = chapter.chapter_type {
+                for page in pages {
+                    match chapter
+                        .path
+                        .as_ref()
+                        .read_file_from_archive(&page.path)
+                        .context("can't read file")
+                        .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
+                        .and_then(|img| encode(&img).context("can't encode image to blurhash"))
+                    {
+                        Ok(bh_result) => {
+                            cover_path = Some(page.path.clone());
+                            cover_blurhash = Some(bh_result.blurhash.clone());
+                            cover_width = Some(bh_result.width);
+                            cover_height = Some(bh_result.height);
 
-                                comicinfo.pages_mut().push(ComicPageInfo {
-                                    image_path: Some(page.path.clone()),
-                                    image_width: bh_result.width,
-                                    image_height: bh_result.height,
-                                    blurhash: Some(bh_result.blurhash.clone()),
-                                    modified_date_at_encode: Some(page.last_modified),
-                                    ..Default::default()
-                                });
+                            comicinfo.pages_mut().push(ComicPageInfo {
+                                image_path: Some(page.path.clone()),
+                                image_width: bh_result.width,
+                                image_height: bh_result.height,
+                                blurhash: Some(bh_result.blurhash.clone()),
+                                modified_date_at_encode: Some(page.last_modified),
+                                ..Default::default()
+                            });
 
-                                break 'exhaustive;
-                            }
-                            Err(e) => {
-                                warn!(
-                                    "page `{}` in `{}` might not be an image: {e:?}",
-                                    page.path,
-                                    chapter.path.as_ref().display()
-                                );
-                            }
+                            break 'exhaustive;
+                        }
+                        Err(e) => {
+                            warn!(
+                                "page `{}` in `{}` might not be an image: {e:?}",
+                                page.path,
+                                chapter.path.as_ref().display()
+                            );
                         }
                     }
                 }
-                ChapterType::Dir(ref pages) => {
-                    for page in pages {
-                        match std::fs::read(page.path.as_ref())
-                            .context("can't read file")
-                            .and_then(|buf| {
-                                image::load_from_memory(&buf).context("can't decode image")
-                            })
-                            .and_then(|img| encode(&img).context("can't encode image to blurhash"))
-                        {
-                            Ok(bh_result) => {
-                                cover_path = match page
-                                    .path
-                                    .to_relative(Some(chapter.path.as_ref()))
-                                    .map(|p| p.to_string_lossy().to_string())
-                                {
-                                    Ok(p) => Some(p),
-                                    Err(e) => {
-                                        warn!(
-                                            "can't convert `{}` to relative: {e:?}",
-                                            page.path.as_ref().display()
-                                        );
-                                        continue;
-                                    }
-                                };
-                                cover_blurhash = Some(bh_result.blurhash.clone());
-                                cover_width = Some(bh_result.width);
-                                cover_height = Some(bh_result.height);
+            } else if let ChapterType::Dir(ref pages) = chapter.chapter_type {
+                for page in pages {
+                    match std::fs::read(page.path.as_ref())
+                        .context("can't read file")
+                        .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
+                        .and_then(|img| encode(&img).context("can't encode image to blurhash"))
+                    {
+                        Ok(bh_result) => {
+                            cover_path = match page
+                                .path
+                                .to_relative(Some(&chapter.path))
+                                .map(|p| p.to_string_lossy().to_string())
+                            {
+                                Ok(p) => Some(p),
+                                Err(e) => {
+                                    warn!(
+                                        "can't convert `{}` to relative: {e:?}",
+                                        page.path.as_ref().display()
+                                    );
+                                    continue;
+                                }
+                            };
+                            cover_blurhash = Some(bh_result.blurhash.clone());
+                            cover_width = Some(bh_result.width);
+                            cover_height = Some(bh_result.height);
 
-                                comicinfo.pages_mut().push(ComicPageInfo {
-                                    image_path: cover_path.clone(),
-                                    image_width: bh_result.width,
-                                    image_height: bh_result.height,
-                                    blurhash: Some(bh_result.blurhash),
-                                    modified_date_at_encode: Some(page.last_modified),
-                                    ..Default::default()
-                                });
+                            comicinfo.pages_mut().push(ComicPageInfo {
+                                image_path: cover_path.clone(),
+                                image_width: bh_result.width,
+                                image_height: bh_result.height,
+                                blurhash: Some(bh_result.blurhash),
+                                modified_date_at_encode: Some(page.last_modified),
+                                ..Default::default()
+                            });
 
-                                break 'exhaustive;
-                            }
-                            Err(e) => {
-                                warn!(
-                                    "page `{}` might not be an image: {e:?}",
-                                    page.path.as_ref().display()
-                                );
-                            }
+                            break 'exhaustive;
+                        }
+                        Err(e) => {
+                            warn!(
+                                "page `{}` might not be an image: {e:?}",
+                                page.path.as_ref().display()
+                            );
                         }
                     }
                 }
@@ -636,10 +615,18 @@ pub async fn upsert_series(
         }
     };
 
-    tracing::debug!("cover_path: {:?}", cover_path);
-    tracing::debug!("cover_blurhash: {:?}", cover_blurhash);
-    tracing::debug!("cover_width: {:?}", cover_width);
-    tracing::debug!("cover_height: {:?}", cover_height);
+    _ = comicinfo
+        .to_pretty_string()
+        .and_then(|s| {
+            std::fs::write(&comicinfo_path, s.as_bytes())
+                .context(format!("can't write to `{}`", comicinfo_path.display()))
+        })
+        .map_err(|e| {
+            warn!(
+                "can't save `{}` to storage: {e:?}",
+                comicinfo_path.display()
+            )
+        });
 
     let mut txn = app_state
         .pool
@@ -698,6 +685,8 @@ pub async fn upsert_series(
     .context("can't upsert title model to DB")?
     .id;
 
+    tracing::debug!("upserted series: `{}`", title_path.as_ref().display());
+
     upsert_tags(&app_state, &comicinfo, &title_id, &mut *txn).await?;
 
     let chapter_path_to_id = '_upsert_chapters: {
@@ -714,7 +703,7 @@ pub async fn upsert_series(
         let mut chapter_is_dirs = Vec::with_capacity(processed_chapters.len());
 
         'next_chapter: for chapter in &processed_chapters {
-            let chapter_path_string = match chapter.path.to_relative(Some(title_path.as_ref())) {
+            let chapter_path_string = match chapter.path.to_relative(Some(&title_path)) {
                 Ok(p) => p.to_string_lossy().to_string(),
                 Err(e) => {
                     warn!(
@@ -784,7 +773,7 @@ pub async fn upsert_series(
         let mut page_descriptions = Vec::with_capacity(total_page_count);
 
         'next_chapter: for chapter in &processed_chapters {
-            let chapter_path_string = match chapter.path.to_relative(Some(title_path.as_ref())) {
+            let chapter_path_string = match chapter.path.to_relative(Some(&title_path)) {
                 Ok(p) => p.to_string_lossy().to_string(),
                 Err(e) => {
                     warn!(
@@ -794,6 +783,7 @@ pub async fn upsert_series(
                     continue 'next_chapter;
                 }
             };
+
             let chapter_id = match chapter_path_to_id.get(&chapter_path_string) {
                 Some(id) => *id,
                 None => {
@@ -802,52 +792,46 @@ pub async fn upsert_series(
                 }
             };
 
-            match chapter.chapter_type {
-                ChapterType::Archive(ref pages) => {
-                    for page in pages {
-                        chapter_ids.push(chapter_id);
-                        page_ids.push(match page_ids_pool.pop() {
-                            Some(id) => id,
-                            None => {
-                                warn!("can't get page ID from pool, this should never happen");
-                                continue 'next_chapter;
-                            }
-                        });
-                        page_paths.push(page.path.clone());
-                        page_filesizes.push(page.size.unwrap_or_default());
-                        page_descriptions.push(page.description.clone().unwrap_or_default());
-                    }
+            if let ChapterType::Archive(ref pages) = chapter.chapter_type {
+                for page in pages {
+                    chapter_ids.push(chapter_id);
+                    page_ids.push(match page_ids_pool.pop() {
+                        Some(id) => id,
+                        None => {
+                            warn!("can't get page ID from pool, this should never happen");
+                            continue 'next_chapter;
+                        }
+                    });
+                    page_paths.push(page.path.clone());
+                    page_filesizes.push(page.size.unwrap_or_default());
+                    page_descriptions.push(page.description.clone().unwrap_or_default());
                 }
-                ChapterType::Dir(ref pages) => {
-                    for page in pages {
-                        let page_path_string = match page
-                            .path
-                            .to_relative(Some(chapter.path.as_ref()))
-                        {
-                            Ok(p) => p.to_string_lossy().to_string(),
-                            Err(e) => {
-                                warn!(
-                                    "can't convert page path `{}` to relative to upsert to database: {e:?}",
-                                    page.path.as_ref().display()
-                                );
-                                continue 'next_chapter;
-                            }
-                        };
+            } else if let ChapterType::Dir(ref pages) = chapter.chapter_type {
+                for page in pages {
+                    let page_path_string = match page.path.to_relative(Some(&chapter.path)) {
+                        Ok(p) => p.to_string_lossy().to_string(),
+                        Err(e) => {
+                            warn!(
+                                "can't convert page path `{}` to relative to upsert to database: {e:?}",
+                                page.path.as_ref().display()
+                            );
+                            continue 'next_chapter;
+                        }
+                    };
 
-                        chapter_ids.push(chapter_id);
-                        page_ids.push(match page_ids_pool.pop() {
-                            Some(id) => id,
-                            None => {
-                                warn!("can't get page ID from pool, this should never happen");
-                                continue 'next_chapter;
-                            }
-                        });
-                        page_descriptions.push(page.description.clone().unwrap_or_default());
-                        page_paths.push(page_path_string);
-                        page_filesizes.push(page.size.unwrap_or_default());
-                    }
+                    chapter_ids.push(chapter_id);
+                    page_ids.push(match page_ids_pool.pop() {
+                        Some(id) => id,
+                        None => {
+                            warn!("can't get page ID from pool, this should never happen");
+                            continue 'next_chapter;
+                        }
+                    });
+                    page_descriptions.push(page.description.clone().unwrap_or_default());
+                    page_paths.push(page_path_string);
+                    page_filesizes.push(page.size.unwrap_or_default());
                 }
-            };
+            }
         }
 
         sqlx::query!(
@@ -857,8 +841,8 @@ pub async fn upsert_series(
             AS t(id, chapter_id, path, filesize, description)
         ON CONFLICT (chapter_id, path) DO UPDATE
             SET description = EXCLUDED.description",
-            &chapter_ids,
             &page_ids,
+            &chapter_ids,
             &page_paths,
             &page_filesizes,
             &page_descriptions
@@ -867,6 +851,13 @@ pub async fn upsert_series(
         .await
         .context("can't upsert new pages")?;
     }
+
+    tracing::debug!(
+        "upserted chapter pages: `{}`",
+        title_path.as_ref().display()
+    );
+
+    txn.commit().await.context("can't commit transaction")?;
 
     Ok(title_id)
 }

@@ -3,6 +3,7 @@ mod dir_entry_guesser;
 mod upsert_category;
 mod upsert_oneshot;
 mod upsert_series;
+mod upsert_tags;
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -14,11 +15,16 @@ use std::{
 
 use anyhow::{Context, Result};
 use dir_entry_guesser::{DirEntryType, DirEntryTypeGuesser};
+use futures_core::future::BoxFuture;
 use futures_util::future::join_all;
-use tokio::sync::{Mutex, Semaphore};
+use tokio::sync::{Mutex, RwLock, Semaphore};
 use tracing::{debug, error, info};
+use upsert_series::upsert_series;
 
-use crate::AppState;
+use crate::{
+    types::absolute_path::AbsolutePath,
+    utils::{app_state::AppState, archive_file::ItemInArchive},
+};
 use upsert_oneshot::{upsert_oneshot, OneshotType};
 
 #[derive(Debug)]
@@ -27,12 +33,34 @@ struct ScannedEntry {
     parent: Option<PathBuf>, // None for the library root
 }
 
+/// ONLY add errors that would need to handle differently, e.g. [`IsIgnored`]
+/// would tell the caller the function "failed" because the file is ignored,
+/// not something wrong happened.
+///
+/// [`IsIgnored`]: UpsertTitleError::IsIgnored
+#[derive(Debug, thiserror::Error)]
+enum UpsertTitleError {
+    #[error("content file is empty")]
+    IsEmpty,
+    #[error("other error: {0:?}")]
+    Other(anyhow::Error),
+}
+
+impl From<anyhow::Error> for UpsertTitleError {
+    fn from(e: anyhow::Error) -> Self {
+        Self::Other(e)
+    }
+}
+
+type PageInTitle = ItemInArchive;
+
 pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
     // scan library directory
-    let library_dir = std::fs::read_dir(&app_state.config.library_path).context(format!(
-        "can't read library path: {:?}",
-        app_state.config.library_path
-    ))?;
+    let library_dir =
+        std::fs::read_dir(app_state.config.library_path.as_ref()).context(format!(
+            "can't read library path: {:?}",
+            app_state.config.library_path
+        ))?;
 
     let mut queue: VecDeque<ScannedEntry> = VecDeque::new();
 
@@ -62,9 +90,9 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
     };
 
     // processing tasks waiting to be .await-ed
-    let mut tasks = vec![];
-    let category_path_to_id: Arc<Mutex<HashMap<PathBuf, i64>>> =
-        Arc::new(Mutex::new(HashMap::new()));
+    let mut tasks: Vec<(BoxFuture<'static, Result<i64, UpsertTitleError>>, PathBuf)> = vec![];
+    let category_path_to_id: Arc<RwLock<HashMap<AbsolutePath, i64>>> =
+        Arc::new(RwLock::new(HashMap::new()));
 
     // BFS
     while let Some(scanned) = queue.pop_back() {
@@ -83,42 +111,52 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
                         });
                     });
                 }
-                DirEntryType::SeriesDir(chapter_path_and_number) => {
-                    println!("TODO: handle series w/ {chapter_path_and_number:?}")
-                }
-                DirEntryType::OneShotDir(pages) => {
+                DirEntryType::SeriesDir(chapters) => {
                     tasks.push((
-                        upsert_oneshot(
+                        Box::pin(upsert_series(
                             app_state.clone(),
                             entry_path.clone(),
-                            OneshotType::InDirectory(pages),
+                            chapters,
                             scanned.parent,
                             category_path_to_id.clone(),
                             nomedia_support,
-                        ),
+                        )),
                         entry_path,
                     ));
                 }
-                DirEntryType::OneShotArchiveFile(archive_file) => {
+                DirEntryType::OneShotDir(pages) => {
                     tasks.push((
-                        upsert_oneshot(
+                        Box::pin(upsert_oneshot(
                             app_state.clone(),
                             entry_path.clone(),
-                            OneshotType::InArchive(archive_file),
+                            OneshotType::Directory(pages),
                             scanned.parent,
                             category_path_to_id.clone(),
                             nomedia_support,
-                        ),
+                        )),
+                        entry_path,
+                    ));
+                }
+                DirEntryType::OneShotArchiveFile(files_in_archive) => {
+                    tasks.push((
+                        Box::pin(upsert_oneshot(
+                            app_state.clone(),
+                            entry_path.clone(),
+                            OneshotType::Archive(files_in_archive),
+                            scanned.parent,
+                            category_path_to_id.clone(),
+                            nomedia_support,
+                        )),
                         entry_path,
                     ));
                 }
                 DirEntryType::Ignored => {
-                    debug!("ignored directory {}", entry_path.display())
+                    debug!("ignored entry `{}`", entry_path.display())
                 }
             },
             Err(e) => {
                 error!(
-                    "can't guess the directory type for {}: {e:?}",
+                    "can't guess the directory type for `{}`: {e:?}",
                     entry_path.display()
                 );
                 continue;
@@ -139,10 +177,7 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
             let permit = match sem.acquire().await {
                 Ok(permit) => permit,
                 Err(e) => {
-                    error!(
-                        "can't process {title_path}: can't acquire a permit from semaphore: {:?}",
-                        e
-                    );
+                    error!("can't process `{title_path}`: can't acquire a permit from semaphore: {e:?}");
                     return;
                 }
             };
@@ -150,14 +185,11 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
             match task.await {
                 Ok(upserted_title_id) => upserted_title_ids.lock().await.push(upserted_title_id),
                 Err(e) => match e {
-                    upsert_oneshot::UpsertOneshotErr::IsIgnored => {
-                        info!("title {title_path} is ignored")
+                    UpsertTitleError::IsEmpty => {
+                        info!("title `{title_path}` is empty")
                     }
-                    upsert_oneshot::UpsertOneshotErr::IsEmpty => {
-                        info!("title {title_path} is empty")
-                    }
-                    upsert_oneshot::UpsertOneshotErr::Other(e) => {
-                        error!("can't process {title_path}: {e:?}")
+                    UpsertTitleError::Other(e) => {
+                        error!("can't process `{title_path}`: {e:?}")
                     }
                 },
             }
@@ -179,7 +211,7 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
         DELETE FROM titles
             WHERE id NOT IN (SELECT id FROM UNNEST($2::bigint[]))",
         &category_path_to_id
-            .lock()
+            .read()
             .await
             .values()
             .copied()
