@@ -2,9 +2,7 @@ use std::{collections::VecDeque, path::PathBuf};
 
 use anyhow::{anyhow, Result};
 
-use crate::config::SUPPORTED_IMAGE_FORMATS;
-
-use super::config::SUPPORTED_ARCHIVE_FORMATS;
+use crate::config::{SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS};
 
 pub trait IteratorExt: Iterator {
     /// Same as [`find_map`] but use [`Result<B>`] instead of [`Option<B>`]
@@ -30,34 +28,35 @@ pub trait IteratorExt: Iterator {
 impl<I: Iterator> IteratorExt for I {}
 
 pub trait PathBufUtils {
-    /// Only check if the [`PathBuf`] has an image extension.
-    fn has_image_extension(&self) -> bool;
-
-    /// Only check if the [`PathBuf`] has an archive extension.
-    fn has_archive_extension(&self) -> bool;
-
-    /// Scan a directory recursively for image files with respect
-    /// to the provided [`nomedia_support`] feature flag.
+    fn has_image_ext(&self) -> bool;
+    fn has_archive_ext(&self) -> bool;
     fn scan_dir_recursively_for_image(&self, nomedia_support: bool) -> Result<Vec<PathBuf>>;
+    fn has_recycle_flag(&self, feature_enabled: bool) -> bool;
+    fn has_oneshot_flag(&self, feature_enabled: bool) -> bool;
+    fn contains_nomedia_file(&self, feature_enabled: bool) -> bool;
+    fn contains_category_info_file(&self) -> bool;
 }
 
 impl PathBufUtils for PathBuf {
-    fn has_image_extension(&self) -> bool {
-        if let Some(extension) = self.extension() {
-            return SUPPORTED_IMAGE_FORMATS
-                .contains(&extension.to_string_lossy().to_string().as_ref());
-        }
-        false
+    /// Check if the path (assumed to be a file) has an image extension
+    fn has_image_ext(&self) -> bool {
+        self.extension()
+            .map(|ext| {
+                SUPPORTED_IMAGE_FORMATS.contains(&ext.to_string_lossy().to_string().as_ref())
+            })
+            .unwrap_or(false)
     }
 
-    fn has_archive_extension(&self) -> bool {
-        if let Some(extension) = self.extension() {
-            return SUPPORTED_ARCHIVE_FORMATS
-                .contains(&extension.to_string_lossy().to_string().as_ref());
-        }
-        false
+    /// Check if the path (assumed to be a file) has an archive extension
+    fn has_archive_ext(&self) -> bool {
+        self.extension()
+            .map(|ext| {
+                SUPPORTED_ARCHIVE_FORMATS.contains(&ext.to_string_lossy().to_string().as_ref())
+            })
+            .unwrap_or(false)
     }
 
+    /// Scan a path (assumed to be a directory) recursively for image files
     fn scan_dir_recursively_for_image(&self, nomedia_support: bool) -> Result<Vec<PathBuf>> {
         let mut files = vec![];
         let mut queue: VecDeque<PathBuf> = VecDeque::from([self.clone()]);
@@ -67,7 +66,7 @@ impl PathBufUtils for PathBuf {
                 if nomedia_support && entry.join(".nomedia").exists() {
                     continue;
                 }
-                if entry.has_image_extension() {
+                if entry.has_image_ext() {
                     files.push(entry);
                 }
                 continue;
@@ -76,25 +75,53 @@ impl PathBufUtils for PathBuf {
         }
         Ok(files)
     }
+
+    /// Check if any of the path's components contains Komga's `_oneshot`
+    fn has_oneshot_flag(&self, feature_enabled: bool) -> bool {
+        feature_enabled
+            && self
+                .components()
+                .any(|c| c.as_os_str().to_string_lossy().contains("_oneshot"))
+    }
+
+    /// Check if any of the path's components contains Komga's `#recycle`
+    fn has_recycle_flag(&self, feature_enabled: bool) -> bool {
+        feature_enabled
+            && self
+                .components()
+                .any(|c| c.as_os_str().to_string_lossy().contains("#recycle"))
+    }
+
+    /// Check if the path (assumed to be a directory) contains `.nomedia`
+    fn contains_nomedia_file(&self, feature_enabled: bool) -> bool {
+        feature_enabled && self.join(".nomedia").exists()
+    }
+
+    /// Check if the path (assumed to be a directory) contains `CategoryInfo.xml`
+    fn contains_category_info_file(&self) -> bool {
+        self.join("CategoryInfo.xml").exists()
+    }
 }
 
 pub trait StringUtils {
-    fn has_image_extension(&self) -> bool;
-    fn has_archive_extension(&self) -> bool;
+    fn has_image_ext(&self) -> bool;
+    fn has_archive_ext(&self) -> bool;
 }
 
 impl StringUtils for String {
-    fn has_image_extension(&self) -> bool {
-        if let Some(extension) = self.split('.').last() {
-            return SUPPORTED_IMAGE_FORMATS.contains(&extension);
-        }
-        false
+    /// Check if the string has an image extension
+    fn has_image_ext(&self) -> bool {
+        self.split('.')
+            .last()
+            .map(|ext| SUPPORTED_IMAGE_FORMATS.contains(&ext))
+            .unwrap_or(false)
     }
 
-    fn has_archive_extension(&self) -> bool {
-        if let Some(extension) = self.split('.').last() {
-            return SUPPORTED_ARCHIVE_FORMATS.contains(&extension);
-        }
-        false
+    /// Check if the string has an archive extension
+    fn has_archive_ext(&self) -> bool {
+        self.split('.')
+            .last()
+            .map(|ext| SUPPORTED_ARCHIVE_FORMATS.contains(&ext))
+            .unwrap_or(false)
     }
 }
