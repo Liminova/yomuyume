@@ -112,13 +112,13 @@ impl ItemsInArchiveUtils for Vec<ItemInArchive> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ArchiveFileError {
-    #[error("PathBuf points to nothing")]
-    NotExists,
-    #[error("PathBuf is not a file")]
-    NotAFile,
-    #[error("PathBuf is not an archive")]
-    NotAnArchive,
-    #[error("Can't spawn 7zz process: {0:?}")]
+    #[error("`{0:?}` points to nothing")]
+    NotExists(PathBuf),
+    #[error("`{0:?}` is not a file")]
+    NotAFile(PathBuf),
+    #[error("`{0:?}` is not an archive")]
+    NotAnArchive(PathBuf),
+    #[error("can't spawn 7zz process: {0:?}")]
     CantSpawn7z(anyhow::Error),
     #[error("error from 7zz: {0}")]
     SevenZipError(String),
@@ -167,15 +167,16 @@ pub trait ArchiveFile {
     /// List all files in the archive.
     ///
     /// https://superuser.com/a/1073272
-    fn list_files(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError>;
+    fn list_files_in_archive(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError>;
 
     /// Read the content of a specified file in the archive.
     ///
     /// https://superuser.com/a/148501
-    fn read_file(&self, file_name: impl ToString) -> Result<Vec<u8>, ArchiveFileError>;
+    fn read_file_from_archive(&self, file_name: impl ToString)
+        -> Result<Vec<u8>, ArchiveFileError>;
 
     /// Upsert a buffer to a specified file in the archive.
-    fn upsert_file(
+    fn upsert_file_to_archive(
         &self,
         file_name: impl ToString,
         content: Arc<Vec<u8>>,
@@ -188,7 +189,7 @@ pub trait ArchiveFile {
     /// To avoid an additional call to the 7z CLI, the file size is manually
     /// provided, it's just to tell clients what the size of file they get,
     /// not affecting the streaming process.
-    fn stream_file(
+    fn stream_file_from_archive(
         self,
         file_name: impl ToString,
         filesize: Option<i64>,
@@ -198,10 +199,10 @@ pub trait ArchiveFile {
 impl ArchiveFile for PathBuf {
     fn validate(&self) -> Result<(), ArchiveFileError> {
         if !self.exists() {
-            return Err(ArchiveFileError::NotExists);
+            return Err(ArchiveFileError::NotExists(self.clone()));
         }
         if !self.is_file() {
-            return Err(ArchiveFileError::NotAFile);
+            return Err(ArchiveFileError::NotAFile(self.clone()));
         }
         if !SUPPORTED_ARCHIVE_FORMATS.contains(
             &self
@@ -211,7 +212,7 @@ impl ArchiveFile for PathBuf {
                 .to_string()
                 .as_str(),
         ) {
-            return Err(ArchiveFileError::NotAnArchive);
+            return Err(ArchiveFileError::NotAnArchive(self.clone()));
         }
         Ok(())
     }
@@ -223,7 +224,7 @@ impl ArchiveFile for PathBuf {
 
         items.iter().try_for_each(|path| {
             if !path.exists() {
-                return Err(ArchiveFileError::NotExists);
+                return Err(ArchiveFileError::NotExists(path.clone()));
             }
             Ok(())
         })?;
@@ -279,7 +280,7 @@ impl ArchiveFile for PathBuf {
         Ok(())
     }
 
-    fn list_files(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError> {
+    fn list_files_in_archive(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError> {
         self.validate()?;
 
         let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
@@ -379,7 +380,8 @@ impl ArchiveFile for PathBuf {
                             self.display()
                         )
                     })
-                    .ok()?;
+                    .ok()
+                    .map(|d| d.with_nanosecond(0).unwrap_or_default())?;
 
                 let size = attributes
                     .get("Size")
@@ -404,7 +406,10 @@ impl ArchiveFile for PathBuf {
         Ok(files)
     }
 
-    fn read_file(&self, file_name: impl ToString) -> Result<Vec<u8>, ArchiveFileError> {
+    fn read_file_from_archive(
+        &self,
+        file_name: impl ToString,
+    ) -> Result<Vec<u8>, ArchiveFileError> {
         self.validate()?;
 
         // Read content of specified file to stdout
@@ -452,7 +457,7 @@ impl ArchiveFile for PathBuf {
         Ok(stdout_buf)
     }
 
-    fn upsert_file(
+    fn upsert_file_to_archive(
         &self,
         file_name: impl ToString,
         content: Arc<Vec<u8>>,
@@ -492,7 +497,7 @@ impl ArchiveFile for PathBuf {
         Ok(())
     }
 
-    fn stream_file(
+    fn stream_file_from_archive(
         self,
         file_name: impl ToString,
         filesize: Option<i64>,
@@ -549,7 +554,7 @@ impl Stream for ArchiveItemStream {
             0,
             self.filesize.and_then(|filesize| match filesize {
                 size if size <= 0 => None,
-                size if size > usize::MAX as i64 => None,
+                size if size as usize > usize::MAX => None,
                 size => Some(size as usize),
             }),
         )
@@ -566,7 +571,7 @@ mod tests {
 
     use chrono::{DateTime, Timelike, Utc};
     use memfd_exec::{MemFdExecutable, Stdio};
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     use super::*;
 
@@ -601,13 +606,13 @@ mod tests {
 
     #[test]
     fn create_zip_list_files() {
-        let temp_dir = TempDir::new("create-zip-and-list-read-files").unwrap();
+        let temp_dir = TempDir::new().unwrap();
         let test_file = temp_dir.path().join("test.txt");
         File::create(&test_file).unwrap();
 
         let archive_file = temp_dir.path().join("new.zip");
         archive_file._create_zip_file(&vec![test_file]).unwrap();
-        let files = archive_file.list_files().unwrap();
+        let files = archive_file.list_files_in_archive().unwrap();
 
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].path, "test.txt");
@@ -615,7 +620,7 @@ mod tests {
 
     #[test]
     fn read_file() {
-        let temp_dir = TempDir::new("read-file").unwrap();
+        let temp_dir = TempDir::new().unwrap();
 
         let test_file1 = temp_dir.path().join("test1.txt");
         let mut file1 = File::create(&test_file1).unwrap();
@@ -632,16 +637,19 @@ mod tests {
             ._create_zip_file(&vec![test_file1, test_file2])
             .unwrap();
 
-        assert_eq!(archive_file.read_file("test1.txt").unwrap(), b"lorem ipsum");
         assert_eq!(
-            archive_file.read_file("test2.txt").unwrap(),
+            archive_file.read_file_from_archive("test1.txt").unwrap(),
+            b"lorem ipsum"
+        );
+        assert_eq!(
+            archive_file.read_file_from_archive("test2.txt").unwrap(),
             b"dolor sit amet"
         );
     }
 
     #[test]
     fn upsert_file() {
-        let temp_dir = TempDir::new("upsert-file").unwrap();
+        let temp_dir = TempDir::new().unwrap();
 
         let temp_file_name = "test.txt";
         File::create(temp_dir.path().join(temp_file_name)).unwrap();
@@ -653,34 +661,46 @@ mod tests {
             ._create_zip_file(&vec![temp_dir.path().join(temp_file_name)])
             .unwrap();
 
-        assert_eq!(archive_file.read_file(&filename_1).unwrap(), b"");
-        assert_eq!(archive_file.list_files().unwrap().len(), 1);
+        assert_eq!(
+            archive_file.read_file_from_archive(&filename_1).unwrap(),
+            b""
+        );
+        assert_eq!(archive_file.list_files_in_archive().unwrap().len(), 1);
 
         // overwrite that empty file
         let content_1 = Arc::new(b"lorem ipsum".to_vec());
         archive_file
-            .upsert_file(&filename_1, content_1.clone())
+            .upsert_file_to_archive(&filename_1, content_1.clone())
             .unwrap();
 
-        assert_eq!(archive_file.read_file(&filename_1).unwrap(), *content_1);
-        assert_eq!(archive_file.list_files().unwrap().len(), 1);
+        assert_eq!(
+            archive_file.read_file_from_archive(&filename_1).unwrap(),
+            *content_1
+        );
+        assert_eq!(archive_file.list_files_in_archive().unwrap().len(), 1);
 
         // add new file
         let filename_2 = "test2.txt";
         let content_2 = Arc::new(b"dolor sit amet".to_vec());
         File::create(temp_dir.path().join(filename_2)).unwrap();
         archive_file
-            .upsert_file(&filename_2, content_2.clone())
+            .upsert_file_to_archive(&filename_2, content_2.clone())
             .unwrap();
 
-        assert_eq!(archive_file.read_file(&filename_1).unwrap(), *content_1);
-        assert_eq!(archive_file.read_file(&filename_2).unwrap(), *content_2);
-        assert_eq!(archive_file.list_files().unwrap().len(), 2);
+        assert_eq!(
+            archive_file.read_file_from_archive(&filename_1).unwrap(),
+            *content_1
+        );
+        assert_eq!(
+            archive_file.read_file_from_archive(&filename_2).unwrap(),
+            *content_2
+        );
+        assert_eq!(archive_file.list_files_in_archive().unwrap().len(), 2);
     }
 
     #[test]
     fn modified_date() {
-        let temp_dir = TempDir::new("modified-date").unwrap();
+        let temp_dir = TempDir::new().unwrap();
 
         let test_file = temp_dir.path().join("test.txt");
         File::create(&test_file).unwrap();
@@ -690,7 +710,7 @@ mod tests {
             ._create_zip_file(&vec![test_file.clone()])
             .unwrap();
 
-        let modified_date_in_zip = archive_file.list_files().unwrap()[0].last_modified;
+        let modified_date_in_zip = archive_file.list_files_in_archive().unwrap()[0].last_modified;
         let real_modified_date: DateTime<Utc> = File::open(&test_file)
             .unwrap()
             .metadata()
