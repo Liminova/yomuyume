@@ -13,6 +13,8 @@ CREATE TABLE categories (
     CONSTRAINT "uc-categories-path" UNIQUE (path)
 );
 
+-- titles -> oneshots_pages
+
 DROP TABLE IF EXISTS titles CASCADE;
 CREATE TABLE IF NOT EXISTS titles (
     id BIGINT PRIMARY KEY,
@@ -24,6 +26,7 @@ CREATE TABLE IF NOT EXISTS titles (
     release DATE,
     path TEXT NOT NULL,
     is_dir BOOLEAN NOT NULL,
+    is_series BOOLEAN NOT NULL,
 
     cover_path TEXT,
     cover_blurhash TEXT,
@@ -38,8 +41,8 @@ CREATE TABLE IF NOT EXISTS titles (
     CONSTRAINT "uc-titles-path" UNIQUE (path)
 );
 
-DROP TABLE IF EXISTS pages CASCADE;
-CREATE TABLE IF NOT EXISTS pages (
+DROP TABLE IF EXISTS oneshots_pages CASCADE;
+CREATE TABLE IF NOT EXISTS oneshots_pages (
     id BIGINT PRIMARY KEY,
     title_id BIGINT NOT NULL,
 
@@ -50,7 +53,39 @@ CREATE TABLE IF NOT EXISTS pages (
     FOREIGN KEY (title_id) REFERENCES titles (id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
-    CONSTRAINT "uc-pages-title_id-path" UNIQUE (title_id, path)
+    CONSTRAINT "uc-oneshots_pages-title_id-path" UNIQUE (title_id, path)
+);
+
+-- titles -> chapters -> chapters_pages
+
+DROP TABLE IF EXISTS chapters CASCADE;
+CREATE TABLE IF NOT EXISTS chapters (
+    id BIGINT PRIMARY KEY,
+    title_id BIGINT NOT NULL,
+    path TEXT NOT NULL,
+
+    number INTEGER NOT NULL,
+    description TEXT,
+    is_dir BOOLEAN NOT NULL,
+
+    FOREIGN KEY (title_id) REFERENCES titles (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT "uc-chapters-title_id-path" UNIQUE (title_id, path)
+);
+
+DROP TABLE IF EXISTS chapters_pages CASCADE;
+CREATE TABLE IF NOT EXISTS chapters_pages (
+    id BIGINT PRIMARY KEY,
+    chapter_id BIGINT NOT NULL,
+    path TEXT NOT NULL,
+    filesize BIGINT,
+    description TEXT,
+
+    FOREIGN KEY (chapter_id) REFERENCES chapters (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT "uc-chapters_pages-chapter_id-path" UNIQUE (chapter_id, path)
 );
 
 DROP TABLE IF EXISTS tags CASCADE;
