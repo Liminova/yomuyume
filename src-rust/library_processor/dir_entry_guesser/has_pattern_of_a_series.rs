@@ -59,7 +59,7 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                     .filter(|(_, files)| {
                         !files.is_empty()
                             || !files.contains_nomedia(is_nomedia_enabled)
-                            || files.contains_at_least_one_image_file()
+                            || files.contains_image()
                     })
                     .map(|(p, files)| ChapterInfo {
                         number: 0,

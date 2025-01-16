@@ -55,7 +55,7 @@ impl DirEntryTypeGuesser for DirEntry {
                 .context("can't list files in archive")?;
             if archive.is_empty()
                 || archive.contains_nomedia(nomedia_support)
-                || !archive.contains_at_least_one_image_file()
+                || !archive.contains_image()
             {
                 return Ok(DirEntryType::Ignored);
             }
