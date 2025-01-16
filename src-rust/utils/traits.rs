@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, path::PathBuf};
 
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, Timelike, Utc};
 
 use crate::config::{SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS};
 
@@ -35,6 +36,7 @@ pub trait PathBufUtils {
     fn has_oneshot_flag(&self, feature_enabled: bool) -> bool;
     fn contains_nomedia_file(&self, feature_enabled: bool) -> bool;
     fn contains_category_info_file(&self) -> bool;
+    fn last_modified(&self) -> Result<DateTime<Utc>>;
 }
 
 impl PathBufUtils for PathBuf {
@@ -100,6 +102,17 @@ impl PathBufUtils for PathBuf {
     /// Check if the path (assumed to be a directory) contains `CategoryInfo.xml`
     fn contains_category_info_file(&self) -> bool {
         self.join("CategoryInfo.xml").exists()
+    }
+
+    /// Get the last modified time of the path
+    fn last_modified(&self) -> Result<DateTime<Utc>> {
+        self.metadata()
+            .map_err(|e| anyhow!("Can't get metadata: {}", e))?
+            .modified()
+            .map_err(|e| anyhow!("Can't get modified time: {}", e))
+            .map(DateTime::<Utc>::from)
+            .map(|d| d.with_nanosecond(0).unwrap_or_default())
+            .map_err(|e| anyhow!("Can't convert to DateTime: {}", e))
     }
 }
 
