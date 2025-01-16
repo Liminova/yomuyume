@@ -32,7 +32,7 @@ impl Modify for SecurityAddon {
     }
 }
 
-use crate::AppError;
+use crate::utils::app_error::AppError;
 
 #[derive(OpenApi)]
 #[openapi(

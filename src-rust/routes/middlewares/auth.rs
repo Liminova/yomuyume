@@ -11,7 +11,7 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
 
-use crate::{AppError, AppState};
+use crate::utils::{app_error::AppError, app_state::AppState};
 
 /// A middleware that checks `session-id` and `session-secret` cookies.
 ///

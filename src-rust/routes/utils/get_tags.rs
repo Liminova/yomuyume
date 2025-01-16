@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::utils::{app_error::AppError, app_state::AppState};
+use crate::{
+    macros::bail_if_empty,
+    utils::{app_error::AppError, app_state::AppState},
+};
 
 use anyhow::Context;
 use axum::{
@@ -37,8 +40,6 @@ pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response
         })
         .collect::<Vec<_>>();
 
-    if data.is_empty() {
-        return Ok((StatusCode::NO_CONTENT).into_response());
-    }
+    bail_if_empty!(data, Ok(StatusCode::NO_CONTENT.into_response()));
     Ok((StatusCode::OK, Json(data)).into_response())
 }

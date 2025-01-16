@@ -10,7 +10,10 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::utils::{app_error::AppError, app_state::AppState};
+use crate::{
+    macros::bail_if_empty,
+    utils::{app_error::AppError, app_state::AppState},
+};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct CategoryResponseBody {
