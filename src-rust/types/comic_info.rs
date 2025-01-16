@@ -11,7 +11,7 @@ use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::option_blurhash_deserializer;
-use crate::config::COMICINFO_SCHEMA;
+use crate::{config::COMICINFO_SCHEMA, macros::bail_if_empty};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ComicInfo {
@@ -365,9 +365,7 @@ fn option_string_deserializer<'de, D: Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Option<String>, D::Error> {
     let s = String::deserialize(deserializer)?.trim().to_string();
-    if s.is_empty() {
-        return Ok(None);
-    }
+    bail_if_empty!(s, Ok(None));
     Ok(Some(s))
 }
 
@@ -399,9 +397,7 @@ pub enum YesNo {
 impl YesNo {
     fn deserializer<'de, D: Deserializer<'de>>(deserializer: D) -> Result<YesNo, D::Error> {
         let s = String::deserialize(deserializer)?.trim().to_string();
-        if s.is_empty() {
-            return Err(serde::de::Error::custom("empty string"));
-        }
+        bail_if_empty!(s, Err(serde::de::Error::custom("empty string")));
         match s.as_str() {
             "Yes" => Ok(YesNo::Yes),
             "No" => Ok(YesNo::No),
@@ -575,9 +571,7 @@ impl Rating {
         deserializer: D,
     ) -> Result<Option<Rating>, D::Error> {
         let s = String::deserialize(deserializer)?.trim().to_string();
-        if s.is_empty() {
-            return Err(serde::de::Error::custom("empty string"));
-        }
+        bail_if_empty!(s, Err(serde::de::Error::custom("empty string")));
         Rating::from_str(s.as_str())
             .map_err(serde::de::Error::custom)
             .map(Some)
@@ -673,10 +667,8 @@ impl ComicInfo {
     }
 
     pub fn from_str(s: &str) -> Result<Self> {
-        if s.is_empty() {
-            return Ok(Self::default());
-        }
-        quick_xml::de::from_str(s).context("can't parse ComicInfo from string")
+        bail_if_empty!(s, Ok(Self::default()));
+        quick_xml::de::from_str(s).context("can't parse ComicInfo.xml from string")
     }
 
     pub fn to_pretty_string(&self) -> Result<String> {
