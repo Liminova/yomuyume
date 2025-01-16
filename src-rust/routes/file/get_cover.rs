@@ -33,11 +33,11 @@ pub async fn get_cover(
         "SELECT
             titles.path AS title_path,
             cover_path,
-            pages.filesize AS cover_filesize,
+            oneshots_pages.filesize AS cover_filesize,
             titles.is_dir AS title_is_dir
         FROM titles
-            LEFT JOIN pages ON pages.title_id = titles.id
-            AND pages.path = cover_path
+            LEFT JOIN oneshots_pages ON oneshots_pages.title_id = titles.id
+            AND oneshots_pages.path = cover_path
         WHERE titles.id = $1",
         title_id
     )
@@ -76,7 +76,8 @@ pub async fn get_cover(
         }
         false => {
             let archive_file = PathBuf::from(record.title_path);
-            let stream = archive_file.stream_file(cover_path, record.cover_filesize)?;
+            let stream =
+                archive_file.stream_file_from_archive(cover_path, record.cover_filesize)?;
 
             Body::from_stream(stream)
         }
