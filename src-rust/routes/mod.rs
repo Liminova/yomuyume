@@ -129,10 +129,10 @@ pub struct ApiDoc;
 /// [`password_hash`]: String
 /// [`password_input`]: String
 fn check_pass(password_hash: impl AsRef<str>, password_input: impl AsRef<str>) -> bool {
-    PasswordHash::new(password_hash.as_ref()).map_or(false, |parsed_hash| {
+    PasswordHash::new(password_hash.as_ref()).is_ok_and(|parsed_hash| {
         Argon2::default()
             .verify_password(password_input.as_ref().as_bytes(), &parsed_hash)
-            .map_or(false, |_| true)
+            .is_ok_and(|_| true)
     })
 }
 
