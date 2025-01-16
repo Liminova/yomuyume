@@ -28,6 +28,7 @@ async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
 
     tracing_subscriber::fmt()
+        .with_ansi(true)
         .with_max_level(tracing::Level::DEBUG)
         .with_env_filter("sqlx=info,axum=info,yomuyume=debug")
         .init();
