@@ -50,6 +50,66 @@ impl Ord for ItemInArchive {
     }
 }
 
+pub trait ItemsInArchiveUtils {
+    fn contains_nomedia(&self, feature_enabled: bool) -> bool;
+    fn contains_image(&self) -> bool;
+    fn keep_images(&self, nomedia_support: bool) -> Vec<&ItemInArchive>;
+}
+
+impl ItemsInArchiveUtils for Vec<ItemInArchive> {
+    /// Check if the list of items in archive contains a `.nomedia` file.
+    fn contains_nomedia(&self, feature_enabled: bool) -> bool {
+        feature_enabled && self.iter().any(|f| f.path == ".nomedia")
+    }
+
+    /// Check if the archive contains at least one image file.
+    fn contains_image(&self) -> bool {
+        self.iter().any(|f| f.path.has_image_ext())
+    }
+
+    /// Remove non-image files, ignore subdirs contain `.nomedia` file
+    /// (if the feature is enabled).
+    fn keep_images(&self, nomedia_support: bool) -> Vec<&ItemInArchive> {
+        if !nomedia_support {
+            return self
+                .iter()
+                .filter(move |i| i.path.has_image_ext())
+                .collect::<Vec<_>>();
+        }
+
+        if self.iter().any(|i| i.path == ".nomedia") {
+            return vec![];
+        }
+
+        // a/.nomedia -> ignore + add `a` to ignored_prefixes
+        // a/b/foo.jpg -> starts with one of the prefixes -> ignore
+        let mut ignored_prefixes = self
+            .iter()
+            .filter(|i| i.path.ends_with(".nomedia"))
+            .filter_map(|i| {
+                i.path
+                    .clone()
+                    .strip_suffix("/.nomedia")
+                    .map(|p| p.to_string())
+            })
+            .collect::<Vec<_>>();
+        ignored_prefixes.sort();
+        ignored_prefixes.dedup();
+
+        self.iter()
+            .filter(move |i| {
+                if !i.path.contains('/') {
+                    return i.path.has_image_ext();
+                }
+                if ignored_prefixes.iter().any(|p| i.path.starts_with(p)) {
+                    return false;
+                }
+                i.path.has_image_ext()
+            })
+            .collect::<Vec<_>>()
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum ArchiveFileError {
     #[error("PathBuf points to nothing")]
