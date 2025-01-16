@@ -5,6 +5,8 @@ pub mod temp_code_purpose;
 
 use serde::{Deserialize, Deserializer};
 
+use crate::macros::bail_if_empty;
+
 pub type TitleID = i64;
 pub type CategoryID = i64;
 pub type UserID = i64;
@@ -14,9 +16,7 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?.trim().to_string();
-    if s.is_empty() {
-        return Ok(None);
-    }
+    bail_if_empty!(s, Ok(None));
     if let Err(e) = blurhash::decode(&s, 0, 0, 0.0) {
         return Err(serde::de::Error::custom(e));
     }
