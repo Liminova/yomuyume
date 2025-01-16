@@ -1,23 +1,20 @@
-FROM node:lts-bookworm-slim
+FROM debian:12
 
 RUN apt-get update && apt-get install -y \
-    # dav1d
-    meson ninja-build nasm \
-    # mold linker
-    clang \
-    # openssl crate somewhere in the dependency tree
+    meson ninja-build nasm clang \
     pkg-config libssl-dev \
-    # misc
     curl git zsh sudo && apt-get clean
 
-RUN usermod -l ymym node && groupmod -n ymym node && \
-    echo "ymym ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
-    usermod --uid 1000 ymym && groupmod --gid 1000 ymym && \
-    mkdir -p /usr/local/cargo /home/vscode/.pnpm-store && \
-    chown -R ymym /usr/local/cargo /home/vscode/.pnpm-store
+RUN groupadd -g 1000 ymym && \
+    useradd -m -u 1000 -g ymym ymym && \
+    echo "ymym ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ymym && \
+    mkdir -p /usr/local/cargo && chown -R ymym /usr/local/cargo && \
+    mkdir -p /home/ymym/.pnpm-store && chown -R ymym /home/ymym/.pnpm-store
 
 USER ymym
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal -c clippy rustfmt
+
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 
 ENV CARGO_HOME=/usr/local/cargo
