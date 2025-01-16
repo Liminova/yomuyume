@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::option_blurhash_deserializer;
-use crate::utils::config::CATEGORY_INFO_SCHEMA;
+use crate::{macros::bail_if_empty, utils::config::CATEGORY_INFO_SCHEMA};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
 pub struct CategoryInfo {
@@ -31,7 +31,7 @@ fn name_deserializer<'de, D: Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Option<String>, D::Error> {
     let s = String::deserialize(deserializer)?.trim().to_string();
-    if s.is_empty() || s.to_ascii_lowercase() == "untitled" {
+    if s.is_empty() || s.eq_ignore_ascii_case("untitled") {
         return Ok(None);
     }
     Ok(Some(s))
@@ -48,9 +48,7 @@ fn description_deserializer<'de, D: Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Option<String>, D::Error> {
     let s = String::deserialize(deserializer)?.trim().to_string();
-    if s.is_empty() {
-        return Ok(None);
-    }
+    bail_if_empty!(s, Ok(None));
     Ok(Some(s))
 }
 
@@ -66,14 +64,8 @@ fn description_serializer<S: Serializer>(
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Cover {
-    #[serde(
-        rename = "@Path",
-        default,
-        deserialize_with = "Cover::path_deserializer",
-        serialize_with = "Cover::path_serializer",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub path: Option<PathBuf>,
+    #[serde(rename = "@Path", default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
     #[serde(
         rename = "@Blurhash",
         default,
@@ -94,53 +86,6 @@ pub struct Cover {
 }
 
 impl Cover {
-    fn path_deserializer<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Option<PathBuf>, D::Error> {
-        let s = String::deserialize(deserializer)?.trim().to_string();
-
-        if s.is_empty() {
-            return Ok(None);
-        }
-        let path = PathBuf::from(s);
-        if !path.exists() {
-            return Err(serde::de::Error::custom(format!(
-                "cover file not exists: {path:?}"
-            )));
-        }
-        if !path.is_file() {
-            return Err(serde::de::Error::custom(format!(
-                "cover file is not a file: {path:?}"
-            )));
-        }
-        let ext = path
-            .extension()
-            .map(|s| s.to_string_lossy().to_string())
-            .unwrap_or_default();
-        if !SUPPORTED_IMAGE_FORMATS.contains(&ext.as_str()) {
-            return Err(serde::de::Error::custom(format!(
-                "cover file is not a supported image format: {ext}"
-            )));
-        }
-        Ok(Some(path))
-    }
-
-    fn path_serializer<S: Serializer>(
-        cover: &Option<PathBuf>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
-        match cover {
-            Some(cover) => {
-                let s = cover.to_string_lossy().to_string().trim().to_string();
-                if s.is_empty() {
-                    return Err(serde::ser::Error::custom("empty string"));
-                }
-                serializer.serialize_str(&s)
-            }
-            None => serializer.serialize_none(),
-        }
-    }
-
     fn is_zero(number: &i32) -> bool {
         *number == 0
     }
@@ -159,9 +104,7 @@ impl Cover {
 
 impl CategoryInfo {
     pub fn from_str(s: &str) -> Result<Self> {
-        if s.is_empty() {
-            return Ok(Self::default());
-        }
+        bail_if_empty!(s, Ok(Self::default()));
         quick_xml::de::from_str::<CategoryInfo>(s).context("can't parse CategoryInfo.xml")
     }
 
@@ -177,31 +120,17 @@ impl CategoryInfo {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
-
-    use tempdir::TempDir;
-
     use super::*;
-    use crate::CATEGORY_INFO_SCHEMA;
+    use crate::utils::config::CATEGORY_INFO_SCHEMA;
 
     #[test]
     fn perfect() {
-        let temp_dir =
-            TempDir::new("test-category-info-der-perfect").expect("can't create temp dir");
-        let cover_path = temp_dir.path().join("cover.jpg");
-        let _ = File::create(&cover_path).expect("can't create cover file");
-
         let category_info: CategoryInfo = CategoryInfo::from_str(
-            &(format!(
-                "
-            <CategoryInfo>
+            r#"<CategoryInfo>
                 <Name>  Adventure    </Name>
                 <Description>  Lorem Ipsum</Description>
-                <Cover Path=\"{}\">    </Cover>
-            </CategoryInfo>
-        ",
-                cover_path.to_string_lossy()
-            )),
+                <Cover Path="Foo">    </Cover>
+            </CategoryInfo>"#,
         )
         .unwrap();
 
@@ -210,22 +139,9 @@ mod tests {
         assert_eq!(
             category_info.cover,
             Some(Cover {
-                path: Some(cover_path.clone()),
+                path: Some("Foo".to_string()),
                 ..Default::default()
             })
-        );
-
-        assert_eq!(
-            category_info.to_pretty_string().unwrap(),
-            format!(
-                "{CATEGORY_INFO_SCHEMA}
-<CategoryInfo>
-    <Name>Adventure</Name>
-    <Description>Lorem Ipsum</Description>
-    <Cover Path=\"{}\"/>
-</CategoryInfo>",
-                cover_path.to_string_lossy()
-            )
         );
     }
 
@@ -253,19 +169,5 @@ mod tests {
             category_info.to_pretty_string().unwrap(),
             format!("{CATEGORY_INFO_SCHEMA}\n<CategoryInfo/>")
         );
-    }
-
-    #[test]
-    fn cover_not_exists() {
-        assert!(CategoryInfo::from_str(
-            r#"
-            <CategoryInfo>
-                <Name>Adventure</Name>
-                <Description>Lorem Ipsum</Description>
-                <Cover Path="this-is-not-exists.jpg" />
-            </CategoryInfo>
-            "#
-        )
-        .is_err());
     }
 }
