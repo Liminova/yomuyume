@@ -28,7 +28,7 @@ serde_json = "1.0.108"
 tokio = { version = "1.32.0", features = ["full"] }
 tower-http = { version = "0.5.0", features = ["tracing", "trace", "cors"] }
 tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.17", features = ["env-filter", "ansi"] }
 utoipa = { version = "4.1.0", features = ["axum_extras", "chrono"] }
 utoipa-redoc = { version = "4.0.0", features = ["axum"] }
 utoipa-swagger-ui = { version = "7.1.0", features = ["axum"] }
@@ -46,10 +46,14 @@ tokio-util = { version = "0.7.12", features = ["io"] }
 
 [dev-dependencies]
 axum-test = "14.0.0"
-tempdir = "0.3.7"
+tempfile = "3.14.0"
 criterion = { version = "0.5.1", features = ["html_reports", "async_tokio"] }
 nanoid = "0.4.0"
 regex = "1.11.1"
+tracing-test = "0.2.5"
+
+[profile.dev.package.sqlx]
+opt-level = 3
 
 [[bench]]
 name = "main"
