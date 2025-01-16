@@ -109,7 +109,6 @@ use crate::utils::app_error::AppError;
         // Index
         CategoryResponseBody,
         TitleResponseBody,
-        TitlePageResponse,
         TitleTagResponse,
         FilterRequestBody,
         FilterResponseBody,
