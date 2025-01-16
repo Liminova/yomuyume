@@ -1,4 +1,8 @@
-use std::{collections::VecDeque, path::PathBuf};
+use std::{
+    collections::VecDeque,
+    fmt::{Debug, Display},
+    path::PathBuf,
+};
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Timelike, Utc};
@@ -136,5 +140,22 @@ impl StringUtils for String {
             .last()
             .map(|ext| SUPPORTED_ARCHIVE_FORMATS.contains(&ext))
             .unwrap_or(false)
+    }
+}
+
+pub trait WarnResultThenOk<T> {
+    /// Same as [`Result::ok`] but log a warning if the result is an error
+    fn okay(self, msg: impl Display) -> Option<T>;
+}
+
+impl<T, E: Display + Debug> WarnResultThenOk<T> for anyhow::Result<T, E> {
+    fn okay(self, msg: impl Display) -> Option<T> {
+        match self {
+            Ok(v) => Some(v),
+            Err(e) => {
+                tracing::warn!("{}: {:?}", msg, e);
+                None
+            }
+        }
     }
 }
