@@ -1,3 +1,4 @@
+pub mod absolute_path;
 pub mod category_info;
 pub mod comic_info;
 pub mod temp_code_purpose;
