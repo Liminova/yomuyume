@@ -1,5 +1,7 @@
 use std::{env::var, path::PathBuf};
 
+use crate::types::absolute_path::AbsolutePath;
+
 pub const SUPPORTED_ARCHIVE_FORMATS: &[&str] = &["zip", "cbz", "rar", "cbr", "7z"];
 pub const SUPPORTED_IMAGE_FORMATS: &[&str] = &[
     "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
@@ -58,7 +60,7 @@ const VERSION_NAMES: [&str; 31] = [
 #[derive(Debug, Clone)]
 pub struct Config {
     pub app_name: String,
-    pub library_path: PathBuf,
+    pub library_path: AbsolutePath,
 
     pub listen_address: String,
     pub server_port: u16,
@@ -74,11 +76,13 @@ pub struct Config {
 
 impl Config {
     pub fn init() -> Self {
-        let library_path = PathBuf::from(var("LIBRARY_PATH").expect("LIBRARY_PATH must be set"));
-        if !library_path.exists() {
-            panic!("LIBRARY_PATH was set but doesn't exist");
-        }
-        if !library_path.is_dir() {
+        let library_path = AbsolutePath::from(
+            &PathBuf::from(var("LIBRARY_PATH").expect("LIBRARY_PATH must be set")),
+            None,
+        )
+        .expect("can't convert LIBRARY_PATH to absolute");
+
+        if !library_path.as_ref().is_dir() {
             panic!("LIBRARY_PATH was set but isn't a directory");
         }
 
