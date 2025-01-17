@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Context, Result};
 use async_channel::Sender;
 use rand_core::{OsRng, RngCore};
 use snowflake::Snowflake;
@@ -54,18 +53,28 @@ impl Default for IDGenerator {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum GenerateIDErr {
+    #[error("can't send a request to generate snowflake id")]
+    SendRequest,
+    #[error("can't get snowflake id from oneshot channel")]
+    GetID,
+    #[error("generating new snowflake id should not take more than 1 second")]
+    TimeOut,
+}
+
 impl IDGenerator {
-    pub async fn snowflake(&self) -> Result<i64> {
+    pub async fn snowflake(&self) -> Result<i64, GenerateIDErr> {
         let (tx, rx) = oneshot::channel();
 
         self.snowflake_id_generator_request
             .send(tx)
             .await
-            .map_err(|e| anyhow!("can't request to generate snowflake id: {e:?}"))?;
+            .map_err(|_| GenerateIDErr::SendRequest)?;
 
         tokio::select! {
-            new_id = rx => new_id.context("can't get snowflake id from oneshot channel"),
-            _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => Err(anyhow!("generating new snowflake id should not take more than 1 second"))
+            new_id = rx => new_id.map_err(|_| GenerateIDErr::GetID),
+            _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => Err(GenerateIDErr::TimeOut),
         }
     }
 
