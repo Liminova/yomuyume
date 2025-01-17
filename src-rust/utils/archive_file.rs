@@ -169,7 +169,8 @@ pub trait ArchiveFile {
     /// https://superuser.com/a/1073272
     fn list_files_in_archive(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError>;
 
-    /// Read the content of a specified file in the archive.
+    /// Read the content of a specified file in the archive. If the file doesn't
+    /// exist, return an empty buffer.
     ///
     /// https://superuser.com/a/148501
     fn read_file_from_archive(&self, file_name: impl ToString)
