@@ -6,7 +6,6 @@
 
 use std::{path::PathBuf, str::FromStr};
 
-use anyhow::{Context, Result};
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -666,17 +665,19 @@ impl ComicInfo {
         })
     }
 
-    pub fn from_str(s: &str) -> Result<Self> {
+    /// Parse a ComicInfo.xml string and return a ComicInfo object.
+    ///
+    /// If the string is empty, return a default one.
+    pub fn from_str(s: &str) -> Result<Self, quick_xml::DeError> {
         bail_if_empty!(s, Ok(Self::default()));
-        quick_xml::de::from_str(s).context("can't parse ComicInfo.xml from string")
+        quick_xml::de::from_str(s)
     }
 
-    pub fn to_pretty_string(&self) -> Result<String> {
+    pub fn to_pretty_string(&self) -> Result<String, quick_xml::DeError> {
         let mut buffer = format!("{COMICINFO_SCHEMA}\n");
         let mut ser = quick_xml::se::Serializer::new(&mut buffer);
         ser.indent(' ', 4);
-        self.serialize(ser)
-            .context("can't serialize ComicInfo to pretty string")?;
+        self.serialize(ser)?;
         Ok(buffer)
     }
 }
