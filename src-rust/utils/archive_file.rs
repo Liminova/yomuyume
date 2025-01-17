@@ -53,7 +53,7 @@ impl Ord for ItemInArchive {
 pub trait ItemsInArchiveUtils {
     fn contains_nomedia(&self, feature_enabled: bool) -> bool;
     fn contains_image(&self) -> bool;
-    fn keep_images(&self, nomedia_support: bool) -> Vec<&ItemInArchive>;
+    fn keep_images(self, nomedia_support: bool) -> Vec<ItemInArchive>;
 }
 
 impl ItemsInArchiveUtils for Vec<ItemInArchive> {
@@ -69,15 +69,15 @@ impl ItemsInArchiveUtils for Vec<ItemInArchive> {
 
     /// Remove non-image files, ignore subdirs contain `.nomedia` file
     /// (if the feature is enabled).
-    fn keep_images(&self, nomedia_support: bool) -> Vec<&ItemInArchive> {
+    fn keep_images(self, nomedia_support: bool) -> Vec<ItemInArchive> {
         if !nomedia_support {
             return self
-                .iter()
+                .into_iter()
                 .filter(move |i| i.path.has_image_ext())
                 .collect::<Vec<_>>();
         }
 
-        if self.iter().any(|i| i.path == ".nomedia") {
+        if self.iter().any(|i: &ItemInArchive| i.path == ".nomedia") {
             return vec![];
         }
 
@@ -96,7 +96,7 @@ impl ItemsInArchiveUtils for Vec<ItemInArchive> {
         ignored_prefixes.sort();
         ignored_prefixes.dedup();
 
-        self.iter()
+        self.into_iter()
             .filter(move |i| {
                 if !i.path.contains('/') {
                     return i.path.has_image_ext();
