@@ -80,7 +80,11 @@ pub async fn post_login(
         "INSERT INTO session_tokens
             (id, session_secret, user_id, user_agent, ip_address, last_used_at)
         VALUES ($1, $2, $3, $4, $5, $6)",
-        app_state.id_generator.snowflake().await?,
+        app_state
+            .id_generator
+            .snowflake()
+            .await
+            .context("can't generate ID for record")?,
         session_secret.as_str(),
         user_id,
         user_agent,

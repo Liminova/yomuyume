@@ -66,7 +66,11 @@ pub async fn post_register(
 
     sqlx::query!(
         "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4)",
-        app_state.id_generator.snowflake().await?,
+        app_state
+            .id_generator
+            .snowflake()
+            .await
+            .context("can't generate ID for record")?,
         query.username.as_str(),
         query.email.to_string().to_ascii_lowercase(),
         hash_pass(p)?
