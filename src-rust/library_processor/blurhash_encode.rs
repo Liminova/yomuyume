@@ -1,4 +1,3 @@
-use anyhow::Result;
 use image::{imageops::FilterType::Gaussian, DynamicImage, GenericImageView};
 
 /// Not contains the actual width and height, but the
@@ -13,7 +12,7 @@ pub struct BlurhashResult {
 
 /// A [`blurhash::encode`] wrapper that handles
 /// the image resizing and dimension calculations.
-pub fn encode(decoded_img: &DynamicImage) -> Result<BlurhashResult> {
+pub fn encode_blurhash(decoded_img: &DynamicImage) -> Result<BlurhashResult, blurhash::Error> {
     let (width, height) = decoded_img.dimensions();
     let decoded_img = decoded_img.resize_to_fill(32, 32, Gaussian);
     // TODO: somehow these dimensions are always 32x32

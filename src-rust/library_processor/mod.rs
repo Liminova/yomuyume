@@ -1,4 +1,4 @@
-mod blurhash;
+mod blurhash_encode;
 mod dir_entry_guesser;
 mod upsert_category;
 mod upsert_oneshot;
