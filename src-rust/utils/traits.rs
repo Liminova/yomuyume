@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::{anyhow, Result};
+// use anyhow::{anyhow, Result};
 use chrono::{DateTime, Timelike, Utc};
 
 use crate::config::{SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS};
@@ -13,12 +13,12 @@ pub trait IteratorExt: Iterator {
     /// Same as [`find_map`] but use [`Result<B>`] instead of [`Option<B>`]
     ///
     /// [`find_map`]: Iterator::find_map
-    fn try_find_map<B, F>(self, mut f: F) -> Result<B>
+    fn try_find_map<B, F>(self, mut f: F) -> anyhow::Result<B>
     where
         Self: Sized,
-        F: FnMut(Self::Item) -> Result<B>,
+        F: FnMut(Self::Item) -> anyhow::Result<B>,
     {
-        let mut error = anyhow!("Item not found");
+        let mut error = anyhow::anyhow!("Item not found");
         self.filter_map(|i| {
             f(i).map_err(|e| {
                 error = e;
@@ -40,7 +40,16 @@ pub trait PathBufUtils {
     fn has_oneshot_flag(&self, feature_enabled: bool) -> bool;
     fn contains_nomedia_file(&self, feature_enabled: bool) -> bool;
     fn contains_category_info_file(&self) -> bool;
-    fn last_modified(&self) -> Result<DateTime<Utc>>;
+    fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedErr>;
+    fn create_file_if_not_exists(&self) -> Result<(), std::io::Error>;
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum LastModifiedErr {
+    #[error("can't get metadata: {0:?}")]
+    GetMetadataErr(std::io::Error),
+    #[error("can't get modified time: {0:?}")]
+    GetModifiedErr(std::io::Error),
 }
 
 impl PathBufUtils for PathBuf {
@@ -109,14 +118,26 @@ impl PathBufUtils for PathBuf {
     }
 
     /// Get the last modified time of the path
-    fn last_modified(&self) -> Result<DateTime<Utc>> {
-        self.metadata()
-            .map_err(|e| anyhow!("Can't get metadata: {}", e))?
-            .modified()
-            .map_err(|e| anyhow!("Can't get modified time: {}", e))
-            .map(DateTime::<Utc>::from)
-            .map(|d| d.with_nanosecond(0).unwrap_or_default())
-            .map_err(|e| anyhow!("Can't convert to DateTime: {}", e))
+    fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedErr> {
+        Ok(DateTime::<Utc>::from(
+            self.metadata()
+                .map_err(LastModifiedErr::GetMetadataErr)?
+                .modified()
+                .map_err(LastModifiedErr::GetModifiedErr)?,
+        )
+        .with_nanosecond(0)
+        .unwrap_or_default())
+    }
+
+    /// Create the file if it doesn't exist
+    ///
+    /// The only error is from [`std::fs::File::create`]
+    fn create_file_if_not_exists(&self) -> Result<(), std::io::Error> {
+        if self.exists() {
+            return Ok(());
+        }
+        std::fs::File::create(self)?;
+        Ok(())
     }
 }
 
