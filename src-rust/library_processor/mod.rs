@@ -10,22 +10,29 @@ use std::{
     fs::DirEntry,
     mem::drop,
     path::PathBuf,
+    string::FromUtf8Error,
     sync::Arc,
 };
 
 use anyhow::{Context, Result};
-use dir_entry_guesser::{DirEntryType, DirEntryTypeGuesser};
 use futures_core::future::BoxFuture;
 use futures_util::future::join_all;
 use tokio::sync::{Mutex, RwLock, Semaphore};
 use tracing::{debug, error, info};
-use upsert_series::upsert_series;
 
 use crate::{
-    types::absolute_path::AbsolutePath,
+    archive_file::ArchiveFileError,
+    id_generator::GenerateIDErr,
+    library_processor::{
+        dir_entry_guesser::{DirEntryType, DirEntryTypeGuesser},
+        upsert_category::UpsertCategoryErr,
+        upsert_oneshot::{upsert_oneshot, OneshotType},
+        upsert_series::upsert_series,
+        upsert_tags::UpsertTagsErr,
+    },
+    types::absolute_path::{AbsolutePath, AbsolutePathErr},
     utils::{app_state::AppState, archive_file::ItemInArchive},
 };
-use upsert_oneshot::{upsert_oneshot, OneshotType};
 
 #[derive(Debug)]
 struct ScannedEntry {
@@ -39,17 +46,54 @@ struct ScannedEntry {
 ///
 /// [`IsIgnored`]: UpsertTitleError::IsIgnored
 #[derive(Debug, thiserror::Error)]
-enum UpsertTitleError {
-    #[error("content file is empty")]
+enum UpsertTitleErr {
+    #[error("it's empty")]
     IsEmpty,
-    #[error("other error: {0:?}")]
-    Other(anyhow::Error),
-}
 
-impl From<anyhow::Error> for UpsertTitleError {
-    fn from(e: anyhow::Error) -> Self {
-        Self::Other(e)
-    }
+    #[error("can't transform absolute path: {0:?}")]
+    PathAbsoluteConv(#[from] AbsolutePathErr),
+
+    #[error("can't start a database transaction: {0:?}")]
+    TransactionBegin(sqlx::Error),
+    #[error("can't commit a database transaction: {0:?}")]
+    TransactionCommit(sqlx::Error),
+
+    #[error("can't upsert one-shot title: {0:?}")]
+    UpsertOneShot(sqlx::Error),
+
+    #[error("can't upsert series title: {0:?}")]
+    UpsertSeries(sqlx::Error),
+    #[error("can't upsert series' chapters: {0:?}")]
+    UpsertChapters(sqlx::Error),
+
+    #[error("can't extract ComicInfo.xml from archive: {0:?}")]
+    ComicInfoExtract(ArchiveFileError),
+    #[error("can't decode ComicInfo.xml from vec<u8>: {0:?}")]
+    ComicInfoReadFromVecU8(FromUtf8Error),
+    #[error("can't read ComicInfo.xml from filesystem: {0:?}")]
+    ComicInfoReadFromFs(std::io::Error),
+    #[error("can't deserialize ComicInfo.xml: {0:?}")]
+    ComicInfoParse(quick_xml::DeError),
+    #[error("can't serialize ComicInfo.xml: {0:?}")]
+    ComicInfoSerialize(quick_xml::DeError),
+    #[error("can't write ComicInfo.xml to archive: {0:?}")]
+    ComicInfoWriteArchive(ArchiveFileError),
+    #[error("can't write ComicInfo.xml to directory: {0:?}")]
+    ComicInfoWriteDir(std::io::Error),
+
+    #[error("can't generate an ID for the title: {0:?}")]
+    GenTitleID(GenerateIDErr),
+    #[error("can't generate enough IDs for pages: {0:?}")]
+    GenPageIDs(GenerateIDErr),
+    #[error("can't generate enough IDs for chapters: {0:?}")]
+    GenChapterIDs(GenerateIDErr),
+
+    #[error("can't upsert category to database: {0:?}")]
+    UpsertCategory(#[from] UpsertCategoryErr),
+    #[error("can't upsert tags to database: {0:?}")]
+    UpsertTags(#[from] UpsertTagsErr),
+    #[error("can't upsert pages to database: {0:?}")]
+    UpsertPages(sqlx::Error),
 }
 
 type PageInTitle = ItemInArchive;
@@ -90,7 +134,7 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
     };
 
     // processing tasks waiting to be .await-ed
-    let mut tasks: Vec<(BoxFuture<'static, Result<i64, UpsertTitleError>>, PathBuf)> = vec![];
+    let mut tasks: Vec<(BoxFuture<'static, Result<i64, UpsertTitleErr>>, PathBuf)> = vec![];
     let category_path_to_id: Arc<RwLock<HashMap<AbsolutePath, i64>>> =
         Arc::new(RwLock::new(HashMap::new()));
 
@@ -185,12 +229,8 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
             match task.await {
                 Ok(upserted_title_id) => upserted_title_ids.lock().await.push(upserted_title_id),
                 Err(e) => match e {
-                    UpsertTitleError::IsEmpty => {
-                        info!("title `{title_path}` is empty")
-                    }
-                    UpsertTitleError::Other(e) => {
-                        error!("can't process `{title_path}`: {e:?}")
-                    }
+                    UpsertTitleErr::IsEmpty => info!("title `{title_path}` is empty"),
+                    e => error!("can't process `{title_path}`: {e:?}"),
                 },
             }
             drop(permit);
