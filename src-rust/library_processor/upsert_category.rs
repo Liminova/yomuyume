@@ -1,16 +1,42 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use tokio::sync::RwLock;
-use tracing::warn;
 
 use crate::{
     app_state::AppState,
     config::CATEGORY_INFO_FILENAME,
-    library_processor::blurhash::encode,
-    types::{absolute_path::AbsolutePath, category_info::CategoryInfo, CategoryID},
+    id_generator::GenerateIDErr,
+    library_processor::blurhash_encode::encode_blurhash,
+    traits::{PathBufUtils, WarnResultThenOk},
+    types::{
+        absolute_path::{AbsolutePath, AbsolutePathErr},
+        category_info::CategoryInfo,
+        CategoryID,
+    },
 };
+
+#[derive(Debug, thiserror::Error)]
+pub enum UpsertCategoryErr {
+    #[error("can't convert category path to absolute")]
+    ConvertToAbsolute(AbsolutePathErr),
+
+    #[error("can't read CategoryInfo.xml: {0:?}")]
+    CategoryInfoRead(std::io::Error),
+    #[error("can't deserialize CategoryInfo.xml: {0:?}")]
+    CategoryInfoParse(quick_xml::DeError),
+    #[error("can't serialize CategoryInfo.xml: {0:?}")]
+    CategoryInfoSerialize(quick_xml::DeError),
+    #[error("can't write CategoryInfo.xml: {0:?}")]
+    CategoryInfoWrite(std::io::Error),
+
+    #[error("can't generate an ID for the category: {0:?}")]
+    GenerateID(GenerateIDErr),
+
+    #[error("can't upsert category to database: {0:?}")]
+    Upsert(sqlx::Error),
+}
 
 /// Try to get the category id from the hashmap by its path first, then
 /// upsert it to the database if not found, finally return the category id.
@@ -22,10 +48,10 @@ pub async fn upsert_category<'e>(
     category_path: &Option<PathBuf>,
     category_path_to_id: &Arc<RwLock<HashMap<AbsolutePath, i64>>>,
     conn: impl sqlx::Executor<'e, Database = sqlx::Postgres> + 'e,
-) -> Result<Option<CategoryID>> {
+) -> Result<Option<CategoryID>, UpsertCategoryErr> {
     let category_path = match category_path {
         Some(category_path) => {
-            AbsolutePath::from(category_path, None).context("can't convert path to absolute")?
+            AbsolutePath::from(category_path, None).map_err(UpsertCategoryErr::ConvertToAbsolute)?
         }
         None => return Ok(None),
     };
@@ -34,17 +60,16 @@ pub async fn upsert_category<'e>(
         return Ok(Some(*category_id));
     };
 
-    let category_path_string = category_path.to_string_lossy().to_string();
-
     let category_info_path = category_path.as_ref().join(CATEGORY_INFO_FILENAME);
-    let mut category_info = if category_info_path.exists() {
-        CategoryInfo::from_str(
-            &std::fs::read_to_string(&category_info_path)
-                .context(format!("can't read {CATEGORY_INFO_FILENAME}"))?,
-        )
-        .context(format!("can't parse {CATEGORY_INFO_FILENAME}"))?
-    } else {
-        CategoryInfo::default()
+    let (original_category_info, mut category_info) = {
+        if !category_info_path.exists() {
+            (CategoryInfo::default(), CategoryInfo::default())
+        } else {
+            let s = std::fs::read_to_string(&category_info_path)
+                .map_err(UpsertCategoryErr::CategoryInfoRead)?;
+            let tmp = CategoryInfo::from_str(&s).map_err(UpsertCategoryErr::CategoryInfoParse)?;
+            (tmp.clone(), tmp)
+        }
     };
 
     let mut configured_cover_path: Option<String> = None;
@@ -54,7 +79,7 @@ pub async fn upsert_category<'e>(
 
     'cover_finder: {
         let cover = match category_info.cover.as_mut() {
-            Some(cover) => cover,
+            Some(c) => c,
             None => break 'cover_finder,
         };
 
@@ -63,71 +88,63 @@ pub async fn upsert_category<'e>(
             None => break 'cover_finder,
         };
 
-        let cover_path =
-            match AbsolutePath::from(&PathBuf::from(cover_path), Some(category_path.as_ref())) {
-                Ok(p) => p,
-                Err(e) => {
-                    warn!(
-                        "can't convert cover path `{}` to absolute: {e:?}",
-                        cover_path
-                    );
-                    break 'cover_finder;
-                }
-            };
-
-        let real_modified_date: DateTime<Utc> = match cover_path
-            .as_ref()
-            .metadata()
-            .and_then(|m| m.modified())
-            .map(|d| d.into())
-        {
-            Ok(d) => d,
-            Err(e) => {
-                warn!("can't get modified date of cover file for `{category_path_string}`: {e:?}");
+        let cover_path = match AbsolutePath::from(
+            &PathBuf::from(cover_path),
+            Some(category_path.as_ref()),
+        )
+        .okay(format!(
+            "can't convert cover path `{cover_path}` to absolute"
+        )) {
+            Some(p) => p,
+            None => {
                 break 'cover_finder;
             }
         };
 
-        if let (Some(blurhash), Some(modified_date_at_encode)) =
-            (cover.blurhash.as_ref(), cover.modified_date_at_encode)
+        let real_modified_date: DateTime<Utc> = match cover_path.as_ref().last_modified().okay(
+            format!("can't get modified date of cover file for `{category_path}`"),
+        ) {
+            Some(d) => d,
+            None => break 'cover_finder,
+        };
+
+        if let Some((blurhash, modified_date_at_encode)) =
+            cover.blurhash.as_ref().zip(cover.modified_date_at_encode)
         {
             let valid_dimensions = cover.width != 0 && cover.height != 0;
             let unmodified = modified_date_at_encode == real_modified_date;
             if valid_dimensions && unmodified {
+                configured_cover_path = cover.path.clone();
                 cover_blurhash = Some(blurhash.clone());
                 cover_width = Some(cover.width);
                 cover_height = Some(cover.height);
+                break 'cover_finder;
             }
         }
 
-        let blurhash_result = std::fs::read(cover_path.as_ref())
-            .context("can't read cover file")
+        if let Some(blurhash_result) = std::fs::read(cover_path.as_ref())
+            .context("can't read image")
             .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
-            .and_then(|img| encode(&img).context("can't encode image to blurhash"));
+            .and_then(|img| encode_blurhash(&img).context("can't encode image to blurhash"))
+            .okay(format!("can't encode `{category_path}` cover"))
+        {
+            configured_cover_path = cover.path.clone();
+            cover.blurhash = Some(blurhash_result.blurhash.clone());
+            cover.width = blurhash_result.width;
+            cover.height = blurhash_result.height;
+            cover.modified_date_at_encode = Some(real_modified_date);
 
-        match blurhash_result {
-            Ok(blurhash_result) => {
-                cover.blurhash = Some(blurhash_result.blurhash.clone());
-                cover.width = blurhash_result.width;
-                cover.height = blurhash_result.height;
-                cover.modified_date_at_encode = Some(real_modified_date);
-
-                cover_blurhash = Some(blurhash_result.blurhash);
-                cover_width = Some(blurhash_result.width);
-                cover_height = Some(blurhash_result.height);
-
-                break 'cover_finder;
-            }
-            Err(e) => {
-                configured_cover_path = None;
-                warn!("can't encode the configured cover of `{category_path_string}`: {e:?}");
-            }
+            cover_blurhash = Some(blurhash_result.blurhash);
+            cover_width = Some(blurhash_result.width);
+            cover_height = Some(blurhash_result.height);
         }
     };
 
-    '_save_category_info: {
-        std::fs::write(&category_info_path, category_info.to_pretty_string()?)
-            .context(format!("can't write to {CATEGORY_INFO_FILENAME}"))?;
+    if original_category_info != category_info {
+        let s = category_info
+            .to_pretty_string()
+            .map_err(UpsertCategoryErr::CategoryInfoSerialize)?;
+        std::fs::write(&category_info_path, &s).map_err(UpsertCategoryErr::CategoryInfoWrite)?;
     }
 
     let category_id = sqlx::query!(
@@ -148,10 +165,10 @@ pub async fn upsert_category<'e>(
             .id_generator
             .snowflake()
             .await
-            .context("can't generate category id")?,
+            .map_err(UpsertCategoryErr::GenerateID)?,
         category_info.name.clone().unwrap_or("Untitled".to_string()),
         category_info.description.as_ref(),
-        &category_path_string,
+        category_path.to_string_lossy(),
         configured_cover_path,
         cover_blurhash,
         cover_width,
@@ -159,10 +176,7 @@ pub async fn upsert_category<'e>(
     )
     .fetch_one(conn)
     .await
-    .context(format!(
-        "can't upsert category `{}` to database",
-        category_path.as_ref().display()
-    ))?
+    .map_err(UpsertCategoryErr::Upsert)?
     .id;
 
     category_path_to_id
