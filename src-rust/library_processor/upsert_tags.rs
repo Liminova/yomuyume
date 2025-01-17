@@ -1,28 +1,37 @@
-use anyhow::{Context, Result};
 use futures_util::future::join_all;
 
-use crate::{app_state::AppState, types::comic_info::ComicInfo};
+use crate::{app_state::AppState, id_generator::GenerateIDErr, types::comic_info::ComicInfo};
+
+#[derive(Debug, thiserror::Error)]
+pub enum UpsertTagsErr {
+    #[error("can't generate enough tag ids: {0:?}")]
+    NotEnoughTagIDs(#[from] GenerateIDErr),
+
+    #[error("can't delete old tags of title: {0:?}")]
+    CleanupTags(sqlx::Error),
+
+    #[error("can't upsert tags to database: {0:?}")]
+    UpsertTags(sqlx::Error),
+}
 
 pub async fn upsert_tags<'e>(
     app_state: &AppState,
     comicinfo: &ComicInfo,
     title_id: &i64,
     conn: impl sqlx::Executor<'e, Database = sqlx::Postgres> + 'e,
-) -> Result<()> {
+) -> Result<(), UpsertTagsErr> {
     if comicinfo.tags.is_empty() {
         sqlx::query!("DELETE FROM titles_tags WHERE title_id = $1", title_id)
             .execute(conn)
             .await
-            .context("can't delete tags")?;
+            .map_err(UpsertTagsErr::CleanupTags)?;
         return Ok(());
     }
 
-    let tag_ids: Result<Vec<i64>> =
-        join_all((0..comicinfo.tags.len()).map(|_| app_state.id_generator.snowflake()))
-            .await
-            .into_iter()
-            .collect();
-    let tag_ids = tag_ids.context("can't generate enough tag ids")?;
+    let tag_ids = join_all((0..comicinfo.tags.len()).map(|_| app_state.id_generator.snowflake()))
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()?;
 
     sqlx::query!(
         "WITH tag_ids AS (
@@ -44,6 +53,7 @@ pub async fn upsert_tags<'e>(
     )
     .execute(conn)
     .await
-    .context("can't upsert tags to database")
-    .map(|_| ())
+    .map_err(UpsertTagsErr::UpsertTags)?;
+
+    Ok(())
 }
