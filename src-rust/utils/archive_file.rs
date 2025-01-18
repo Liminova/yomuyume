@@ -327,7 +327,7 @@ impl ArchiveFile for PathBuf {
             .filter(|s| !s.is_empty())
             .filter_map(|s| 'scoped: {
                 let attributes: HashMap<&str, &str> = s
-                    .split("\n")
+                    .split('\n')
                     .collect::<Vec<_>>()
                     .iter()
                     .filter_map(|line| {
