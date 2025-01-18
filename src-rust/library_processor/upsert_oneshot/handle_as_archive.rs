@@ -50,9 +50,7 @@ pub fn handle_title_as_archive(
             .pages_mut()
             .iter_mut()
             .rev()
-            // is configured as Cover
             .filter(|p| p.page_type == ComicPageType::FrontCover)
-            // contains page path
             .filter_map(|page_cfg| {
                 page_cfg
                     .image_path
@@ -62,12 +60,14 @@ pub fn handle_title_as_archive(
             .find(|(_, page_config_path)| {
                 pages_in_archive
                     .iter()
-                    .any(|p| match p.path == *page_config_path {
-                        true => {
-                            page_modified = Some(p.last_modified);
+                    .filter_map(|p| p.last_modified.map(|m| (p, m)))
+                    .any(|(p, modified)| {
+                        if p.path == *page_config_path {
+                            page_modified = Some(modified);
                             true
+                        } else {
+                            false
                         }
-                        false => false,
                     })
             });
 
@@ -97,13 +97,8 @@ pub fn handle_title_as_archive(
             // try re-encode if something went wrong
             if title_path
                 .as_ref()
-                .read_file_from_archive(&page_cfg_path)
-                .context("can't read from archive")
-                .and_then(|buf| image::load_from_memory(&buf).context("can't parse as image"))
-                .and_then(|img| encode_blurhash(&img).context("can't encode to blurhash"))
-                .okay(format!(
-                    "can't use `{page_cfg_path}` as cover for `{title_path}`"
-                ))
+                .to_blurhash_from_archive(&page_cfg_path)
+                .okay(|e| warn!("can't re-encode cover file: {e:?}"))
                 .map(|blurhash_result| {
                     page_cfg.blurhash = Some(blurhash_result.blurhash.clone());
                     page_cfg.image_width = blurhash_result.width;
@@ -124,31 +119,36 @@ pub fn handle_title_as_archive(
         // else try every single pages
         pages_in_archive
             .iter()
-            .try_find_map(|real_p| {
+            .filter_map(|page| page.last_modified.map(|m| (page, m)))
+            .try_find_map(|(page, modified)| {
                 title_path
                     .as_ref()
-                    .read_file_from_archive(&real_p.path)
-                    .context("can't read from archive")
-                    .and_then(|buf| image::load_from_memory(&buf).context("can't parse as image"))
-                    .and_then(|img| encode_blurhash(&img).context("can't encode to blurhash"))
-                    .map(|blurhash| (real_p.path.clone(), real_p.last_modified, blurhash))
+                    .to_blurhash_from_archive(&page.path)
+                    .context(anyhow!(
+                        "can't use `{}` as cover for `{title_path}`",
+                        page.path
+                    ))
+                    .map(|blurhash| (page.path.clone(), modified, blurhash))
             })
             .map(|(path, modified, blurhash)| {
-                comicinfo.pages_mut().push(ComicPageInfo {
-                    page_type: ComicPageType::FrontCover,
-                    blurhash: Some(blurhash.blurhash.clone()),
-                    image_path: Some(path.clone()),
-                    image_width: blurhash.width,
-                    image_height: blurhash.height,
-                    modified_date_at_encode: Some(modified),
-                    ..Default::default()
-                });
+                comicinfo.pages_mut().insert(
+                    0,
+                    ComicPageInfo {
+                        page_type: ComicPageType::FrontCover,
+                        blurhash: Some(blurhash.blurhash.clone()),
+                        image_path: Some(path.clone()),
+                        image_width: blurhash.width,
+                        image_height: blurhash.height,
+                        modified_date_at_encode: Some(modified),
+                        ..Default::default()
+                    },
+                );
                 cover_path = Some(path);
                 cover_blurhash = Some(blurhash.blurhash);
                 cover_width = Some(blurhash.width);
                 cover_height = Some(blurhash.height);
             })
-            .okay(format!("no file in `{title_path}` can be use as cover"));
+            .okay(|e| warn!("no file in oneshot archive can be use as cover: {e:?}"));
     };
 
     if comicinfo != original_comicinfo {
@@ -160,15 +160,14 @@ pub fn handle_title_as_archive(
                     .as_ref()
                     .upsert_file_to_archive(COMICINFO_FILENAME, Arc::new(s.as_bytes().to_vec()))
                     .map_err(UpsertTitleErr::ComicInfoWriteArchive)
-            })?
+            })?;
     }
 
     Ok(TitleHandlerOk {
         comicinfo,
         title_last_modified: title_path
-            .as_ref()
             .last_modified()
-            .okay(format!("can't get last modified date of {title_path}")),
+            .okay(|e| warn!("can't get last modified date of oneshot archive: {e:?}")),
         pages_in_title: pages_in_archive,
         cover_path,
         cover_blurhash,
