@@ -59,13 +59,13 @@ pub fn handle_title_as_directory(
 
     let comicinfo_path = title_path.as_ref().join(COMICINFO_FILENAME);
 
-    let (original_comicinfo, mut comicinfo) = if !comicinfo_path.exists() {
-        (ComicInfo::default(), ComicInfo::default())
-    } else {
+    let (original_comicinfo, mut comicinfo) = if comicinfo_path.exists() {
         let s = std::fs::read_to_string(&comicinfo_path)
             .map_err(UpsertTitleErr::ComicInfoReadFromFs)?;
         let tmp = ComicInfo::from_str(&s).map_err(UpsertTitleErr::ComicInfoParse)?;
         (tmp.clone(), tmp)
+    } else {
+        (ComicInfo::default(), ComicInfo::default())
     };
 
     let mut cover_path: Option<String> = None;
