@@ -546,7 +546,7 @@ pub struct Rating(f32);
 
 impl Eq for Rating {
     fn assert_receiver_is_total_eq(&self) {
-        assert!(self.eq(self))
+        assert!(self.eq(self));
     }
 }
 
