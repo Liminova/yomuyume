@@ -7,11 +7,11 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::{
-        archive_file::{ArchiveFile, ItemInArchive},
         library_processor::dir_entry_guesser::{
-            has_pattern_of_a_series::HasPatternOfSeries, ChapterDirOrArchive, ChapterInfo,
+            has_pattern_of_a_series::HasPatternOfSeries, ScannedChapterInfo, ScannedChapterType,
         },
-        traits::PathBufUtils,
+        traits::pathbuf_utils::PathBufUtils,
+        utils::archive_file::{ArchiveFile, ItemInArchive},
     };
 
     macro_rules! into_archive_item {
