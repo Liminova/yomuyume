@@ -387,12 +387,12 @@ impl ArchiveFile for PathBuf {
                 let size = attributes
                     .get("Size")
                     .ok_or_else(|| warn!("can't get size for item {path} in {}", self.display()))
+                    .ok()
                     .and_then(|val| {
-                        val.trim().parse::<i64>().map_err(|e| {
-                            warn!("can't parse size for {path} in {}: {e:#}", self.display())
+                        val.trim().parse::<i64>().okay(|e| {
+                            warn!("can't parse size for {path} in {}: {e:?}", self.display());
                         })
-                    })
-                    .ok();
+                    });
 
                 Some(ItemInArchive {
                     path,
