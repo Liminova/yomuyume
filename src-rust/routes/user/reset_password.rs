@@ -44,9 +44,9 @@ pub async fn get_reset_password(
     .fetch_optional(&app_state.pool)
     .await
     .context("can't query user")?;
-    let user_record = match user_record {
-        Some(user_record) => user_record,
-        None => return Ok((StatusCode::BAD_REQUEST, "user not found").into_response()),
+
+    let Some(user_record) = user_record else {
+        return Ok((StatusCode::BAD_REQUEST, "user not found").into_response());
     };
     if user_record.verified_at.is_none() {
         return Ok((StatusCode::BAD_REQUEST, "user is not verified").into_response());
