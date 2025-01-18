@@ -63,13 +63,13 @@ pub async fn upsert_category<'e>(
 
     let category_info_path = category_path.as_ref().join(CATEGORY_INFO_FILENAME);
     let (original_category_info, mut category_info) = {
-        if !category_info_path.exists() {
-            (CategoryInfo::default(), CategoryInfo::default())
-        } else {
+        if category_info_path.exists() {
             let s = std::fs::read_to_string(&category_info_path)
                 .map_err(UpsertCategoryErr::CategoryInfoRead)?;
             let tmp = CategoryInfo::from_str(&s).map_err(UpsertCategoryErr::CategoryInfoParse)?;
             (tmp.clone(), tmp)
+        } else {
+            (CategoryInfo::default(), CategoryInfo::default())
         }
     };
 
