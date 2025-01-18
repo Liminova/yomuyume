@@ -12,7 +12,7 @@ pub trait HasPatternOfSeries {
         &self,
         nomedia_support: bool,
         komga_recycle_support: bool,
-    ) -> Option<Vec<ChapterInfo>>;
+    ) -> Option<Vec<ScannedChapterInfo>>;
 }
 
 impl HasPatternOfSeries for Vec<DirEntry> {
@@ -20,7 +20,7 @@ impl HasPatternOfSeries for Vec<DirEntry> {
         &self,
         is_nomedia_enabled: bool,
         is_komga_recyle_enabled: bool,
-    ) -> Option<Vec<ChapterInfo>> {
+    ) -> Option<Vec<ScannedChapterInfo>> {
         if self.len() < 2 {
             return None;
         }
@@ -43,10 +43,10 @@ impl HasPatternOfSeries for Vec<DirEntry> {
             })
             .filter_map(|(p, m)| {
                 if m.is_dir() {
-                    return Some(ChapterInfo {
-                        number: 0,
+                    return Some(ScannedChapterInfo {
+                        volume: 0,
                         path: p,
-                        dir_or_archive: ChapterDirOrArchive::Dir,
+                        dir_or_archive: ScannedChapterType::Directory,
                     });
                 }
 
@@ -61,18 +61,18 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                             || !files.contains_nomedia(is_nomedia_enabled)
                             || files.contains_image()
                     })
-                    .map(|(p, files)| ChapterInfo {
-                        number: 0,
+                    .map(|(p, files)| ScannedChapterInfo {
+                        volume: 0,
                         path: p,
-                        dir_or_archive: ChapterDirOrArchive::Archive(files),
+                        dir_or_archive: ScannedChapterType::Archive(files),
                     })
             })
             .collect::<Vec<_>>();
 
         bail_if_empty!(are_we_chapters, None);
 
-        let mut basename = "".to_string();
-        let mut chapters: Vec<ChapterInfo> = Vec::with_capacity(are_we_chapters.len());
+        let mut basename = String::new();
+        let mut chapters: Vec<ScannedChapterInfo> = Vec::with_capacity(are_we_chapters.len());
 
         for am_i_chapter in are_we_chapters.into_iter() {
             let path_last_component = am_i_chapter
@@ -130,9 +130,9 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                 basename = curr_basename_normalized;
             }
 
-            chapters.push(ChapterInfo {
+            chapters.push(ScannedChapterInfo {
                 path: am_i_chapter.path,
-                number: chapter_number
+                volume: chapter_number
                     .chars()
                     .rev()
                     .collect::<String>()
