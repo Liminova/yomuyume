@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-    macros::bail_if_empty,
-    utils::{app_error::AppError, app_state::AppState},
-};
+use crate::utils::{app_error::AppError, app_state::AppState, macros::bail_if_empty};
 
 use anyhow::Context;
 use axum::{
