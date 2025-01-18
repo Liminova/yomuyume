@@ -61,7 +61,7 @@ pub async fn upsert_oneshot(
             handle_title_as_archive(&title_path, files_in_archive, nomedia_support)?
         }
         OneshotType::Directory(sub_entries) => {
-            handle_title_as_directory(&title_path, sub_entries, nomedia_support)?
+            handle_title_as_directory(&title_path, &sub_entries, nomedia_support)?
         }
     };
 
@@ -71,8 +71,13 @@ pub async fn upsert_oneshot(
         .await
         .map_err(UpsertTitleErr::TransactionBegin)?;
 
-    let category_id =
-        upsert_category(&app_state, &parent_path, &category_path_to_id, &mut *txn).await?;
+    let category_id = upsert_category(
+        &app_state,
+        parent_path.as_ref(),
+        &category_path_to_id,
+        &mut *txn,
+    )
+    .await?;
 
     // upsert title and get its id
     let title_id = sqlx::query!(
