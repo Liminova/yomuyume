@@ -4,7 +4,7 @@ mod tests;
 
 use std::path::PathBuf;
 
-use crate::archive_file::ItemInArchive;
+use crate::utils::archive_file::ItemInArchive;
 pub use guess::{DirEntryType, DirEntryTypeGuesser};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
