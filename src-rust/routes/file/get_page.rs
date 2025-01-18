@@ -10,10 +10,7 @@ use axum::{
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
-use crate::{
-    archive_file::ArchiveFile,
-    utils::{app_error::AppError, app_state::AppState},
-};
+use crate::utils::{app_error::AppError, app_state::AppState, archive_file::ArchiveFile};
 
 /// get page
 ///
