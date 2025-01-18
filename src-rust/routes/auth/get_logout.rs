@@ -25,26 +25,18 @@ pub async fn get_logout(
     cookie_jar: CookieJar,
     State(app_state): State<Arc<AppState>>,
 ) -> Result<Response, AppError> {
-    let session_id = match cookie_jar
+    let Some(session_id) = cookie_jar
         .get("session-id")
         .and_then(|cookie| cookie.value().to_string().parse::<i64>().ok())
-    {
-        Some(session_id) => session_id,
-        None => {
-            return Ok((StatusCode::UNAUTHORIZED, "no valid session id provided").into_response())
-        }
+    else {
+        return Ok((StatusCode::UNAUTHORIZED, "no valid session id provided").into_response());
     };
 
-    let session_secret = match cookie_jar
+    let Some(session_secret) = cookie_jar
         .get("session-secret")
         .map(|cookie| cookie.value().to_string())
-    {
-        Some(session_secret) => session_secret,
-        None => {
-            return Ok(
-                (StatusCode::UNAUTHORIZED, "no valid session secret provided").into_response(),
-            )
-        }
+    else {
+        return Ok((StatusCode::UNAUTHORIZED, "no valid session secret provided").into_response());
     };
 
     sqlx::query!(
