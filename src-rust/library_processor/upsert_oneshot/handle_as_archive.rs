@@ -1,18 +1,22 @@
 use std::sync::Arc;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
+use tracing::warn;
 
 use crate::{
-    archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
-    config::COMICINFO_FILENAME,
-    library_processor::{
-        blurhash_encode::encode_blurhash, upsert_oneshot::TitleHandlerOk, UpsertTitleErr,
+    library_processor::{upsert_oneshot::TitleHandlerOk, UpsertTitleErr},
+    traits::{
+        do_something_and_ok::DoSomethingAndOk, to_blurhash::ToBlurhashFromArchive,
+        try_find_map::IteratorExt,
     },
-    macros::bail_if_empty,
-    traits::{IteratorExt, PathBufUtils, WarnResultThenOk},
     types::{
         absolute_path::AbsolutePath,
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
+    },
+    utils::{
+        archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
+        config::COMICINFO_FILENAME,
+        macros::bail_if_empty,
     },
 };
 
