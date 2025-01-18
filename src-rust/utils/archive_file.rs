@@ -381,7 +381,7 @@ impl ArchiveFile for PathBuf {
                         warn!(
                             "can't get last modified date for {path} in {}: {e:?}",
                             self.display()
-                        )
+                        );
                     });
 
                 let size = attributes
