@@ -62,15 +62,14 @@ pub async fn post_login(
         .and_then(|header| {
             headers
                 .get(&header)
-                .or(headers.get(header.to_ascii_lowercase()))
+                .or_else(|| headers.get(header.to_ascii_lowercase()))
         })
         .and_then(|value| value.to_str().ok())
-        .map(|ip_str| ip_str.to_string())
-        .unwrap_or(addr.ip().to_string());
+        .map_or_else(|| addr.ip().to_string(), |ip_str| ip_str.to_string());
 
     let user_agent = headers
         .get("user-agent")
-        .or(headers.get("User-Agent"))
+        .or_else(|| headers.get("User-Agent"))
         .and_then(|value| value.to_str().ok())
         .map(|user_agent_str| user_agent_str.to_string());
 
