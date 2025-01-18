@@ -17,29 +17,25 @@ impl LiveConfig {
             sqlx::query!("SELECT value FROM live_config WHERE id = 'nomedia_support'")
                 .fetch_optional(db)
                 .await?
-                .map(|record| record.value == "true")
-                .unwrap_or_default();
+                .map_or_else(|| false, |record| record.value == "true");
 
         let komga_oneshot_support =
             sqlx::query!("SELECT value FROM live_config WHERE id = 'komga_oneshot_support'")
                 .fetch_optional(db)
                 .await?
-                .map(|record| record.value == "true")
-                .unwrap_or_default();
+                .map_or_else(|| false, |record| record.value == "true");
 
         let komga_recycle_support =
             sqlx::query!("SELECT value FROM live_config WHERE id = 'komga_recycle_support'")
                 .fetch_optional(db)
                 .await?
-                .map(|record| record.value == "true")
-                .unwrap_or_default();
+                .map_or_else(|| false, |record| record.value == "true");
 
         let rescan_interval_in_minutes =
             sqlx::query!("SELECT value FROM live_config WHERE id = 'rescan_interval_in_minutes'")
                 .fetch_optional(db)
                 .await?
-                .map(|record| record.value.parse::<i32>().unwrap_or(60))
-                .unwrap_or_else(|| 60);
+                .map_or_else(|| 60, |record| record.value.parse::<i32>().unwrap_or(60));
 
         Ok(Self {
             nomedia_support,
