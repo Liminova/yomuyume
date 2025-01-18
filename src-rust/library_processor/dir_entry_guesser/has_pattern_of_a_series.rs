@@ -74,7 +74,7 @@ impl HasPatternOfSeries for Vec<DirEntry> {
         let mut basename = String::new();
         let mut chapters: Vec<ScannedChapterInfo> = Vec::with_capacity(are_we_chapters.len());
 
-        for am_i_chapter in are_we_chapters.into_iter() {
+        for am_i_chapter in are_we_chapters {
             let path_last_component = am_i_chapter
                 .path
                 .with_extension("")
@@ -112,7 +112,7 @@ impl HasPatternOfSeries for Vec<DirEntry> {
             // reverse & normalize the basename
             let curr_basename_normalized = curr_basename_rev
                 .chars()
-                .filter(|c| c.is_ascii_alphanumeric())
+                .filter(char::is_ascii_alphanumeric)
                 .rev()
                 .collect::<String>();
 
@@ -126,9 +126,8 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                 );
 
                 return None;
-            } else {
-                basename = curr_basename_normalized;
             }
+            basename = curr_basename_normalized;
 
             chapters.push(ScannedChapterInfo {
                 path: am_i_chapter.path,
@@ -139,7 +138,7 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                     .parse()
                     .unwrap_or_default(),
                 dir_or_archive: am_i_chapter.dir_or_archive,
-            })
+            });
         }
 
         Some(chapters)
