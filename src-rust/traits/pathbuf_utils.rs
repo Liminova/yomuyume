@@ -2,7 +2,7 @@ use std::{collections::VecDeque, path::PathBuf};
 
 use chrono::{DateTime, Timelike, Utc};
 
-use crate::config::{SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS};
+use crate::utils::config::{SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS};
 
 pub trait PathBufUtils {
     fn has_image_ext(&self) -> bool;
