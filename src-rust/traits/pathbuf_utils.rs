@@ -27,20 +27,16 @@ pub enum LastModifiedErr {
 impl PathBufUtils for PathBuf {
     /// Check if the path (assumed to be a file) has an image extension
     fn has_image_ext(&self) -> bool {
-        self.extension()
-            .map(|ext| {
-                SUPPORTED_IMAGE_FORMATS.contains(&ext.to_string_lossy().to_string().as_ref())
-            })
-            .unwrap_or(false)
+        self.extension().is_some_and(|ext| {
+            SUPPORTED_IMAGE_FORMATS.contains(&ext.to_string_lossy().to_string().as_ref())
+        })
     }
 
     /// Check if the path (assumed to be a file) has an archive extension
     fn has_archive_ext(&self) -> bool {
-        self.extension()
-            .map(|ext| {
-                SUPPORTED_ARCHIVE_FORMATS.contains(&ext.to_string_lossy().to_string().as_ref())
-            })
-            .unwrap_or(false)
+        self.extension().is_some_and(|ext| {
+            SUPPORTED_ARCHIVE_FORMATS.contains(&ext.to_string_lossy().to_string().as_ref())
+        })
     }
 
     /// Scan a path (assumed to be a directory) recursively for image files
