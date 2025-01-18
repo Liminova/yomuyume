@@ -4,6 +4,8 @@
 //!
 //! Based on the [ComicInfo Version 2.1 Schema](https://anansi-project.github.io/docs/comicinfo/schemas/v2.1)
 
+#![allow(clippy::ref_option)]
+
 use std::{path::PathBuf, str::FromStr};
 
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
