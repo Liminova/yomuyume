@@ -52,7 +52,7 @@ impl From<PageInDirTitle> for PageInTitle {
 /// Cover-related might be forgiving if there's a problem, but not ComicInfo.
 pub fn handle_title_as_directory(
     title_path: &AbsolutePath,
-    sub_entries: Vec<DirEntry>,
+    sub_entries: &[DirEntry],
     nomedia_support: bool,
 ) -> Result<TitleHandlerOk, UpsertTitleErr> {
     bail_if_empty!(sub_entries, Err(UpsertTitleErr::IsEmpty));
