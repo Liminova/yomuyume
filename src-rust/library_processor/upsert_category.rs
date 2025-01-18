@@ -159,7 +159,10 @@ pub async fn upsert_category<'e>(
             .snowflake()
             .await
             .map_err(UpsertCategoryErr::GenerateID)?,
-        category_info.name.clone().unwrap_or("Untitled".to_string()),
+        category_info
+            .name
+            .clone()
+            .unwrap_or_else(|| "Untitled".to_string()),
         category_info.description.as_ref(),
         category_path.to_string_lossy(),
         configured_cover_path,
