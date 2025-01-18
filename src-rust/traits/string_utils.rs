@@ -9,7 +9,6 @@ impl StringUtils for String {
     fn has_image_ext(&self) -> bool {
         self.split('.')
             .last()
-            .map(|ext| SUPPORTED_IMAGE_FORMATS.contains(&ext))
-            .unwrap_or(false)
+            .is_some_and(|ext| SUPPORTED_IMAGE_FORMATS.contains(&ext))
     }
 }
