@@ -10,6 +10,7 @@ pub trait IteratorExt: Iterator {
         F: FnMut(Self::Item) -> Result<B>,
     {
         let mut error = anyhow!("Item not found");
+        #[allow(clippy::filter_map_next)]
         self.filter_map(|i| {
             f(i).map_err(|e| {
                 error = e;
