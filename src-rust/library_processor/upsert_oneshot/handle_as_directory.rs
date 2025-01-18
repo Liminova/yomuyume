@@ -2,19 +2,19 @@ use std::{fs::DirEntry, os::unix::fs::MetadataExt};
 
 use anyhow::Context;
 use chrono::{DateTime, Utc};
+use tracing::warn;
 
 use crate::{
-    config::COMICINFO_FILENAME,
-    library_processor::{
-        blurhash_encode::encode_blurhash, upsert_oneshot::TitleHandlerOk, PageInTitle,
-        UpsertTitleErr,
+    library_processor::{upsert_oneshot::TitleHandlerOk, PageInTitle, UpsertTitleErr},
+    traits::{
+        do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils,
+        to_blurhash::ToBlurhashFromFile, try_find_map::IteratorExt,
     },
-    macros::bail_if_empty,
-    traits::{IteratorExt, PathBufUtils, WarnResultThenOk},
     types::{
         absolute_path::{AbsolutePath, ToAbsolute},
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
     },
+    utils::{config::COMICINFO_FILENAME, macros::bail_if_empty},
 };
 
 #[derive(Debug, Clone)]
