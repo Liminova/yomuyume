@@ -557,7 +557,6 @@ impl FromStr for Rating {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let f = s.parse::<f32>().map_err(|e| e.to_string())?;
-        // if f < 0.0 || f > 5.0 {
         if !(0.0..=5.0).contains(&f) {
             return Err(format!(
                 "Rating must be between 0.0 and 5.0 (inclusive), got {f}"
