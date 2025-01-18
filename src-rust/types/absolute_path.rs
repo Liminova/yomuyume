@@ -29,21 +29,20 @@ impl AbsolutePath {
         if path.is_absolute() {
             return Ok(Self(path.to_path_buf()));
         }
-        match base {
-            Some(cwd) => Ok(Self(
+        if let Some(cwd) = base {
+            Ok(Self(
                 cwd.join(path)
                     .canonicalize()
                     .map_err(AbsolutePathErr::Canonicalize)?,
-            )),
-            None => {
-                let cwd = std::env::current_dir().map_err(AbsolutePathErr::GetCurrentWorkingDir)?;
-                Ok(Self(
-                    cwd.as_path()
-                        .join(path)
-                        .canonicalize()
-                        .map_err(AbsolutePathErr::Canonicalize)?,
-                ))
-            }
+            ))
+        } else {
+            let cwd = std::env::current_dir().map_err(AbsolutePathErr::GetCurrentWorkingDir)?;
+            Ok(Self(
+                cwd.as_path()
+                    .join(path)
+                    .canonicalize()
+                    .map_err(AbsolutePathErr::Canonicalize)?,
+            ))
         }
     }
 
@@ -52,8 +51,8 @@ impl AbsolutePath {
     }
 
     pub fn to_relative(&self, base: Option<&AbsolutePath>) -> Result<PathBuf, AbsolutePathErr> {
-        match base {
-            Some(base) => Ok(self
+        if let Some(base) = base {
+            Ok(self
                 .0
                 .strip_prefix(base.as_ref())
                 .map_err(|e| {
@@ -63,17 +62,16 @@ impl AbsolutePath {
                         e,
                     )
                 })?
-                .to_path_buf()),
-            None => {
-                let cwd = std::env::current_dir().map_err(AbsolutePathErr::GetCurrentWorkingDir)?;
-                Ok(self
-                    .0
-                    .strip_prefix(cwd.as_path())
-                    .map_err(|e| {
-                        AbsolutePathErr::StripCwdPrefix(self.0.to_string_lossy().to_string(), e)
-                    })?
-                    .to_path_buf())
-            }
+                .to_path_buf())
+        } else {
+            let cwd = std::env::current_dir().map_err(AbsolutePathErr::GetCurrentWorkingDir)?;
+            Ok(self
+                .0
+                .strip_prefix(cwd.as_path())
+                .map_err(|e| {
+                    AbsolutePathErr::StripCwdPrefix(self.0.to_string_lossy().to_string(), e)
+                })?
+                .to_path_buf())
         }
     }
 
