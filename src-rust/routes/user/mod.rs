@@ -77,6 +77,7 @@ impl Mailer {
             ))
             .build();
 
+        #[allow(clippy::inconsistent_struct_constructor)]
         Ok(Self { mailer, sender })
     }
 
