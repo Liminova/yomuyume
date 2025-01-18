@@ -5,7 +5,7 @@ pub mod temp_code_purpose;
 
 use serde::{Deserialize, Deserializer};
 
-use crate::macros::bail_if_empty;
+use crate::utils::macros::bail_if_empty;
 
 pub type TitleID = i64;
 pub type CategoryID = i64;
