@@ -29,7 +29,7 @@ pub async fn get_cover(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
-    let record = match sqlx::query!(
+    let Some(record) = sqlx::query!(
         "SELECT
             titles.path AS title_path,
             cover_path,
@@ -44,14 +44,12 @@ pub async fn get_cover(
     .fetch_optional(&app_state.pool)
     .await
     .context("can't query title path")?
-    {
-        Some(record) => record,
-        None => return Ok((StatusCode::NOT_FOUND).into_response()),
+    else {
+        return Ok((StatusCode::NOT_FOUND).into_response());
     };
 
-    let cover_path = match record.cover_path {
-        Some(path) => path,
-        None => return Ok((StatusCode::NO_CONTENT).into_response()),
+    let Some(cover_path) = record.cover_path else {
+        return Ok((StatusCode::NO_CONTENT).into_response());
     };
 
     let headers = [(
