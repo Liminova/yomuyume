@@ -15,7 +15,7 @@ pub enum DirEntryType {
     /// Contains **un**filtered list of `directories` in the category.
     CategoryDir(Vec<DirEntry>),
     /// Contains filtered list of `chapters` (directories and archives) in the series.
-    SeriesDir(Vec<ChapterInfo>),
+    SeriesDir(Vec<ScannedChapterInfo>),
     /// Contains **un**filtered list of `files and directories` in the directory.
     OneShotDir(Vec<DirEntry>),
     /// Contain **un**filtered list of `files` in the archive.
