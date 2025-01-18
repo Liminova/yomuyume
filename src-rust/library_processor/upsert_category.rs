@@ -115,11 +115,10 @@ pub async fn upsert_category<'e>(
             }
         }
 
-        if let Some(blurhash_result) = std::fs::read(cover_path.as_ref())
-            .context("can't read image")
-            .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
-            .and_then(|img| encode_blurhash(&img).context("can't encode image to blurhash"))
-            .okay(format!("can't encode `{category_path}` cover"))
+        if let Some(blurhash_result) = cover_path
+            .as_ref()
+            .to_blurhash_from_file()
+            .okay(|e| warn!("can't re-encode cover file: {e:?}"))
         {
             configured_cover_path = cover.path.clone();
             cover.blurhash = Some(blurhash_result.blurhash.clone());
