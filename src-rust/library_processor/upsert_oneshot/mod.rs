@@ -12,7 +12,6 @@ use tokio::sync::RwLock;
 use crate::types::absolute_path::ToAbsolute;
 use crate::{
     app_state::AppState,
-    archive_file::ItemInArchive,
     library_processor::{
         upsert_category::upsert_category,
         upsert_oneshot::{
@@ -23,6 +22,7 @@ use crate::{
         PageInTitle, UpsertTitleErr,
     },
     types::{absolute_path::AbsolutePath, comic_info::ComicInfo, TitleID},
+    utils::archive_file::ItemInArchive,
 };
 
 #[derive(Debug)]
