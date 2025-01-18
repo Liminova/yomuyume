@@ -665,7 +665,7 @@ impl ComicInfo {
         })
     }
 
-    /// Parse a ComicInfo.xml string and return a ComicInfo object.
+    /// Parse a ComicInfo.xml string and return a [`ComicInfo`] object.
     ///
     /// If the string is empty, return a default one.
     pub fn from_str(s: &str) -> Result<Self, quick_xml::DeError> {
