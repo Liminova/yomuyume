@@ -77,89 +77,67 @@ pub fn handle_title_as_directory(
     let mut sub_pages: Vec<PageInDirTitle> = Vec::with_capacity(sub_entries.len());
     let mut pages_in_dir = sub_entries
         .iter()
-        // dir -> continue | file -> must be image
-        .filter(|e| match e.path().is_dir() {
-            true => true,
-            false => e.path().has_image_ext(),
+        .filter(|e| {
+            if e.path().is_file() {
+                e.path().has_image_ext()
+            } else {
+                true
+            }
         })
-        // -> AbsolutePath
-        .filter_map(|e| {
-            e.path().to_absolute(None).okay(format!(
-                "can't convert page path `{}` to absolute",
-                e.path().display()
-            ))
+        .filter_map(|entry| {
+            entry.path().to_absolute(None).okay(|e| {
+                warn!(
+                    "can't convert page path `{}` to absolute: {e:?}",
+                    entry.path().display()
+                );
+            })
         })
-        // -> AbsolutePath, RelativePath
-        .filter_map(|abs_p| {
-            abs_p
-                .to_relative(Some(title_path))
-                .okay(format!(
-                    "can't convert page path `{abs_p}` to relative to title's path"
-                ))
-                .map(|rel_p| rel_p.to_string_lossy().to_string())
-                .map(|rel_p| (abs_p, rel_p))
-        })
-        // -> AbsolutePath, RelativePath, Size
-        .filter_map(|(abs_p, rel_p)| {
-            abs_p
-                .as_ref()
-                .metadata()
-                .okay(format!("can't get metadata of page file `{abs_p}`"))
-                .map(|m| (abs_p, rel_p, m.size() as i64))
-        })
-        // -> AbsolutePath, RelativePath, Modified, Size
-        .filter_map(|(abs_p, rel_p, s)| {
-            abs_p
-                .as_ref()
-                .last_modified()
-                .okay(format!("can't get modified date of page file `{abs_p}`"))
-                .map(|d| (abs_p, rel_p, d, s))
-        })
-        // -> PageInDirTitle
-        .filter_map(|(abs_p, rel_p, m, size)| {
-            if abs_p.as_ref().is_file() {
-                return Some((rel_p, abs_p, m, size).into());
+        .filter_map(|abs_path| {
+            if abs_path.is_file() {
+                return Some(PageInDirTitle {
+                    rel_path: abs_path
+                        .to_relative(Some(title_path))
+                        .okay(|e| warn!("can't strip title path from page path: {e:?}"))
+                        .map(|p| p.to_string_lossy().to_string())?,
+                    last_modified: abs_path
+                        .last_modified()
+                        .okay(|e| warn!("can't get last modified date of page file: {e:?}")),
+                    size: abs_path
+                        .metadata()
+                        .okay(|e| warn!("can't get metadata of page file: {e:?}"))
+                        .map(|m| m.size() as i64),
+                    abs_path,
+                });
             }
             sub_pages.extend(
-                abs_p
+                abs_path
                     .as_ref()
                     .scan_dir_recursively_for_image(nomedia_support)
                     .iter()
-                    // -> AbsolutePath
                     .filter_map(|p| {
-                        p.to_absolute(None).okay(format!(
-                            "can't convert page path `{}` to absolute",
-                            p.display()
-                        ))
+                        p.to_absolute(None).okay(|e| {
+                            warn!(
+                                "can't convert page path `{}` to absolute: {e:?}",
+                                p.display()
+                            );
+                        })
                     })
-                    // -> AbsolutePath, RelativePath
-                    .filter_map(|abs_p| {
-                        abs_p
-                            .to_relative(Some(title_path))
-                            .okay(format!("can't convert page path `{abs_p}` to absolute"))
-                            .map(|rel_p| rel_p.to_string_lossy().to_string())
-                            .map(|rel_p| (abs_p, rel_p))
-                    })
-                    // -> AbsolutePath, RelativePath, Size
-                    .filter_map(|(abs_p, rel_p)| {
-                        abs_p
-                            .as_ref()
-                            .metadata()
-                            .okay(format!("can't get metadata of `{abs_p}`"))
-                            .map(|m| (abs_p, rel_p, m.size() as i64))
-                    })
-                    // -> AbsolutePath, RelativePath, Modified, Size
-                    .filter_map(|(abs_p, rel_p, s)| {
-                        abs_p
-                            .as_ref()
-                            .last_modified()
-                            .okay(format!(
-                                "can't get last modified date of page file `{abs_p}`"
-                            ))
-                            .map(|d| (rel_p, abs_p, d, s))
-                    })
-                    // -> PageInDirTitle
-                    .map(|res| res.into()),
+                    .filter_map(|abs_path| {
+                        Some(PageInDirTitle {
+                            rel_path: abs_path
+                                .to_relative(Some(title_path))
+                                .okay(|e| warn!("can't strip title path from page path: {e:?}"))
+                                .map(|rel_p| rel_p.to_string_lossy().to_string())?,
+                            last_modified: abs_path.last_modified().okay(|e| {
+                                warn!("can't get last modified date of page file: {e:?}");
+                            }),
+                            size: abs_path
+                                .metadata()
+                                .okay(|e| warn!("can't get metadata of page file: {e:?}"))
+                                .map(|m| m.size() as i64),
+                            abs_path,
+                        })
+                    }),
             );
             None
         })
@@ -175,7 +153,6 @@ pub fn handle_title_as_directory(
         let page_cfg_and_path = comicinfo
             .pages_mut()
             .iter_mut()
-            .rev()
             // is configured as Cover
             .filter(|pc| pc.page_type == ComicPageType::FrontCover)
             // contains page path
@@ -186,27 +163,26 @@ pub fn handle_title_as_directory(
                     .map(|page_cfg_path| (page_cfg, page_cfg_path))
             })
             .find(|(_, page_cfg_path)| {
-                pages_in_dir.iter().any(|page| {
-                    let page_rel_path = match page
-                        .abs_path
-                        .to_relative(Some(title_path))
-                        .okay(format!(
-                            "can't convert `{}` to relative to title's path",
-                            page.abs_path
-                        ))
-                        .map(|p| p.to_string_lossy().to_string())
-                    {
-                        Some(p) => p,
-                        None => return false,
-                    };
+                pages_in_dir
+                    .iter()
+                    .filter_map(|page| page.last_modified.map(|m| (page, m)))
+                    .any(|(page, modified)| {
+                        let Some(page_rel_path) = page
+                            .abs_path
+                            .to_relative(Some(title_path))
+                            .okay(|e| warn!("can't strip title path from page path: {e:?}"))
+                            .map(|p| p.to_string_lossy().to_string())
+                        else {
+                            return false;
+                        };
 
-                    if page_rel_path == *page_cfg_path {
-                        page_abs_path = Some(page.abs_path.clone());
-                        page_modified = Some(page.last_modified);
-                        return true;
-                    }
-                    false
-                })
+                        if page_rel_path == *page_cfg_path {
+                            page_abs_path = Some(page.abs_path.clone());
+                            page_modified = Some(modified);
+                            return true;
+                        }
+                        false
+                    })
             });
 
         // and use it if the fields are valid or encode-able to blurhash
@@ -218,9 +194,9 @@ pub fn handle_title_as_directory(
                 .blurhash
                 .as_ref()
                 .zip(page_cfg.modified_date_at_encode.as_ref())
-                .filter(|(_, m)| {
+                .filter(|(_, page_cfg_modified)| {
                     let valid_dimension = page_cfg.image_width > 0 && page_cfg.image_height > 0;
-                    let unmodified = **m == modified;
+                    let unmodified = **page_cfg_modified == modified;
 
                     valid_dimension && unmodified
                 })
@@ -236,13 +212,10 @@ pub fn handle_title_as_directory(
             }
 
             // try re-encode the configured page
-            if std::fs::read(page_abs_path.as_ref())
-                .context("can't read file")
-                .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
-                .and_then(|img| encode_blurhash(&img).context("can't encode to blurhash"))
-                .okay(format!(
-                    "can't use `{page_abs_path}` as cover for `{title_path}`"
-                ))
+            if page_abs_path
+                .as_ref()
+                .to_blurhash_from_file()
+                .okay(|e| warn!("can't re-encode cover file: {e:?}"))
                 .map(|bh_result| {
                     page_cfg.blurhash = Some(bh_result.blurhash.clone());
                     page_cfg.image_width = bh_result.width;
@@ -263,30 +236,37 @@ pub fn handle_title_as_directory(
         // else try every single pages
         pages_in_dir
             .iter()
-            .try_find_map(|real_p| {
-                std::fs::read(real_p.abs_path.as_ref())
-                    .context("can't read file")
-                    .and_then(|buf| image::load_from_memory(&buf).context("can't decode image"))
-                    .and_then(|img| encode_blurhash(&img).context("can't encode to blurhash"))
-                    .map(|blurhash| (real_p, blurhash))
+            .filter_map(|page| page.last_modified.map(|m| (page, m)))
+            .try_find_map(|(page, modified)| {
+                page.abs_path
+                    .as_ref()
+                    .to_blurhash_from_file()
+                    .context(anyhow::anyhow!(
+                        "can't use `{}` as cover for `{title_path}`",
+                        page.abs_path
+                    ))
+                    .map(|blurhash| (page, blurhash, modified))
             })
-            .map(|(page, blurhash)| {
-                comicinfo.pages_mut().push(ComicPageInfo {
-                    page_type: ComicPageType::FrontCover,
-                    blurhash: Some(blurhash.blurhash.clone()),
-                    image_path: Some(page.rel_path.clone()),
-                    image_width: blurhash.width,
-                    image_height: blurhash.height,
-                    modified_date_at_encode: Some(page.last_modified),
-                    ..Default::default()
-                });
+            .map(|(page, blurhash, modified)| {
+                comicinfo.pages_mut().insert(
+                    0,
+                    ComicPageInfo {
+                        page_type: ComicPageType::FrontCover,
+                        blurhash: Some(blurhash.blurhash.clone()),
+                        image_path: Some(page.rel_path.clone()),
+                        image_width: blurhash.width,
+                        image_height: blurhash.height,
+                        modified_date_at_encode: Some(modified),
+                        ..Default::default()
+                    },
+                );
 
                 cover_path = Some(page.rel_path.clone());
                 cover_blurhash = Some(blurhash.blurhash);
                 cover_width = Some(blurhash.width);
                 cover_height = Some(blurhash.height);
             })
-            .okay(format!("no file in `{title_path}` can be use as cover"));
+            .okay(|e| warn!("no file in `{title_path}` can be use as cover: {e:?}"));
     };
 
     if comicinfo != original_comicinfo {
@@ -302,7 +282,7 @@ pub fn handle_title_as_directory(
 
     Ok(TitleHandlerOk {
         comicinfo,
-        title_last_modified: pages_in_dir.iter().map(|p| &p.last_modified).max().cloned(),
+        title_last_modified: pages_in_dir.iter().filter_map(|p| p.last_modified).max(),
         pages_in_title: pages_in_dir.into_iter().map(|p| p.into()).collect(),
         cover_path,
         cover_blurhash,
