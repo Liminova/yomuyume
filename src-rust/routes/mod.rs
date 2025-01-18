@@ -131,7 +131,7 @@ fn check_pass(password_hash: impl AsRef<str>, password_input: impl AsRef<str>) -
     PasswordHash::new(password_hash.as_ref()).is_ok_and(|parsed_hash| {
         Argon2::default()
             .verify_password(password_input.as_ref().as_bytes(), &parsed_hash)
-            .is_ok_and(|_| true)
+            .is_ok_and(|()| true)
     })
 }
 
