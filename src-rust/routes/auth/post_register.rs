@@ -55,9 +55,9 @@ pub async fn post_register(
     }
 
     let p = &query.password;
-    let has_uppercase = p.chars().any(|c| c.is_uppercase());
-    let has_lowercase = p.chars().any(|c| c.is_lowercase());
-    let has_numeric = p.chars().any(|c| c.is_numeric());
+    let has_uppercase = p.chars().any(char::is_uppercase);
+    let has_lowercase = p.chars().any(char::is_lowercase);
+    let has_numeric = p.chars().any(char::is_numeric);
     let has_special = p.chars().any(|c| c.is_ascii_punctuation());
     let has_valid_length = p.len() >= 8 && p.len() <= 100;
     if !(has_uppercase && has_lowercase && has_numeric && has_special && has_valid_length) {
