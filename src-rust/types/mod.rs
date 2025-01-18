@@ -20,5 +20,5 @@ where
     if let Err(e) = blurhash::decode(&s, 0, 0, 0.0) {
         return Err(serde::de::Error::custom(e));
     }
-    Ok(Some(s.to_string()))
+    Ok(Some(s))
 }
