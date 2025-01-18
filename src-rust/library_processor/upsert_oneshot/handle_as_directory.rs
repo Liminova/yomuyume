@@ -21,17 +21,18 @@ use crate::{
 struct PageInDirTitle {
     rel_path: String,
     abs_path: AbsolutePath,
-    last_modified: DateTime<Utc>,
+    last_modified: Option<DateTime<Utc>>,
     size: Option<i64>,
 }
 
-impl From<(String, AbsolutePath, DateTime<Utc>, i64)> for PageInDirTitle {
-    fn from(tuple: (String, AbsolutePath, DateTime<Utc>, i64)) -> Self {
+type PageInDirTitleTuple = (String, AbsolutePath, Option<DateTime<Utc>>, Option<i64>);
+impl From<PageInDirTitleTuple> for PageInDirTitle {
+    fn from(tuple: PageInDirTitleTuple) -> Self {
         Self {
             rel_path: tuple.0,
             abs_path: tuple.1,
             last_modified: tuple.2,
-            size: Some(tuple.3),
+            size: tuple.3,
         }
     }
 }
