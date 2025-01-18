@@ -52,6 +52,10 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                     });
                 }
 
+                if !p.has_archive_ext() {
+                    return None;
+                }
+
                 p.list_files_in_archive()
                     .map(|files| (p.clone(), files))
                     .map_err(|e| {
