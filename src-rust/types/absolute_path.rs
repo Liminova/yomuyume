@@ -3,6 +3,10 @@ use std::{
     path::{Path, PathBuf, StripPrefixError},
 };
 
+use chrono::{DateTime, Utc};
+
+use crate::traits::pathbuf_utils::{LastModifiedErr, PathBufUtils};
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AbsolutePath(PathBuf);
 
@@ -71,6 +75,21 @@ impl AbsolutePath {
                     .to_path_buf())
             }
         }
+    }
+
+    /// Syntax sugar for `<abs_path>.as_ref().metadata()`
+    pub fn metadata(&self) -> Result<std::fs::Metadata, std::io::Error> {
+        self.0.metadata()
+    }
+
+    /// Syntax sugar for `<abs_path>.as_ref().last_modified()`
+    pub fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedErr> {
+        self.0.last_modified()
+    }
+
+    /// Syntax sugar for `<abs_path>.as_ref().is_file()`
+    pub fn is_file(&self) -> bool {
+        self.0.is_file()
     }
 }
 
