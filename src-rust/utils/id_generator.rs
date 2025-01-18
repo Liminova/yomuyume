@@ -32,16 +32,13 @@ impl Default for IDGenerator {
 
                 // waiting for requests
                 loop {
-                    match receiver.recv().await {
-                        Ok(oneshot_sender) => {
-                            if oneshot_sender.send(sfgen.generate_id() as i64).is_err() {
-                                tracing::error!("can't send snowflake id to oneshot channel");
-                            }
+                    if let Ok(oneshot_sender) = receiver.recv().await {
+                        if oneshot_sender.send(sfgen.generate_id() as i64).is_err() {
+                            tracing::error!("can't send snowflake id to oneshot channel");
                         }
-                        Err(_) => {
-                            tracing::error!("snowflake generator channel closed");
-                            continue;
-                        }
+                    } else {
+                        tracing::error!("snowflake generator channel closed");
+                        continue;
                     };
                 }
             });
