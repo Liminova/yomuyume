@@ -19,16 +19,17 @@ use futures_core::Stream;
 use memfd_exec::{ChildStdout, MemFdExecutable, Stdio};
 use tracing::warn;
 
-use crate::utils::config::SUPPORTED_ARCHIVE_FORMATS;
-
-use super::traits::StringUtils;
+use crate::{
+    traits::{do_something_and_ok::DoSomethingAndOk, string_utils::StringUtils},
+    utils::config::SUPPORTED_ARCHIVE_FORMATS,
+};
 
 const SEVEN_ZIP_BIN: &[u8] = include_bytes!("../../.devcontainer/7zz");
 
 #[derive(Debug, Clone, Eq)]
 pub struct ItemInArchive {
     pub path: String,
-    pub last_modified: DateTime<Utc>,
+    pub last_modified: Option<DateTime<Utc>>,
     pub size: Option<i64>,
 }
 
@@ -363,7 +364,7 @@ impl ArchiveFile for PathBuf {
 
                 let last_modified = attributes
                     .get("Modified")
-                    .ok_or_else(|| anyhow!("there should exist a modified date"))
+                    .ok_or_else(|| anyhow!("value not found for Modified"))
                     .and_then(|val| {
                         NaiveDateTime::parse_from_str(val.trim(), "%Y-%m-%d %H:%M:%S%.f")
                             .context("can't parse modified date")
@@ -375,14 +376,13 @@ impl ArchiveFile for PathBuf {
                             .context("can't convert modified date to local datetime")
                     })
                     .map(|local_datetime| local_datetime.to_utc())
-                    .map_err(|e| {
+                    .map(|d| d.with_nanosecond(0).unwrap_or_default())
+                    .okay(|e| {
                         warn!(
-                            "can't get last modified date for {path} in {}: {e:#}",
+                            "can't get last modified date for {path} in {}: {e:?}",
                             self.display()
                         )
-                    })
-                    .ok()
-                    .map(|d| d.with_nanosecond(0).unwrap_or_default())?;
+                    });
 
                 let size = attributes
                     .get("Size")
@@ -721,7 +721,7 @@ mod tests {
             .into();
 
         assert_eq!(
-            modified_date_in_zip.with_nanosecond(0),
+            modified_date_in_zip.unwrap().with_nanosecond(0),
             real_modified_date.with_nanosecond(0)
         );
     }
