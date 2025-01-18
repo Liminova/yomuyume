@@ -36,10 +36,15 @@ use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    routes::{auth, ApiDoc},
-    utils::*,
+    routes::{
+        auth, delete_bookmark, delete_favorite, get_categories, get_check, get_cover,
+        get_delete_account, get_logout, get_page, get_reset_password, get_scanning_progress,
+        get_status, get_tags, get_title, get_validate_email, post_delete_account, post_filter,
+        post_login, post_modify_info, post_register, post_reset_password, post_status,
+        post_validate_email, put_bookmark, put_favorite, put_progress, ApiDoc,
+    },
+    utils::app_state,
 };
-use routes::*;
 
 #[tokio::main]
 async fn main() -> Result<()> {
