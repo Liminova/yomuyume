@@ -28,7 +28,7 @@ pub async fn get_page(
     State(app_state): State<Arc<AppState>>,
     Path(page_id): Path<i64>,
 ) -> Result<Response, AppError> {
-    let record = match sqlx::query!(
+    let Some(record) = sqlx::query!(
         r#"SELECT
             p.path AS page_path,
             t.path AS title_path,
@@ -42,9 +42,8 @@ pub async fn get_page(
     .fetch_optional(&app_state.pool)
     .await
     .context("can't query page")?
-    {
-        Some(record) => record,
-        None => return Ok((StatusCode::NOT_FOUND).into_response()),
+    else {
+        return Ok((StatusCode::NOT_FOUND).into_response());
     };
 
     let headers = [(
