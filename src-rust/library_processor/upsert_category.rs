@@ -79,34 +79,26 @@ pub async fn upsert_category<'e>(
     let mut cover_height: Option<i32> = None;
 
     'cover_finder: {
-        let cover = match category_info.cover.as_mut() {
-            Some(c) => c,
-            None => break 'cover_finder,
+        let Some(cover) = category_info.cover.as_mut() else {
+            break 'cover_finder;
         };
 
-        let cover_path = match cover.path {
-            Some(ref p) => p,
-            None => break 'cover_finder,
+        let Some(ref cover_path) = cover.path else {
+            break 'cover_finder;
         };
 
-        let cover_path = match AbsolutePath::from(
-            &PathBuf::from(cover_path),
-            Some(category_path.as_ref()),
-        )
-        .okay(format!(
-            "can't convert cover path `{cover_path}` to absolute"
-        )) {
-            Some(p) => p,
-            None => {
-                break 'cover_finder;
-            }
+        let Some(cover_path) =
+            AbsolutePath::from(&PathBuf::from(cover_path), Some(category_path.as_ref()))
+                .okay(|e| warn!("can't convert cover path to absolute: {e:?}"))
+        else {
+            break 'cover_finder;
         };
 
-        let real_modified_date: DateTime<Utc> = match cover_path.as_ref().last_modified().okay(
-            format!("can't get modified date of cover file for `{category_path}`"),
-        ) {
-            Some(d) => d,
-            None => break 'cover_finder,
+        let Some(real_modified_date) = cover_path
+            .last_modified()
+            .okay(|e| warn!("can't get modified date of cover file: {e:?}"))
+        else {
+            break 'cover_finder;
         };
 
         if let Some((blurhash, modified_date_at_encode)) =
