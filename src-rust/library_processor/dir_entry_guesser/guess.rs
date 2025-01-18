@@ -2,12 +2,14 @@ use anyhow::{Context, Result};
 use std::fs::DirEntry;
 
 use crate::{
-    archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
     library_processor::dir_entry_guesser::{
-        has_pattern_of_a_series::HasPatternOfSeries, ChapterInfo,
+        has_pattern_of_a_series::HasPatternOfSeries, ScannedChapterInfo,
     },
-    macros::bail_if_empty,
-    traits::PathBufUtils,
+    traits::pathbuf_utils::PathBufUtils,
+    utils::{
+        archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
+        macros::bail_if_empty,
+    },
 };
 
 #[derive(Debug)]
