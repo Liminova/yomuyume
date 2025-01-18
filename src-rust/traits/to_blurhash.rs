@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use image::{imageops::FilterType::Gaussian, DynamicImage, GenericImageView};
 
-use crate::{archive_file::ArchiveFile, macros::bail_if_empty};
+use crate::utils::{archive_file::ArchiveFile, macros::bail_if_empty};
 
 /// Not contains the actual width and height, but the
 /// `resize_to_fill(32, 32, Gaussian)` result. Decode a blurhash to the original
@@ -71,7 +71,7 @@ pub enum ToBlurhashFromArchiveErr {
     #[error("can't encode to blurhash: {0:?}")]
     EncodeBlurhash(#[from] blurhash::Error),
     #[error("can't read archive: {0:?}")]
-    ArchiveFile(#[from] crate::archive_file::ArchiveFileError),
+    ArchiveFile(#[from] crate::utils::archive_file::ArchiveFileError),
 }
 
 pub trait ToBlurhashFromArchive {
