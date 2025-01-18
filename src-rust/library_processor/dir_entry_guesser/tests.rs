@@ -18,7 +18,9 @@ mod tests {
         ($file:expr, $path:expr) => {
             ItemInArchive {
                 path: $path.to_string(),
-                last_modified: DateTime::<Utc>::from($file.metadata().unwrap().modified().unwrap()),
+                last_modified: Some(DateTime::<Utc>::from(
+                    $file.metadata().unwrap().modified().unwrap(),
+                )),
                 size: Some($file.metadata().unwrap().len() as i64),
             }
         };
@@ -73,19 +75,19 @@ mod tests {
                 .has_pattern_of_a_series(true, false)
                 .unwrap(),
             vec![
-                ChapterInfo {
-                    number: 1,
+                ScannedChapterInfo {
+                    volume: 1,
                     path: tmp.path().join("inner/123chapter_001.zip"),
-                    dir_or_archive: ChapterDirOrArchive::Archive(vec![
+                    dir_or_archive: ScannedChapterType::Archive(vec![
                         into_archive_item!(jpg_file, "file.jpg"),
                         into_archive_item!(png_file, "file.png"),
                         into_archive_item!(txt_file, "file.txt"),
                     ]),
                 },
-                ChapterInfo {
-                    number: 200,
+                ScannedChapterInfo {
+                    volume: 200,
                     path: tmp.path().join("inner/123-----CHAPTER    00200.zip"),
-                    dir_or_archive: ChapterDirOrArchive::Archive(vec![into_archive_item!(
+                    dir_or_archive: ScannedChapterType::Archive(vec![into_archive_item!(
                         png_file, "file.png"
                     ),]),
                 }
@@ -125,17 +127,17 @@ mod tests {
                 .collect::<Vec<_>>()
                 .has_pattern_of_a_series(false, false),
             Some(vec![
-                ChapterInfo {
-                    number: 100,
+                ScannedChapterInfo {
+                    volume: 100,
                     path: tmp.path().join("inner2/00100.zip"),
-                    dir_or_archive: ChapterDirOrArchive::Archive(vec![into_archive_item!(
+                    dir_or_archive: ScannedChapterType::Archive(vec![into_archive_item!(
                         png_file, "file.png"
                     ),]),
                 },
-                ChapterInfo {
-                    number: 2,
+                ScannedChapterInfo {
+                    volume: 2,
                     path: tmp.path().join("inner2/002.zip"),
-                    dir_or_archive: ChapterDirOrArchive::Archive(vec![into_archive_item!(
+                    dir_or_archive: ScannedChapterType::Archive(vec![into_archive_item!(
                         png_file, "file.png"
                     ),]),
                 }
