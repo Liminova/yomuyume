@@ -71,7 +71,7 @@ impl IDGenerator {
 
         tokio::select! {
             new_id = rx => new_id.map_err(|_| GenerateIDErr::GetID),
-            _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => Err(GenerateIDErr::TimeOut),
+            () = tokio::time::sleep(std::time::Duration::from_secs(1)) => Err(GenerateIDErr::TimeOut),
         }
     }
 
