@@ -1,10 +1,12 @@
 use std::fs::DirEntry;
 
 use crate::{
-    archive_file::{ArchiveFile, ItemsInArchiveUtils},
-    library_processor::dir_entry_guesser::{ChapterDirOrArchive, ChapterInfo},
-    macros::bail_if_empty,
-    traits::PathBufUtils,
+    library_processor::dir_entry_guesser::{ScannedChapterInfo, ScannedChapterType},
+    traits::pathbuf_utils::PathBufUtils,
+    utils::{
+        archive_file::{ArchiveFile, ItemsInArchiveUtils},
+        macros::bail_if_empty,
+    },
 };
 
 pub trait HasPatternOfSeries {
