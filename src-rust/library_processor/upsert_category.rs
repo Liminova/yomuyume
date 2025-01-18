@@ -107,10 +107,10 @@ pub async fn upsert_category<'e>(
             let valid_dimensions = cover.width != 0 && cover.height != 0;
             let unmodified = modified_date_at_encode == real_modified_date;
             if valid_dimensions && unmodified {
-                configured_cover_path = cover.path.clone();
-                cover_blurhash = Some(blurhash.clone());
-                cover_width = Some(cover.width);
-                cover_height = Some(cover.height);
+                configured_cover_path.clone_from(&cover.path);
+                cover_blurhash.clone_from(&Some(blurhash.clone()));
+                cover_width.clone_from(&Some(cover.width));
+                cover_height.clone_from(&Some(cover.height));
                 break 'cover_finder;
             }
         }
@@ -120,15 +120,19 @@ pub async fn upsert_category<'e>(
             .to_blurhash_from_file()
             .okay(|e| warn!("can't re-encode cover file: {e:?}"))
         {
-            configured_cover_path = cover.path.clone();
-            cover.blurhash = Some(blurhash_result.blurhash.clone());
-            cover.width = blurhash_result.width;
-            cover.height = blurhash_result.height;
-            cover.modified_date_at_encode = Some(real_modified_date);
+            configured_cover_path.clone_from(&cover.path);
+            cover
+                .blurhash
+                .clone_from(&Some(blurhash_result.blurhash.clone()));
+            cover.width.clone_from(&blurhash_result.width);
+            cover.height.clone_from(&blurhash_result.height);
+            cover
+                .modified_date_at_encode
+                .clone_from(&Some(real_modified_date));
 
-            cover_blurhash = Some(blurhash_result.blurhash);
-            cover_width = Some(blurhash_result.width);
-            cover_height = Some(blurhash_result.height);
+            cover_blurhash.clone_from(&Some(blurhash_result.blurhash));
+            cover_width.clone_from(&Some(blurhash_result.width));
+            cover_height.clone_from(&Some(blurhash_result.height));
         }
     };
 
