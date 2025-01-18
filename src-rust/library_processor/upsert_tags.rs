@@ -1,6 +1,8 @@
 use futures_util::future::join_all;
 
-use crate::{app_state::AppState, id_generator::GenerateIDErr, types::comic_info::ComicInfo};
+use crate::{
+    app_state::AppState, types::comic_info::ComicInfo, utils::id_generator::GenerateIDErr,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum UpsertTagsErr {
