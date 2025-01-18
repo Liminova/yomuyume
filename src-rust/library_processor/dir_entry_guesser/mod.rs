@@ -8,16 +8,16 @@ use crate::archive_file::ItemInArchive;
 pub use guess::{DirEntryType, DirEntryTypeGuesser};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum ChapterDirOrArchive {
-    Dir,
+pub enum ScannedChapterType {
+    Directory,
     Archive(Vec<ItemInArchive>),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ChapterInfo {
+pub struct ScannedChapterInfo {
     /// Use as chapter's number unless overriden by its ComicInfo.xml.
-    pub number: i32,
+    pub volume: i32,
     /// Path to the chapter's directory or archive file.
     pub path: PathBuf,
-    pub dir_or_archive: ChapterDirOrArchive,
+    pub dir_or_archive: ScannedChapterType,
 }
