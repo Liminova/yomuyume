@@ -370,7 +370,7 @@ fn option_string_deserializer<'de, D: Deserializer<'de>>(
 
 fn tags_deserializer<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<String>, D::Error> {
     let mut tags: Vec<String> = String::deserialize(deserializer)?
-        .split(",")
+        .split(',')
         .filter_map(|s| match s.trim() {
             "" => None,
             s => Some(s.to_string()),
