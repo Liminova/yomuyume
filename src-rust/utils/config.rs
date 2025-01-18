@@ -83,7 +83,10 @@ impl Config {
         .expect("can't convert LIBRARY_PATH to absolute");
 
         if !library_path.as_ref().is_dir() {
-            panic!("LIBRARY_PATH was set but isn't a directory");
+            assert!(
+                library_path.as_ref().is_dir(),
+                "LIBRARY_PATH was set but isn't a directory"
+            );
         }
 
         Self {
