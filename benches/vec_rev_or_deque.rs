@@ -16,7 +16,6 @@ fn vec_and_rev() -> Result<(String, String)> {
             chapter_number.push(ch);
             continue;
         }
-        // base_name.push(ch);
         if ch.is_ascii_alphanumeric() {
             base_name.push(ch.to_ascii_lowercase());
         }
