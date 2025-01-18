@@ -1,3 +1,20 @@
+#![warn(clippy::perf)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::nursery)]
+#![warn(clippy::unwrap_used)]
+#![allow(clippy::use_self)]
+#![allow(clippy::missing_const_for_fn)]
+#![allow(clippy::redundant_closure_for_method_calls)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::unused_self)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::trivially_copy_pass_by_ref)]
+#![allow(clippy::inefficient_to_string)]
+
 mod library_processor;
 mod routes;
 mod traits;
