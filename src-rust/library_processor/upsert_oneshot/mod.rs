@@ -27,8 +27,8 @@ use crate::{
 
 #[derive(Debug)]
 pub enum OneshotType {
-    Directory(Vec<DirEntry>),
     Archive(Vec<ItemInArchive>),
+    Directory(Vec<DirEntry>),
 }
 
 #[derive(Debug)]
