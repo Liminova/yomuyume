@@ -70,7 +70,7 @@ pub async fn get_title(
     Path(title_id): Path<i64>,
     Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
-    let title_record = match sqlx::query!(
+    let Some(title_record) = sqlx::query!(
         r#"
         SELECT
             t.title AS title,
@@ -140,9 +140,8 @@ pub async fn get_title(
     .fetch_optional(&app_state.pool)
     .await
     .context("can't query title")?
-    {
-        Some(title_record) => title_record,
-        None => return Ok((StatusCode::NOT_FOUND).into_response()),
+    else {
+        return Ok((StatusCode::NOT_FOUND).into_response());
     };
 
     let body = TitleResponseBody {
@@ -158,20 +157,17 @@ pub async fn get_title(
         cover_blurhash: title_record.cover_blurhash,
         cover_width: title_record.cover_width,
         cover_height: title_record.cover_height,
-        tags: title_record
-            .tags
-            .map(|tags| {
-                tags.into_iter()
-                    .map(|s| {
-                        let parts = s.split('-').collect::<Vec<_>>();
-                        TitleTagResponse {
-                            id: parts.get(1).map(|s| s.to_string()).unwrap_or_default(),
-                            name: parts.first().map(|s| s.to_string()).unwrap_or_default(),
-                        }
-                    })
-                    .collect()
-            })
-            .unwrap_or_else(Vec::new),
+        tags: title_record.tags.map_or_else(Vec::new, |tags| {
+            tags.into_iter()
+                .map(|s| {
+                    let parts = s.split('-').collect::<Vec<_>>();
+                    TitleTagResponse {
+                        id: parts.get(1).map(|s| s.to_string()).unwrap_or_default(),
+                        name: parts.first().map(|s| s.to_string()).unwrap_or_default(),
+                    }
+                })
+                .collect()
+        }),
 
         date_updated: title_record.date_updated.map(|d| d.to_rfc3339()),
 
