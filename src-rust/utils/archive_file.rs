@@ -346,18 +346,18 @@ impl ArchiveFile for PathBuf {
                     .ok_or_else(|| warn!("can't get path for item {}", self.display()))
                     .ok()?;
 
-                let is_dir = attributes
-                    .get("Folder")
-                    .map(|val| val.trim() == "+")
-                    .unwrap_or_else(|| {
-                        attributes
-                            .get("Size")
-                            .map(|val| val.trim() == "0")
-                            .unwrap_or_else(|| {
+                let is_dir = attributes.get("Folder").map_or_else(
+                    || {
+                        attributes.get("Size").map_or_else(
+                            || {
                                 warn!("can't check if {path} in {} is a directory", self.display());
                                 true
-                            })
-                    });
+                            },
+                            |val| val.trim() == "0",
+                        )
+                    },
+                    |val| val.trim() == "+",
+                );
                 if is_dir {
                     break 'scoped None;
                 }
