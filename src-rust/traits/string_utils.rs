@@ -1,0 +1,15 @@
+use crate::config::SUPPORTED_IMAGE_FORMATS;
+
+pub trait StringUtils {
+    fn has_image_ext(&self) -> bool;
+}
+
+impl StringUtils for String {
+    /// Check if the string has an image extension
+    fn has_image_ext(&self) -> bool {
+        self.split('.')
+            .last()
+            .map(|ext| SUPPORTED_IMAGE_FORMATS.contains(&ext))
+            .unwrap_or(false)
+    }
+}

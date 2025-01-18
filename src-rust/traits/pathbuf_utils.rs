@@ -1,36 +1,8 @@
-use std::{
-    collections::VecDeque,
-    fmt::{Debug, Display},
-    path::PathBuf,
-};
+use std::{collections::VecDeque, path::PathBuf};
 
-// use anyhow::{anyhow, Result};
 use chrono::{DateTime, Timelike, Utc};
 
 use crate::config::{SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS};
-
-pub trait IteratorExt: Iterator {
-    /// Same as [`find_map`] but use [`Result<B>`] instead of [`Option<B>`]
-    ///
-    /// [`find_map`]: Iterator::find_map
-    fn try_find_map<B, F>(self, mut f: F) -> anyhow::Result<B>
-    where
-        Self: Sized,
-        F: FnMut(Self::Item) -> anyhow::Result<B>,
-    {
-        let mut error = anyhow::anyhow!("Item not found");
-        self.filter_map(|i| {
-            f(i).map_err(|e| {
-                error = e;
-            })
-            .ok()
-        })
-        .next()
-        .ok_or(error)
-    }
-}
-
-impl<I: Iterator> IteratorExt for I {}
 
 pub trait PathBufUtils {
     fn has_image_ext(&self) -> bool;
@@ -48,8 +20,8 @@ pub trait PathBufUtils {
 pub enum LastModifiedErr {
     #[error("can't get metadata: {0:?}")]
     GetMetadataErr(std::io::Error),
-    #[error("can't get modified time: {0:?}")]
-    GetModifiedErr(std::io::Error),
+    #[error("can't get modified time of file {0}: {1:?}")]
+    GetModifiedErr(String, std::io::Error),
 }
 
 impl PathBufUtils for PathBuf {
@@ -123,7 +95,7 @@ impl PathBufUtils for PathBuf {
             self.metadata()
                 .map_err(LastModifiedErr::GetMetadataErr)?
                 .modified()
-                .map_err(LastModifiedErr::GetModifiedErr)?,
+                .map_err(|e| LastModifiedErr::GetModifiedErr(self.display().to_string(), e))?,
         )
         .with_nanosecond(0)
         .unwrap_or_default())
@@ -138,45 +110,5 @@ impl PathBufUtils for PathBuf {
         }
         std::fs::File::create(self)?;
         Ok(())
-    }
-}
-
-pub trait StringUtils {
-    fn has_image_ext(&self) -> bool;
-    fn has_archive_ext(&self) -> bool;
-}
-
-impl StringUtils for String {
-    /// Check if the string has an image extension
-    fn has_image_ext(&self) -> bool {
-        self.split('.')
-            .last()
-            .map(|ext| SUPPORTED_IMAGE_FORMATS.contains(&ext))
-            .unwrap_or(false)
-    }
-
-    /// Check if the string has an archive extension
-    fn has_archive_ext(&self) -> bool {
-        self.split('.')
-            .last()
-            .map(|ext| SUPPORTED_ARCHIVE_FORMATS.contains(&ext))
-            .unwrap_or(false)
-    }
-}
-
-pub trait WarnResultThenOk<T> {
-    /// Same as [`Result::ok`] but log a warning if the result is an error
-    fn okay(self, msg: impl Display) -> Option<T>;
-}
-
-impl<T, E: Display + Debug> WarnResultThenOk<T> for anyhow::Result<T, E> {
-    fn okay(self, msg: impl Display) -> Option<T> {
-        match self {
-            Ok(v) => Some(v),
-            Err(e) => {
-                tracing::warn!("{}: {:?}", msg, e);
-                None
-            }
-        }
     }
 }

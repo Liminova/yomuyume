@@ -1,5 +1,6 @@
 mod library_processor;
 mod routes;
+mod traits;
 mod types;
 mod utils;
 
