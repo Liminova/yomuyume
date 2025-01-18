@@ -148,12 +148,12 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
         ) {
             Ok(entry_type) => match entry_type {
                 DirEntryType::CategoryDir(sub_entries) => {
-                    sub_entries.into_iter().for_each(|sub_entry| {
+                    for sub_entry in sub_entries {
                         queue.push_front(ScannedEntry {
                             entry: sub_entry,
                             parent: Some(entry_path.clone()),
                         });
-                    });
+                    }
                 }
                 DirEntryType::SeriesDir(chapters) => {
                     tasks.push((
@@ -195,7 +195,7 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
                     ));
                 }
                 DirEntryType::Ignored => {
-                    debug!("ignored entry `{}`", entry_path.display())
+                    debug!("ignored entry `{}`", entry_path.display());
                 }
             },
             Err(e) => {
@@ -218,6 +218,7 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
         futs.push(tokio::spawn(async move {
             let title_path = title_path.display();
 
+            #[allow(clippy::significant_drop_in_scrutinee)]
             let permit = match sem.acquire().await {
                 Ok(permit) => permit,
                 Err(e) => {
