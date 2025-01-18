@@ -1,4 +1,3 @@
-mod blurhash_encode;
 mod dir_entry_guesser;
 mod upsert_category;
 mod upsert_oneshot;
@@ -21,8 +20,6 @@ use tokio::sync::{Mutex, RwLock, Semaphore};
 use tracing::{debug, error, info};
 
 use crate::{
-    archive_file::ArchiveFileError,
-    id_generator::GenerateIDErr,
     library_processor::{
         dir_entry_guesser::{DirEntryType, DirEntryTypeGuesser},
         upsert_category::UpsertCategoryErr,
@@ -32,6 +29,7 @@ use crate::{
     },
     types::absolute_path::{AbsolutePath, AbsolutePathErr},
     utils::{app_state::AppState, archive_file::ItemInArchive},
+    utils::{archive_file::ArchiveFileError, id_generator::GenerateIDErr},
 };
 
 #[derive(Debug)]
