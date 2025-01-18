@@ -45,7 +45,7 @@ pub enum UpsertCategoryErr {
 /// the callers).
 pub async fn upsert_category<'e>(
     app_state: &Arc<AppState>,
-    category_path: &Option<PathBuf>,
+    category_path: Option<&PathBuf>,
     category_path_to_id: &Arc<RwLock<HashMap<AbsolutePath, i64>>>,
     conn: impl sqlx::Executor<'e, Database = sqlx::Postgres> + 'e,
 ) -> Result<Option<CategoryID>, UpsertCategoryErr> {
