@@ -1,20 +1,17 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use anyhow::Context;
-use chrono::{DateTime, Utc};
 use tokio::sync::RwLock;
+use tracing::warn;
 
 use crate::{
     app_state::AppState,
-    config::CATEGORY_INFO_FILENAME,
-    id_generator::GenerateIDErr,
-    library_processor::blurhash_encode::encode_blurhash,
-    traits::{PathBufUtils, WarnResultThenOk},
+    traits::{do_something_and_ok::DoSomethingAndOk, to_blurhash::ToBlurhashFromFile},
     types::{
         absolute_path::{AbsolutePath, AbsolutePathErr},
         category_info::CategoryInfo,
         CategoryID,
     },
+    utils::{config::CATEGORY_INFO_FILENAME, id_generator::GenerateIDErr},
 };
 
 #[derive(Debug, thiserror::Error)]
