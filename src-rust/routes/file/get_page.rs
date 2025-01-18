@@ -55,23 +55,20 @@ pub async fn get_page(
         },
     )];
 
-    let content = match record.title_is_dir {
-        true => {
-            let file_path = PathBuf::from(record.title_path).join(record.page_path);
-            let file = File::open(file_path)
-                .await
-                .context("can't open page file")?;
-            let stream = ReaderStream::new(file);
+    let content = if record.title_is_dir {
+        let file_path = PathBuf::from(record.title_path).join(record.page_path);
+        let file = File::open(file_path)
+            .await
+            .context("can't open page file")?;
+        let stream = ReaderStream::new(file);
 
-            Body::from_stream(stream)
-        }
-        false => {
-            let archive_file = PathBuf::from(record.title_path);
-            let stream =
-                archive_file.stream_file_from_archive(record.page_path, record.page_filesize)?;
+        Body::from_stream(stream)
+    } else {
+        let archive_file = PathBuf::from(record.title_path);
+        let stream =
+            archive_file.stream_file_from_archive(record.page_path, record.page_filesize)?;
 
-            Body::from_stream(stream)
-        }
+        Body::from_stream(stream)
     };
 
     Ok((StatusCode::OK, headers, content).into_response())
