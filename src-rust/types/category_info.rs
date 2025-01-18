@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::option_blurhash_deserializer;
-use crate::{macros::bail_if_empty, utils::config::CATEGORY_INFO_SCHEMA};
+use crate::utils::{config::CATEGORY_INFO_SCHEMA, macros::bail_if_empty};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
 pub struct CategoryInfo {
