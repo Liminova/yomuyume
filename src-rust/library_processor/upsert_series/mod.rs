@@ -378,8 +378,8 @@ pub async fn upsert_series(
 
         sqlx::query!(
             "INSERT INTO chapters_pages (id, chapter_id, path, filesize, description)
-                SELECT id, chapter_id, path, NULLIF(filesize, 0), NULLIF(description, '')
-            FROM UNNEST($1::bigint[], $2::bigint[], $3::text[], $4::bigint[], $5::text[])
+            SELECT id, chapter_id, path, NULLIF(filesize, 0), NULLIF(description, '')
+                FROM UNNEST($1::bigint[], $2::bigint[], $3::text[], $4::bigint[], $5::text[])
                 AS t(id, chapter_id, path, filesize, description)
             ON CONFLICT (chapter_id, path) DO UPDATE
             SET description = EXCLUDED.description",

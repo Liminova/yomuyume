@@ -39,8 +39,7 @@ pub async fn upsert_tags<'e>(
         "WITH tag_ids AS (
             INSERT INTO tags (id, name)
             SELECT id, name
-                FROM UNNEST($1::bigint[], $2::text[])
-                AS t(id, name)
+                FROM UNNEST($1::bigint[], $2::text[]) AS t(id, name)
             ON CONFLICT (name) DO UPDATE SET
                 name = EXCLUDED.name WHERE FALSE
             RETURNING id
