@@ -76,11 +76,11 @@ pub async fn upsert_category<'e>(
     let mut cover_height: Option<i32> = None;
 
     'cover_finder: {
-        let Some(cover) = category_info.cover.as_mut() else {
+        let Some(cover_cfg) = category_info.cover.as_mut() else {
             break 'cover_finder;
         };
 
-        let Some(ref cover_path) = cover.path else {
+        let Some(ref cover_path) = cover_cfg.path else {
             break 'cover_finder;
         };
 
@@ -98,16 +98,18 @@ pub async fn upsert_category<'e>(
             break 'cover_finder;
         };
 
-        if let Some((blurhash, modified_date_at_encode)) =
-            cover.blurhash.as_ref().zip(cover.modified_date_at_encode)
+        if let Some((blurhash, modified_date_at_encode)) = cover_cfg
+            .blurhash
+            .as_ref()
+            .zip(cover_cfg.modified_date_at_encode)
         {
-            let valid_dimensions = cover.width != 0 && cover.height != 0;
+            let valid_dimensions = cover_cfg.width != 0 && cover_cfg.height != 0;
             let unmodified = modified_date_at_encode == real_modified_date;
             if valid_dimensions && unmodified {
-                configured_cover_path.clone_from(&cover.path);
+                configured_cover_path.clone_from(&cover_cfg.path);
                 cover_blurhash.clone_from(&Some(blurhash.clone()));
-                cover_width.clone_from(&Some(cover.width));
-                cover_height.clone_from(&Some(cover.height));
+                cover_width.clone_from(&Some(cover_cfg.width));
+                cover_height.clone_from(&Some(cover_cfg.height));
                 break 'cover_finder;
             }
         }
@@ -117,13 +119,13 @@ pub async fn upsert_category<'e>(
             .to_blurhash_from_file()
             .okay(|e| warn!("can't re-encode cover file: {e:?}"))
         {
-            configured_cover_path.clone_from(&cover.path);
-            cover
+            configured_cover_path.clone_from(&cover_cfg.path);
+            cover_cfg
                 .blurhash
                 .clone_from(&Some(blurhash_result.blurhash.clone()));
-            cover.width.clone_from(&blurhash_result.width);
-            cover.height.clone_from(&blurhash_result.height);
-            cover
+            cover_cfg.width.clone_from(&blurhash_result.width);
+            cover_cfg.height.clone_from(&blurhash_result.height);
+            cover_cfg
                 .modified_date_at_encode
                 .clone_from(&Some(real_modified_date));
 
