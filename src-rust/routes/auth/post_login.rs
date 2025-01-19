@@ -37,18 +37,15 @@ pub async fn post_login(
     State(app_state): State<Arc<AppState>>,
     query: Json<LoginRequestBody>,
 ) -> Result<Response, AppError> {
-    let (user_id, password_hash) = match sqlx::query!(
+    let Some((user_id, password_hash)) = sqlx::query!(
         "SELECT id, password_hash FROM users WHERE username = $1 OR email = $1",
         query.login
     )
     .fetch_optional(&app_state.pool)
     .await
     .context("can't query user")?
-    {
-        Some(user) => (user.id, user.password_hash),
-        None => {
-            return Ok((StatusCode::BAD_REQUEST, "invalid username or password").into_response());
-        }
+    .map(|user| (user.id, user.password_hash)) else {
+        return Ok((StatusCode::BAD_REQUEST, "invalid username or password").into_response());
     };
 
     if !check_pass(&password_hash, &query.password) {
