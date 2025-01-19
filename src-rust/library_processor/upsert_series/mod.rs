@@ -335,42 +335,43 @@ pub async fn upsert_series(
                 continue 'next_chapter;
             };
 
-            if let ChapterType::Archive(ref pages) = chapter.chapter_type {
-                for page in pages {
-                    chapter_ids.push(*chapter_id);
-                    page_ids.push(if let Some(id) = page_ids_pool.pop() {
-                        id
-                    } else {
-                        warn!("can't get page ID from pool, this should never happen");
-                        continue 'next_chapter;
-                    });
-                    page_paths.push(page.path.clone());
-                    page_filesizes.push(page.size.unwrap_or_default());
-                    page_descriptions.push(page.description.clone().unwrap_or_default());
-                }
-            } else if let ChapterType::Directory(ref pages) = chapter.chapter_type {
-                for page in pages {
-                    let page_path_string = match page.path.to_relative(Some(&chapter.path)) {
-                        Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => {
-                            warn!(
-                                "can't convert page path `{}` to relative to upsert to database: {e:?}",
-                                page.path.as_ref().display()
-                            );
+            match &chapter.chapter_type {
+                ChapterType::Archive(pages) => {
+                    for page in pages {
+                        chapter_ids.push(*chapter_id);
+                        page_ids.push(if let Some(id) = page_ids_pool.pop() {
+                            id
+                        } else {
+                            warn!("can't get page ID from pool, this should never happen");
                             continue 'next_chapter;
-                        }
-                    };
+                        });
+                        page_paths.push(page.path.clone());
+                        page_filesizes.push(page.size.unwrap_or_default());
+                        page_descriptions.push(page.description.clone().unwrap_or_default());
+                    }
+                }
+                ChapterType::Directory(pages) => {
+                    for page in pages {
+                        let Some(page_path_str) = page
+                            .path
+                            .to_relative(Some(&chapter.path))
+                            .map(|p| p.to_string_lossy().to_string())
+                            .okay(|e| warn!("can't strip title path from page path to upsert to database: {e:?}"))
+                        else {
+                            continue 'next_chapter;
+                        };
 
-                    chapter_ids.push(*chapter_id);
-                    page_ids.push(if let Some(id) = page_ids_pool.pop() {
-                        id
-                    } else {
-                        warn!("can't get page ID from pool, this should never happen");
-                        continue 'next_chapter;
-                    });
-                    page_descriptions.push(page.description.clone().unwrap_or_default());
-                    page_paths.push(page_path_string);
-                    page_filesizes.push(page.size.unwrap_or_default());
+                        chapter_ids.push(*chapter_id);
+                        page_ids.push(if let Some(id) = page_ids_pool.pop() {
+                            id
+                        } else {
+                            warn!("can't get page ID from pool, this should never happen");
+                            continue 'next_chapter;
+                        });
+                        page_descriptions.push(page.description.clone().unwrap_or_default());
+                        page_paths.push(page_path_str);
+                        page_filesizes.push(page.size.unwrap_or_default());
+                    }
                 }
             }
         }
