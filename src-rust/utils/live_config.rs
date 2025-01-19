@@ -1,3 +1,5 @@
+#![allow(clippy::struct_excessive_bools)]
+
 use chrono::Utc;
 
 /// Like [`Config`], but configurable from the frontend.
