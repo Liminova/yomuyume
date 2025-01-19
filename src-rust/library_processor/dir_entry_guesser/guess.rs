@@ -1,11 +1,12 @@
 use anyhow::{Context, Result};
 use std::fs::DirEntry;
+use tracing::warn;
 
 use crate::{
     library_processor::dir_entry_guesser::{
         has_pattern_of_a_series::HasPatternOfSeries, ScannedChapterInfo,
     },
-    traits::pathbuf_utils::PathBufUtils,
+    traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
     utils::{
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
         macros::bail_if_empty,
@@ -72,13 +73,7 @@ impl DirEntryTypeGuesser for DirEntry {
         let items_in_dir = dir
             .read_dir()
             .context(format!("can't read `{path_str}` as a directory"))?
-            .filter_map(|e| match e {
-                Ok(e) => Some(e),
-                Err(e) => {
-                    tracing::warn!("can't extract item from parent `{path_str}`: {e:?}");
-                    None
-                }
-            })
+            .filter_map(|e| e.okay(|e| warn!("can't extract item from parent `{path_str}`: {e:?}")))
             .collect::<Vec<_>>();
 
         bail_if_empty!(items_in_dir, Ok(DirEntryType::Ignored));
