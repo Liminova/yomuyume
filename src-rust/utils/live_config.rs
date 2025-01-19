@@ -38,7 +38,7 @@ impl LiveConfig {
             sqlx::query!("SELECT value FROM live_config WHERE id = 'rescan_enabled'")
                 .fetch_optional(db)
                 .await?
-                .map_or_else(|| false, |record| record.value == "true");
+                .map_or_else(|| true, |record| record.value == "true");
 
         let rescan_interval_in_minutes =
             sqlx::query!("SELECT value FROM live_config WHERE id = 'rescan_interval_in_minutes'")
