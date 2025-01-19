@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 #![warn(clippy::perf)]
 #![warn(clippy::pedantic)]
 #![warn(clippy::nursery)]
