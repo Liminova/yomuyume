@@ -1,4 +1,4 @@
-use std::{env::var, path::PathBuf};
+use std::path::PathBuf;
 
 use crate::types::absolute_path::AbsolutePath;
 
@@ -74,38 +74,56 @@ pub struct Config {
     pub smtp_from_name: Option<String>,
 }
 
+macro_rules! must {
+    ($env:expr) => {
+        std::env::var($env).expect(concat!($env, " must be set"))
+    };
+}
+
+macro_rules! optional {
+    ($env:expr) => {
+        std::env::var($env)
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+    };
+
+    ($env:expr, $default:expr) => {
+        std::env::var($env)
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| $default.to_string())
+    };
+
+    (num: $env:expr, $default:expr) => {
+        std::env::var($env)
+            .unwrap_or_else(|_| $default.to_string())
+            .parse()
+            .unwrap_or_else(|_| $default)
+    };
+}
+
 impl Config {
     pub fn init() -> Self {
-        let library_path = AbsolutePath::from(
-            &PathBuf::from(var("LIBRARY_PATH").expect("LIBRARY_PATH must be set")),
-            None,
-        )
-        .expect("can't convert LIBRARY_PATH to absolute");
+        let library_path = AbsolutePath::from(&PathBuf::from(must!("LIBRARY_PATH")), None)
+            .expect("can't convert LIBRARY_PATH to absolute");
 
-        if !library_path.as_ref().is_dir() {
-            assert!(
-                library_path.as_ref().is_dir(),
-                "LIBRARY_PATH was set but isn't a directory"
-            );
-        }
+        assert!(library_path.as_ref().is_dir());
 
         Self {
-            app_name: var("APP_NAME").unwrap_or_else(|_| "Yomuyume".to_string()),
+            app_name: optional!("APP_NAME", "Yomuyume"),
             library_path,
-            listen_address: var("LISTEN_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string()),
-            server_port: var("SERVER_PORT")
-                .unwrap_or_else(|_| "3000".to_string())
-                .parse()
-                .unwrap_or(3000),
-            database_url: var("DATABASE_URL")
-                .unwrap_or_else(|_| "sqlite:./sqlite.db?mode=rwc".to_string()),
-            reverse_proxy_ip_header: var("REVERSE_PROXY_IP_HEADER").ok(),
+            listen_address: optional!("LISTEN_ADDRESS", "0.0.0.0"),
+            server_port: optional!(num: "SERVER_PORT", 3000),
+            database_url: must!("DATABASE_URL"),
+            reverse_proxy_ip_header: optional!("REVERSE_PROXY_IP_HEADER"),
 
-            smtp_host: var("SMTP_HOST").ok(),
-            smtp_username: var("SMTP_USERNAME").ok(),
-            smtp_password: var("SMTP_PASSWORD").ok(),
-            smtp_from_email: var("SMTP_FROM_EMAIL").ok(),
-            smtp_from_name: var("SMTP_FROM_NAME").ok(),
+            smtp_host: optional!("SMTP_HOST"),
+            smtp_username: optional!("SMTP_USERNAME"),
+            smtp_password: optional!("SMTP_PASSWORD"),
+            smtp_from_email: optional!("SMTP_FROM_EMAIL"),
+            smtp_from_name: optional!("SMTP_FROM_NAME"),
         }
     }
 
