@@ -112,7 +112,10 @@ pub async fn upsert_oneshot(
         title.comicinfo.penciller.as_ref(),
         title.comicinfo.summary.as_ref(),
         title.comicinfo.get_release(),
-        title_path.to_string_lossy(),
+        title_path
+            .to_relative(Some(&app_state.config.library_path))?
+            .to_string_lossy()
+            .to_string(),
         title.is_dir,
         title.cover_path,
         title.cover_blurhash,
