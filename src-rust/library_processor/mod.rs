@@ -13,7 +13,6 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{Context, Result};
 use futures_core::future::BoxFuture;
 use futures_util::future::join_all;
 use tokio::sync::{Mutex, RwLock, Semaphore};
@@ -27,9 +26,13 @@ use crate::{
         upsert_series::upsert_series,
         upsert_tags::UpsertTagsErr,
     },
+    traits::do_something_and_ok::DoSomethingAndOk,
     types::absolute_path::{AbsolutePath, AbsolutePathErr},
-    utils::{app_state::AppState, archive_file::ItemInArchive},
-    utils::{archive_file::ArchiveFileError, id_generator::GenerateIDErr},
+    utils::{
+        app_state::AppState,
+        archive_file::{ArchiveFileError, ItemInArchive},
+        id_generator::GenerateIDErr,
+    },
 };
 
 #[derive(Debug)]
@@ -96,13 +99,16 @@ enum UpsertTitleErr {
 
 type PageInTitle = ItemInArchive;
 
-pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
+pub async fn full_scan(app_state: Arc<AppState>) {
     // scan library directory
-    let library_dir =
-        std::fs::read_dir(app_state.config.library_path.as_ref()).context(format!(
-            "can't read library path: {:?}",
+    let Some(library_dir) = std::fs::read_dir(app_state.config.library_path.as_ref()).okay(|e| {
+        error!(
+            "can't read library path `{}`: {e:?}",
             app_state.config.library_path
-        ))?;
+        );
+    }) else {
+        return;
+    };
 
     let mut queue: VecDeque<ScannedEntry> = VecDeque::new();
 
@@ -132,7 +138,10 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
     };
 
     // processing tasks waiting to be .await-ed
-    let mut tasks: Vec<(BoxFuture<'static, Result<i64, UpsertTitleErr>>, PathBuf)> = vec![];
+    let mut tasks: Vec<(
+        BoxFuture<'static, anyhow::Result<i64, UpsertTitleErr>>,
+        PathBuf,
+    )> = vec![];
     let category_path_to_id: Arc<RwLock<HashMap<AbsolutePath, i64>>> =
         Arc::new(RwLock::new(HashMap::new()));
 
@@ -264,6 +273,4 @@ pub async fn full_scan(app_state: Arc<AppState>) -> Result<()> {
     };
 
     info!("finished processing library");
-
-    Ok(())
 }
