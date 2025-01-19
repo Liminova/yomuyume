@@ -8,6 +8,7 @@ pub struct LiveConfig {
     pub komga_oneshot_support: bool,
     pub komga_recycle_support: bool,
 
+    pub rescan_enabled: bool,
     pub rescan_interval_in_minutes: i32,
 }
 
@@ -31,6 +32,12 @@ impl LiveConfig {
                 .await?
                 .map_or_else(|| false, |record| record.value == "true");
 
+        let rescan_enabled =
+            sqlx::query!("SELECT value FROM live_config WHERE id = 'rescan_enabled'")
+                .fetch_optional(db)
+                .await?
+                .map_or_else(|| false, |record| record.value == "true");
+
         let rescan_interval_in_minutes =
             sqlx::query!("SELECT value FROM live_config WHERE id = 'rescan_interval_in_minutes'")
                 .fetch_optional(db)
@@ -41,6 +48,7 @@ impl LiveConfig {
             nomedia_support,
             komga_oneshot_support,
             komga_recycle_support,
+            rescan_enabled,
             rescan_interval_in_minutes,
         })
     }
@@ -104,6 +112,27 @@ impl LiveConfig {
         .await?;
 
         self.komga_recycle_support = value;
+
+        Ok(())
+    }
+
+    pub async fn configure_rescan_enabled(
+        &mut self,
+        db: &sqlx::PgPool,
+        value: bool,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "INSERT INTO live_config (id, value, last_updated_at)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3",
+            "rescan_enabled",
+            if value { "true" } else { "false" },
+            Utc::now()
+        )
+        .execute(db)
+        .await?;
+
+        self.rescan_enabled = value;
 
         Ok(())
     }
