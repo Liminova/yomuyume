@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use image::{imageops::FilterType::Gaussian, DynamicImage, GenericImageView};
+use jxl_oxide::integration::JxlDecoder;
 
 use crate::utils::{archive_file::ArchiveFile, macros::bail_if_empty};
 
@@ -57,7 +58,17 @@ impl ToBlurhashFromFile for PathBuf {
     /// Assume the path is an image file and try to encode it to blurhash.
     fn to_blurhash_from_file(&self) -> Result<ToBlurhashOk, ToBlurhashFromFileErr> {
         let buf = std::fs::read(self)?;
-        let img = image::load_from_memory(&buf)?;
+
+        let img = if self
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
+        {
+            let decoder = JxlDecoder::new(std::io::Cursor::new(buf))?;
+            DynamicImage::from_decoder(decoder)?
+        } else {
+            image::load_from_memory(&buf)?
+        };
+
         encode(&img).map_err(ToBlurhashFromFileErr::EncodeBlurhash)
     }
 }
@@ -91,7 +102,16 @@ impl ToBlurhashFromArchive for PathBuf {
         let buf = self.read_file_from_archive(filename)?;
         bail_if_empty!(buf, Err(ToBlurhashFromArchiveErr::FileNotFound));
 
-        let img = image::load_from_memory(&buf)?;
+        let img = if Path::new(filename)
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
+        {
+            let decoder = JxlDecoder::new(std::io::Cursor::new(buf))?;
+            DynamicImage::from_decoder(decoder)?
+        } else {
+            image::load_from_memory(&buf)?
+        };
+
         encode(&img).map_err(ToBlurhashFromArchiveErr::EncodeBlurhash)
     }
 }
