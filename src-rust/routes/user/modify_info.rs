@@ -57,7 +57,7 @@ pub async fn post_modify_info(
             }
             new_password_hash = hash_pass(new_password)?;
         }
-        (_, _) => {}
+        _ => {}
     }
 
     sqlx::query!(
