@@ -166,7 +166,11 @@ pub async fn upsert_category<'e>(
             .clone()
             .unwrap_or_else(|| "Untitled".to_string()),
         category_info.description.as_ref(),
-        category_path.to_string_lossy(),
+        category_path
+            .to_relative(Some(&app_state.config.library_path))
+            .map_err(UpsertCategoryErr::ConvertToAbsolute)?
+            .to_string_lossy()
+            .to_string(),
         configured_cover_path,
         cover_blurhash,
         cover_width,
