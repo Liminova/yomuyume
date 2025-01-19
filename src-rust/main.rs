@@ -137,8 +137,21 @@ async fn main() -> Result<()> {
         };
     });
 
-    let library_processor_handle =
-        tokio::spawn(async move { library_processor::full_scan(app_state.clone()).await });
+    let library_processor_handle = tokio::spawn(async move {
+        loop {
+            let (enabled, interval) = {
+                let cfg = app_state.live_config.read().await;
+                let interval = cfg.rescan_interval_in_minutes.max(5);
+                (cfg.rescan_enabled, interval)
+            };
+
+            if enabled {
+                library_processor::full_scan(app_state.clone()).await;
+            }
+
+            tokio::time::sleep(std::time::Duration::from_secs(interval as u64 * 60)).await;
+        }
+    });
 
     let _ = tokio::join!(server_handle, library_processor_handle);
 
