@@ -164,7 +164,7 @@ pub async fn upsert_oneshot(
                 SET description = EXCLUDED.description
             )
             DELETE FROM oneshots_pages WHERE title_id = $1
-                AND path NOT IN (SELECT UNNEST($3::text[]))",
+                AND path NOT IN (SELECT UNNEST($3::text[]) AS path)",
             title_id,
             &page_ids,
             &page_paths,
