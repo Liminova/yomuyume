@@ -140,15 +140,13 @@ pub async fn post_delete_account(
     .await
     .context("can't query temp code")?
     .map(|record| record.created_at);
-    match code_creation_time {
-        Some(creation_time) => {
-            if Utc::now() - creation_time > chrono::Duration::minutes(5) {
-                return Ok((StatusCode::BAD_REQUEST, "code expired").into_response());
-            }
+
+    if let Some(creation_time) = code_creation_time {
+        if Utc::now() - creation_time > chrono::Duration::minutes(5) {
+            return Ok((StatusCode::BAD_REQUEST, "code expired").into_response());
         }
-        None => {
-            return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
-        }
+    } else {
+        return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
     };
 
     sqlx::query!("DELETE FROM users WHERE id = $1", user_id)
