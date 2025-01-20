@@ -1,11 +1,11 @@
 pub mod auth;
+pub mod content;
 pub mod file;
-pub mod index;
 pub mod middlewares;
 pub mod user;
 pub mod utils;
 
-pub use self::{auth::*, file::*, index::*, user::*, utils::*};
+pub use self::{auth::*, content::*, file::*, user::*, utils::*};
 pub use middlewares::auth::auth;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
@@ -70,7 +70,7 @@ use crate::utils::app_error::AppError;
 
         user::delete_bookmark,
         user::delete_favorite,
-        user::get_check,
+        user::get_whoami,
         user::get_delete_account,
         user::get_reset_password,
         user::get_validate_email,
@@ -82,9 +82,9 @@ use crate::utils::app_error::AppError;
         user::put_favorite,
         user::put_progress,
 
-        index::get_categories,
-        index::post_filter,
-        index::get_title,
+        content::get_categories,
+        content::post_filter,
+        content::get_title,
 
         utils::get_status,
         utils::post_status,
@@ -105,8 +105,9 @@ use crate::utils::app_error::AppError;
         ModifyRequestBody,
         ResetRequestBody,
         ValidateEmailRequestBody,
+        WhoAmIResponseBody,
 
-        // Index
+        // Content
         CategoryResponseBody,
         TitleResponseBody,
         TitleTagResponse,
