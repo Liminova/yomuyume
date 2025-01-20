@@ -24,7 +24,7 @@ pub struct ModifyRequestBody {
     pub new_password: Option<String>,
 }
 
-/// modify user
+/// modify user info
 #[utoipa::path(post, path = "/api/user/modify", responses(
     (status = 200, description = "modify user successful"),
     (status = 400, description = "bad request", body = String),
