@@ -1,53 +1,49 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-async function login(body: {
-	login: string;
-	password: string;
-}): Promise<void> {
-	const endpoint = (()=>{
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL("/api/auth/login", import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+import { useMutation } from "@tanstack/vue-query";
 
-		return "/api/auth/login";
-	})()
+export function useLogin() {
+	return useMutation({
+		async mutationFn(body: { login: string; password: string }) {
+			const response = await fetch("/api/auth/login", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
 
-	const response = await fetch(endpoint, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
-		body: JSON.stringify(body),
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-async function register(body: {
-	username: string;
-	email: string;
-	password: string;
-}): Promise<void> {
-	const endpoint = (()=>{
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL("/api/auth/register", import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+export function useLogout() {
+	return useMutation({
+		async mutationFn() {
+			const response = await fetch("/api/auth/logout", {
+				method: "POST",
+			});
 
-		return "/api/auth/register";
-	})()
-
-	const res = await fetch(endpoint, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
-		body: JSON.stringify(body),
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-
-	if (!res.ok) {
-		throw new Error(`[${res.statusText}] ${await res.text()}`.trim());
-	}
 }
 
-export default { login, register };
+export function useRegister() {
+	return useMutation({
+		async mutationFn(body: { username: string; email: string; password: string }) {
+			const response = await fetch("/api/auth/register", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
+
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
+	});
+}

@@ -1,235 +1,192 @@
-async function favorite(
-	titleId: string,
-	action: "DELETE" | "PUT"
-): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL(`/api/user/favorite/${titleId}`, import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+/* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-		return `/api/user/favorite/${titleId}`;
-	})()
-	const response = await fetch(endpoint, {
-		method: action,
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
-		body: JSON.stringify({ titleId }),
+import { useMutation, useQuery } from "@tanstack/vue-query";
+
+export function useDeleteAccount() {
+	return useMutation({
+		async mutationFn(): Promise<void> {
+			const response = await fetch("/api/user/delete", {
+				method: "GET",
+			});
+
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-async function bookmark(
-	titleId: string,
-	action: "DELETE" | "PUT"
-): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL(`/api/user/bookmark/${titleId}`, import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+export function useConfirmDeleteAccount() {
+	return useMutation({
+		async mutationFn(body: { code: string; password: string }): Promise<void> {
+			const response = await fetch("/api/user/delete", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
 
-		return `/api/user/bookmark/${titleId}`;
-	})()
-	const response = await fetch(endpoint, {
-		method: action,
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
-		body: JSON.stringify({ titleId }),
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-async function progress(
-	titleId: string,
-	page: number
-): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL(`/api/user/progress/${titleId}/${page}`, import.meta.env.VITE_SERVER_HOSTNAME);
-		}
-
-		return `/api/user/progress/${titleId}/${page}`;
-	})()
-	const response = await fetch(endpoint, {
-		method: "PUT",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
-		body: JSON.stringify({ titleId, page }),
+export function useAddFavorite() {
+	return useMutation({
+		async mutationFn(titleId: string): Promise<void> {
+			const response = await fetch(`/api/user/favorite/${titleId}`, { method: "PUT" });
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-/** Send a request to delete the user. */
-async function deleteAccount(): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL(`/api/user/delete`, import.meta.env.VITE_SERVER_HOSTNAME);
-		}
-
-		return `/api/user/delete`;
-	})()
-	const response = await fetch(endpoint, {
-		method: "GET",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
+export function useDeleteFavorite() {
+	return useMutation({
+		async mutationFn(titleId: string): Promise<void> {
+			const response = await fetch(`/api/user/favorite/${titleId}`, { method: "DELETE" });
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-/** Confirm the deletion of the user. */
-async function deleteAccountConfirm(code: string, password: string): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL("/api/auth/delete", import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+export function useModifyUserInfo() {
+	return useMutation({
+		async mutationFn(body: { username?: string; email?: string; current_password?: string; new_password?: string }): Promise<void> {
+			const response = await fetch("/api/user/modify", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
 
-		return "/api/auth/delete";
-	})()
-	const response = await fetch(endpoint, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
-		body: JSON.stringify({ code, password }),
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-async function resetPassword(email: string): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL(`/api/auth/reset/${email}`, import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+export function useSetProgress() {
+	return useMutation({
+		async mutationFn(body: { titleId: string; page: number }): Promise<void> {
+			const response = await fetch(`/api/user/progress/${body.titleId}/${body.page}`, {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
 
-		return `/api/auth/reset/${email}`;
-	})()
-	const response = await fetch(endpoint, {
-		method: "GET",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-async function resetPasswordConfirm(
-	code: string,
-	new_password: string,
-): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL("/api/auth/reset", import.meta.env.VITE_SERVER_HOSTNAME);
-		}
-
-		return "/api/auth/reset";
-	})()
-	const response = await fetch(endpoint, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
-		body: JSON.stringify({ code, new_password }),
+export function useResetPassword() {
+	return useMutation({
+		async mutationFn(email: string): Promise<void> {
+			const response = await fetch(`/api/user/reset/${email}`, { method: "GET" });
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-/** Send a request to verify the email. */
-async function validateEmail(): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL("/api/auth/verify", import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+export function useConfirmResetPassword() {
+	return useMutation({
+		async mutationFn(body: { code: string; new_password: string }): Promise<void> {
+			const response = await fetch("/api/user/reset", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
 
-		return "/api/auth/verify";
-	})()
-	const response = await fetch(endpoint, {
-		method: "GET",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-/** Confirm the verification of the email. */
-async function validateEmailConfirm(token: string): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-ignore env does exist
-			return new URL("/api/auth/verify", import.meta.env.VITE_SERVER_HOSTNAME);
-		}
-
-		return "/api/auth/verify";
-	})();
-	const response = await fetch(endpoint, {
-		method: "GET",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
-		body: JSON.stringify({ token }),
+export function useValidateEmail() {
+	return useMutation({
+		async mutationFn(): Promise<void> {
+			const response = await fetch("/api/user/verify", { method: "GET" });
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-async function modifyInfo(body: {
-	username?: string;
-	email?: string;
-	current_password?: string;
-	new_password?: string;
-}): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL("/api/user/modify", import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+export function useConfirmValidateEmail() {
+	return useMutation({
+		async mutationFn(body: { code: string }): Promise<void> {
+			const response = await fetch("/api/user/verify", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
 
-		return "/api/user/modify";
-	})();
-	const response = await fetch(endpoint, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
-		body: JSON.stringify(body),
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
 	});
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-export default {
-	favorite,
-	bookmark,
-	progress,
-	validateEmail,
-	validateEmailConfirm,
-	resetPassword,
-	resetPasswordConfirm,
-	deleteAccount,
-	deleteAccountConfirm,
-};
+export interface WhoAmIResponseBody {
+	email: string;
+	ip_address: string;
+	profile_picture?: string;
+	updated_at?: string;
+	user_id: string;
+	username: string;
+	verified_at?: string;
+}
+
+export function useWhoAmI() {
+	return useQuery({
+		queryKey: ["whoami"],
+		async queryFn() {
+			const response = await fetch("/api/user/whoami", {
+				method: "GET",
+				headers: { "Content-Type": "application/json" },
+				credentials: import.meta.dev ? "include" : "same-origin",
+			});
+
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+
+			return response.json();
+		},
+	});
+}
+
+export function useAddBookmark() {
+	return useMutation({
+		async mutationFn(titleId: string): Promise<void> {
+			const response = await fetch(`/api/user/bookmark/${titleId}`, { method: "PUT" });
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
+	});
+}
+
+export function useDeleteBookmark() {
+	return useMutation({
+		async mutationFn(titleId: string): Promise<void> {
+			const response = await fetch(`/api/user/bookmark/${titleId}`, { method: "DELETE" });
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+		},
+	});
+}

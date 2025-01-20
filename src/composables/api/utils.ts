@@ -1,74 +1,57 @@
-async function status(): Promise<void> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL("/api/utils/status", import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+/* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-		return "/api/utils/status";
-	})()
-	const response = await fetch(endpoint, {
-		method: "GET",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
+import { useMutation, useQuery } from "@tanstack/vue-query";
+
+export function useGetLibraryScanningProgress() {
+	return useQuery({
+		queryKey: ["scanning_progress"],
+		async queryFn(): Promise<{ scanning_completed: boolean; scanning_progress: number }> {
+			const response = await fetch("/api/utils/scanning_progress", {
+				method: "GET",
+				headers: { "Content-Type": "application/json" },
+			});
+
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
+
+			return response.json();
+		},
 	});
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
 }
 
-export interface TagsMapResponseBody {
-	data: Array<{
-		id: number;
-		name: string;
-	}>;
-}
+export function useGetServerStatus() {
+	return useQuery({
+		queryKey: ["status"],
+		async queryFn(): Promise<{ server_time: string; version: string }> {
+			const response = await fetch("/api/utils/status", {
+				method: "GET",
+				headers: { "Content-Type": "application/json" },
+			});
 
-async function tags(): Promise<TagsMapResponseBody> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL("/api/utils/tags", import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
 
-		return "/api/utils/tags";
-	})();
-	const response = await fetch(endpoint, {
-		method: "GET",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
+			return response.json();
+		},
 	});
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
-
-	return (await response.json()) as TagsMapResponseBody;
 }
 
-export interface ScanningProgressResponseBody {
-	scanning_completed: boolean;
-	scanning_progress: number;
-}
+export function usePostServerStatus() {
+	return useMutation({
+		async mutationFn(body: { echo: string }): Promise<{ server_time: string; version: string }> {
+			const response = await fetch("/api/utils/status", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
 
-async function scanningProgress(): Promise<ScanningProgressResponseBody> {
-	const endpoint = (() => {
-		if (import.meta.dev) {
-			// @ts-expect-error env does exist
-			return new URL("/api/utils/scanning_progress", import.meta.env.VITE_SERVER_HOSTNAME);
-		}
+			if (!response.ok) {
+				throw new Error(`[${response.statusText}] ${await response.text()}`);
+			}
 
-		return "/api/utils/scanning_progress";
-	})();
-	const response = await fetch(endpoint, {
-		method: "GET",
-		headers: { "Content-Type": "application/json" },
-		credentials: import.meta.dev ? "include" : "same-origin",
+			return response.json();
+		},
 	});
-	if (!response.ok) {
-		throw new Error(`[${response.statusText}] ${await response.text()}`.trim());
-	}
-
-	return (await response.json()) as ScanningProgressResponseBody;
 }
-
-export default { status, tags, scanningProgress };
