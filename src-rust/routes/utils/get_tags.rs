@@ -19,7 +19,7 @@ pub struct TagResponseBody {
 }
 
 /// get all tags
-#[utoipa::path(get, path = "/api/utils/tags", responses(
+#[utoipa::path(get, path = "/api/content/tags", responses(
     (status = 200, description = "tags map", body = Vec<TagResponseBody>),
     (status = 204, description = "no tags found"),
     (status = 401, description = "unauthorized", body = String),
