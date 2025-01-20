@@ -1,0 +1,17 @@
+localhost:5173 {
+	tls internal
+
+	handle /api* {
+		reverse_proxy localhost:3001
+	}
+
+	handle /redoc* {
+		reverse_proxy localhost:3001
+	}
+
+	handle /swagger* {
+		reverse_proxy localhost:3001
+	}
+
+	reverse_proxy localhost:3000
+}
