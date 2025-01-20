@@ -1,6 +1,12 @@
-import type { BreakpointRecord } from "./types";
+export type BreakpointRecord = Record<
+	number,
+	{
+		slidesPerView: number;
+		spaceBetween?: number;
+	}
+>;
 
-const swiperBreakpoints: BreakpointRecord = {
+export const swiperBreakpoints: BreakpointRecord = {
 	0: {
 		slidesPerView: 2,
 		spaceBetween: 16,
@@ -34,13 +40,13 @@ const swiperBreakpoints: BreakpointRecord = {
  * @param breakpoints Swiper breakpoints configuration, default is
  * swiperBreakpoints from src/variables/store.ts
  */
-function getSwiperBreakpoint(): { slidesPerView: number; spaceBetween: number } {
+export function getSwiperBreakpoint(): { slidesPerView: number; spaceBetween: number } {
 	const sortedBreakpoints = Object.keys(swiperBreakpoints).sort((a, b) => Number(b) - Number(a));
 
 	// this matches the behavior of swiperjs: from a certain width, look down to
 	// the nearest smaller breakpoint and use that as the slidesPerView
 	const breakpoint = sortedBreakpoints.find(
-		(breakpoint) => Number(breakpoint) <= window.innerWidth
+		breakpoint => Number(breakpoint) <= window.innerWidth,
 	);
 
 	if (breakpoint) {
@@ -66,4 +72,3 @@ function getSwiperBreakpoint(): { slidesPerView: number; spaceBetween: number } 
 	return { slidesPerView: data.slidesPerView, spaceBetween };
 }
 
-export { getSwiperBreakpoint, swiperBreakpoints };
