@@ -59,7 +59,7 @@ pub struct TitleResponseBody {
 /// get title
 ///
 /// with all the information
-#[utoipa::path(get, path = "/api/index/title/{title_id}", responses(
+#[utoipa::path(get, path = "/api/content/title/{title_id}", responses(
     (status = 200, description = "fetch title successful", body = TitleResponseBody),
     (status = 401, description = "unauthorized", body = String),
     (status = 404, description = "no title found for the given id"),

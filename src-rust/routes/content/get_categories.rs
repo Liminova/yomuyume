@@ -22,7 +22,7 @@ pub struct CategoryResponseBody {
 /// get categories
 ///
 /// with their information
-#[utoipa::path(get, path = "/api/index/categories", responses(
+#[utoipa::path(get, path = "/api/content/categories", responses(
     (status = 200, description = "fetch all categories successful", body = Vec<CategoryResponseBody>),
     (status = 204, description = "no category found"),
     (status = 401, description = "unauthorized", body = String),
