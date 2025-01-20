@@ -23,6 +23,8 @@ pub(super) const SECURE_ID_CHARSET: &[char; 64] = &[
 ];
 pub(super) const SECURE_ID_MASK: usize = SECURE_ID_CHARSET.len().next_power_of_two() - 1;
 
+pub const SESSION_TOKEN_LAST_USED_AT_UPDATE_INTERVAL: i64 = 5 * 60; // 5 minutes
+
 const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
     "Story of Eastern Wonderland",
