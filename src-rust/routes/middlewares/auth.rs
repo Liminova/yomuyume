@@ -11,7 +11,9 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
 
-use crate::utils::{app_error::AppError, app_state::AppState};
+use crate::utils::{
+    app_error::AppError, app_state::AppState, config::SESSION_TOKEN_LAST_USED_AT_UPDATE_INTERVAL,
+};
 
 /// A middleware that checks `session-id` and `session-secret` cookies.
 ///
@@ -39,8 +41,8 @@ pub async fn auth(
         return Ok((StatusCode::UNAUTHORIZED, "no valid session secret provided").into_response());
     };
 
-    let Some((user_id, last_used_at)) = sqlx::query!(
-        "SELECT users.id, session_tokens.last_used_at FROM session_tokens
+    let Some(record) = sqlx::query!(
+        "SELECT users.id AS user_id, session_tokens.last_used_at FROM session_tokens
         JOIN users ON session_tokens.user_id = users.id
         WHERE session_tokens.id = $1 AND session_tokens.session_secret = $2",
         session_id,
@@ -49,12 +51,14 @@ pub async fn auth(
     .fetch_optional(&data.pool)
     .await
     .context("can't find user")?
-    .map(|r| (r.id, r.last_used_at.unwrap_or_else(Utc::now))) else {
+    else {
         return Ok((StatusCode::UNAUTHORIZED, "session token not found").into_response());
     };
 
     let now = Utc::now();
-    if now - last_used_at < chrono::Duration::minutes(2) {
+    if (now - record.last_used_at.unwrap_or_else(|| now)).num_seconds()
+        > SESSION_TOKEN_LAST_USED_AT_UPDATE_INTERVAL
+    {
         sqlx::query!(
             "UPDATE session_tokens SET last_used_at = $1 WHERE id = $2",
             now,
@@ -65,6 +69,6 @@ pub async fn auth(
         .context("can't update session token's last used time")?;
     }
 
-    req.extensions_mut().insert(user_id);
+    req.extensions_mut().insert(record.user_id);
     Ok(next.run(req).await)
 }
