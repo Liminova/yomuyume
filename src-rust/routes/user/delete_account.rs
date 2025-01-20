@@ -17,7 +17,7 @@ use crate::{
     utils::{app_error::AppError, app_state::AppState},
 };
 
-/// user delete
+/// delete account
 ///
 /// send an email to the user with a code to confirm the deletion
 #[utoipa::path(get, path = "/api/user/delete", responses(
@@ -101,7 +101,7 @@ pub struct DeleteRequestBody {
     pub password: String,
 }
 
-/// confirm user delete
+/// confirm delete account
 ///
 /// the user provides the code received by email
 #[utoipa::path(post, path = "/api/user/delete", responses(
