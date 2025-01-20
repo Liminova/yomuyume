@@ -40,11 +40,11 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     routes::{
-        auth, delete_bookmark, delete_favorite, get_categories, get_check, get_cover,
-        get_delete_account, get_logout, get_page, get_reset_password, get_scanning_progress,
-        get_status, get_tags, get_title, get_validate_email, post_delete_account, post_filter,
-        post_login, post_modify_info, post_register, post_reset_password, post_status,
-        post_validate_email, put_bookmark, put_favorite, put_progress, ApiDoc,
+        auth, delete_bookmark, delete_favorite, get_categories, get_cover, get_delete_account,
+        get_logout, get_page, get_reset_password, get_scanning_progress, get_status, get_tags,
+        get_title, get_validate_email, get_whoami, post_delete_account, post_filter, post_login,
+        post_modify_info, post_register, post_reset_password, post_status, post_validate_email,
+        put_bookmark, put_favorite, put_progress, ApiDoc,
     },
     utils::app_state,
 };
@@ -74,17 +74,18 @@ async fn main() -> Result<()> {
                 .route("/logout", get(get_logout)),
         )
         .nest(
-            "/api/index",
+            "/api/content",
             Router::new()
                 .route("/filter", post(post_filter))
                 .route("/categories", get(get_categories))
                 .route("/title/:title_id", get(get_title))
+                .route("/tags", get(get_tags))
                 .layer(apply(app_state.clone(), auth)),
         )
         .nest(
             "/api/user",
             Router::new()
-                .route("/check", get(get_check))
+                .route("/whoami", get(get_whoami))
                 .route("/delete", get(get_delete_account).post(post_delete_account))
                 .route("/verify", get(get_validate_email).post(post_validate_email))
                 .route("/modify", post(post_modify_info))
@@ -102,7 +103,6 @@ async fn main() -> Result<()> {
         .nest(
             "/api/utils",
             Router::new()
-                .route("/tags", get(get_tags))
                 .route("/scanning_progress", get(get_scanning_progress))
                 .layer(apply(app_state.clone(), auth)),
         )
