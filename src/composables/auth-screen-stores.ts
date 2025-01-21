@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
 import { computed, ref, watchEffect } from "vue";
 
-import isStrongPassword from "~/lib/is-strong-password";
+import { validateEmail } from "~/lib/validate-email";
+import validatePassword from "~/lib/validate-password";
 
 import { useLogin, useRegister } from "./api/auth";
 import { useConfirmResetPassword, useResetPassword } from "./api/user";
@@ -28,17 +29,32 @@ export const useAuthRegisterStore = defineStore("auth-screen-store-register", ()
 	const password = ref("");
 	const passwordRetype = ref("");
 
-	const isPasswordStrong = computed(() => isStrongPassword(password.value));
-	const isPasswordRetypeMatch = computed(() => password.value === passwordRetype.value);
+	const isEmailValid = computed(() => {
+		if (email.value === "") { return true; }
+		return validateEmail(email.value);
+	});
+	const isPasswordStrong = computed(() => validatePassword(password.value));
+	const isPasswordRetypeMatch = computed(() => {
+		if (passwordRetype.value === "") { return true; }
+		return password.value === passwordRetype.value;
+	});
 
 	const mutation = useRegister();
 
-	const registerButtonDisabled = computed(() => !isPasswordRetypeMatch.value || !isPasswordStrong.value || mutation.isPending.value);
+	const registerButtonDisabled = computed(() => !isPasswordRetypeMatch.value
+		|| !isPasswordStrong.value
+		|| mutation.isPending.value
+		|| isEmailValid.value
+		|| password.value === ""
+		|| passwordRetype.value === ""
+		|| email.value === "");
 
 	return {
 		username,
 		email,
 		password,
+
+		isEmailValid,
 		isPasswordStrong,
 		passwordRetype,
 		isPasswordRetypeMatch,
@@ -62,8 +78,11 @@ export const useAuthResetPasswordStore = defineStore("auth-screen-store-reset-pa
 	const newPassword = ref("");
 	const newPasswordRetype = ref("");
 
-	const isPasswordStrong = computed(() => isStrongPassword(newPassword.value));
-	const isPasswordRetypeMatch = computed(() => newPassword.value === newPasswordRetype.value);
+	const isPasswordStrong = computed(() => validatePassword(newPassword.value));
+	const isPasswordRetypeMatch = computed(() => {
+		if (newPasswordRetype.value === "") { return true; }
+		return newPassword.value === newPasswordRetype.value;
+	});
 
 	const mutation = useResetPassword();
 	const mutation2 = useConfirmResetPassword();
