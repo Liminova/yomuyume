@@ -55,10 +55,10 @@ pub async fn post_login(
     let ip_address = app_state
         .config
         .reverse_proxy_ip_header
-        .clone()
+        .as_ref()
         .and_then(|header| {
             headers
-                .get(&header)
+                .get(header)
                 .or_else(|| headers.get(header.to_ascii_lowercase()))
         })
         .and_then(|value| value.to_str().ok())
