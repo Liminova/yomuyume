@@ -57,17 +57,13 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                 }
 
                 p.list_files_in_archive()
-                    .map(|files| (p.clone(), files))
-                    .map_err(|e| {
-                        tracing::warn!("can't list files in `{}`: {e:?}", p.display());
-                    })
-                    .ok()
-                    .filter(|(_, files)| {
+                    .okay(|e| tracing::warn!("can't list files in `{}`: {e:?}", p.display()))
+                    .filter(|files| {
                         !files.is_empty()
                             || !files.contains_nomedia(is_nomedia_enabled)
                             || files.contains_image()
                     })
-                    .map(|(p, files)| ScannedChapterInfo {
+                    .map(|files| ScannedChapterInfo {
                         volume: 0,
                         path: p,
                         dir_or_archive: ScannedChapterType::Archive(files),
