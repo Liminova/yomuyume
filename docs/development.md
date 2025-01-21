@@ -21,12 +21,11 @@ flowchart TD
   client["`**nitro server**<br>_serve the nuxt client_`"]
   db["`**postgres database**`"]
 
-  browser <-- **localhost:8080** <br> _APIs w/ HTTPS_ --> caddy
-  browser <-- **localhost:3001** <br> _web client w/ HTTPS_ --> caddy
+  browser <-- <b>https:\/\/</b>localhost:5173 --> caddy
 
-  caddy <-- localhost:8081 --> server
+  caddy <-- localhost:3001 --> server
   caddy <-- localhost:3000 --> client
-  server <-- localhost:5432 --> db
+  server <-- postgres:5432 --> db
 
   subgraph db_container["container"]
     db
@@ -47,9 +46,8 @@ flowchart TD
   style host_subgraph fill:transparent
   style devcontainer fill:transparent
 ```
-- why Caddy in the middle? search the internet for `cookies samesite=none secure`.
 - if you're using wsl, run caddy **on windows, not inside wsl** for it to install the cert into the windows certificate store.
-- the command: `caddy run --config Caddyfile`
+- the command: `caddy run -c Caddyfile`
 </details>
 
 <details>
@@ -144,7 +142,7 @@ flowchart LR
 </details>
 
 ## repo structure
-- `.devcontainer/`: everything needed for the development environment (`mold` linker, `dav1d`, `7zz`, etc.)
+- `.devcontainer/`: everything needed for the development environment
 - `benches/`: some micro benchmarks
 - `database/`: schemas, migrations `.sql` files
 - `src/`: the nuxt spa web client
