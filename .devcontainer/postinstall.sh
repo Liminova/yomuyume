@@ -75,6 +75,12 @@ if [ ! -f $DEVCONTAINER_DIR/7zz ] || [ "$(md5sum $DEVCONTAINER_DIR/7zz | awk '{p
     fi
 fi
 
+# use binstall so we don't have to compile
+curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+echo 'export PATH="/usr/local/cargo/bin:$PATH"' >> ~/.zshrc
+
+cargo binstall nrr
+
 # install volta
 curl https://get.volta.sh | bash
 export VOLTA_HOME="$HOME/.volta"
