@@ -2,7 +2,7 @@ use std::fs::DirEntry;
 
 use crate::{
     library_processor::dir_entry_guesser::{ScannedChapterInfo, ScannedChapterType},
-    traits::pathbuf_utils::PathBufUtils,
+    traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
     utils::{
         archive_file::{ArchiveFile, ItemsInArchiveUtils},
         macros::bail_if_empty,
