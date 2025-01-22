@@ -7,7 +7,5 @@ definePageMeta({
 </script>
 
 <template>
-	<div>
-		Account Settings
-	</div>
+	<div>Continue reading</div>
 </template>

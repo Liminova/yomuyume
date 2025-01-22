@@ -1,28 +1,19 @@
 <script setup lang="ts">
-import { getSwiperBreakpoint } from "~/composables/swiperBreakPoint";
-import NavDrawerWrapper from "~/layouts/NavDrawerWrapper.vue";
+import { onMounted, onUnmounted, ref } from "vue";
+
+import { useRoute } from "#app";
+import { NuxtLink } from "#components";
+import type { FilterTitleResponseBody } from "~/composables/api/content";
+import { toCoverApiEndpoint } from "~/composables/api/file";
+import NavDrawerWrapper from "~/layouts/nav-drawer.vue";
+import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
 
 const imagePerRow = ref(5);
 const spaceBetween = ref(16);
 
-const categoryIdRaw = useRoute().params.id;
-const categoryId = Array.isArray(categoryIdRaw) ? categoryIdRaw[0] : categoryIdRaw;
-const snackbarMessage = ref("");
+const categoryId = useRoute().params.id as string;
 
-const titles = ref<Array<FilterItemServerResponse>>([]);
-
-void (async () => {
-	const { data, message } = await indexApi.filter({
-		category_ids: [categoryId],
-	});
-
-	if (data === undefined) {
-		snackbarMessage.value = message ?? "";
-		return;
-	}
-
-	titles.value = data;
-})();
+const titles = ref<FilterTitleResponseBody>([]);
 
 const observer = new ResizeObserver(() => {
 	const breakPoint = getSwiperBreakpoint();
@@ -32,18 +23,17 @@ const observer = new ResizeObserver(() => {
 });
 
 const imageContainerRef = ref<HTMLElement | null>(null);
-
 onMounted(() => {
-	if (imageContainerRef.value === null) {
-		return;
-	}
-
+	if (imageContainerRef.value === null) { return; }
 	observer.observe(imageContainerRef.value);
+});
+
+onUnmounted(() => {
+	observer.disconnect();
 });
 </script>
 
 <template>
-	<Snackbar :message="snackbarMessage" @close="snackbarMessage = ''" />
 	<NavDrawerWrapper>
 		<div
 			ref="imageContainerRef"
@@ -51,23 +41,23 @@ onMounted(() => {
 			:style="{
 				gridTemplateColumns: `repeat(${imagePerRow}, 1fr)`,
 				gap: `${spaceBetween}px`,
-			}"
-		>
-			<nuxt-link v-for="title in titles" :key="title.id" :to="`/title/${title.id}`">
+			}">
+			<NuxtLink
+				v-for="title in titles"
+				:key="title.id"
+				:to="`/title/${title.id}`">
 				<ItemCard
 					:title="title.title"
 					:author="title.author ?? 'Unknown'"
 					:title-id="title.id"
 					:cover="{
-						width: title.width,
-						height: title.height,
-						blurhash: title.blurhash,
-						format: title.format,
-						src: fileApiUrl.cover(title.id),
-					}"
-				>
-				</ItemCard>
-			</nuxt-link>
+						width: title.cover_width,
+						height: title.cover_height,
+						blurhash: title.cover_blurhash,
+						format: title.cover_format,
+						src: toCoverApiEndpoint(title.id),
+					}" />
+			</NuxtLink>
 		</div>
 	</NavDrawerWrapper>
 </template>
