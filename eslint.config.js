@@ -23,6 +23,17 @@ export default [
 			"no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
 			"vue/html-indent": ["error", "tab"],
 			"vue/multi-word-component-names": "off",
+			"vue/html-closing-bracket-newline": [
+				"error",
+				{
+					"singleline": "never",
+					"multiline": "never",
+					"selfClosingTag": {
+						"singleline": "never",
+						"multiline": "never"
+					}
+				}
+			],
 		}
 	},
 
