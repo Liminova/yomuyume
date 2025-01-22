@@ -1,7 +1,12 @@
+<script setup lang="ts">
+import { Toaster } from "~/components/ui/sonner";
+import { useTheme } from "~/composables/use-theme";
+useTheme();
+</script>
+
 <template>
-	<div>
-		<NuxtLayout>
-			<NuxtPage />
-		</NuxtLayout>
-	</div>
+	<NuxtLayout>
+		<Toaster />
+		<NuxtPage />
+	</NuxtLayout>
 </template>
