@@ -1,7 +1,7 @@
 DROP TABLE IF EXISTS categories CASCADE;
 CREATE TABLE categories (
     id BIGINT PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT,
     description TEXT,
     path TEXT NOT NULL,
 
