@@ -1,16 +1,21 @@
-import { isAvifSupported, isJxlSupported } from "./isFormatSupported";
-import { BLURHASH_WORKER_COUNT, IMAGE_WORKER_COUNT } from "./workerCount";
-import type { MyImage } from "~/composables/types";
+/* eslint-disable @typescript-eslint/class-methods-use-this, class-methods-use-this, @typescript-eslint/explicit-member-accessibility */
 
-type blurhashQueueType = {
+import type { Ref } from "vue";
+
+import type { MyImage } from "~/lib/types";
+
+import { isAvifSupported, isJxlSupported } from "./is-format-supported";
+import { BLURHASH_WORKER_COUNT, IMAGE_WORKER_COUNT } from "./worker-count";
+
+interface blurhashQueueType {
 	data: [string, number, number] /** blurhash, width, height */;
 	renderedDataRef: Ref<string>;
-};
+}
 
-type imageQueueType = {
+interface imageQueueType {
 	data: [string, string, string] /** src, format, jwt token */;
 	renderedDataRef: Ref<string>;
-};
+}
 
 async function isNative(format: string): Promise<boolean> {
 	switch (format) {
@@ -24,10 +29,15 @@ async function isNative(format: string): Promise<boolean> {
 }
 
 class WebWorkerRenderer {
-	private readonly blurhashQueue: Array<blurhashQueueType> = [];
-	private readonly imageQueue: Array<imageQueueType> = [];
+	private readonly blurhashQueue: blurhashQueueType[] = [];
 
-	private readonly blurhashWorkers: Array<{ instance: Worker; isReady: boolean }> = [];
+	private readonly imageQueue: imageQueueType[] = [];
+
+	private readonly blurhashWorkers: Array<{
+		instance: Worker;
+		isReady: boolean;
+	}> = [];
+
 	private imageWorkers: Array<{ instance: Worker; isReady: boolean }> = [];
 
 	private polyfillWorkersSpunUp = false;
@@ -42,7 +52,7 @@ class WebWorkerRenderer {
 		}));
 	}
 
-	private spinUpPolyfillWorkers() {
+	private spinUpPolyfillWorkers(): void {
 		this.polyfillWorkersSpunUp = true;
 		this.imageWorkers = Array.from({ length: IMAGE_WORKER_COUNT }, () => ({
 			instance: new Worker(new URL("./workers/image.web.ts", import.meta.url), {
@@ -55,9 +65,9 @@ class WebWorkerRenderer {
 
 	private processQueue(
 		queue: Array<blurhashQueueType | imageQueueType>,
-		workers: Array<{ instance: Worker; isReady: boolean }>
-	) {
-		const freeWorker = workers.find((worker) => worker.isReady);
+		workers: Array<{ instance: Worker; isReady: boolean }>,
+	): void {
+		const freeWorker = workers.find(worker => worker.isReady);
 
 		if (freeWorker && queue.length > 0) {
 			const job = queue.shift();
@@ -67,7 +77,7 @@ class WebWorkerRenderer {
 			}
 
 			freeWorker.isReady = false;
-			freeWorker.instance.onmessage = (event: MessageEvent<string>) => {
+			freeWorker.instance.onmessage = (event: MessageEvent<string>): void => {
 				job.renderedDataRef.value = event.data;
 				freeWorker.isReady = true;
 				this.processQueue(queue, workers);
@@ -77,7 +87,7 @@ class WebWorkerRenderer {
 		}
 	}
 
-	async new(image: MyImage, blurhashRef: Ref<string>, imageRef: Ref<string>) {
+	async new(image: MyImage, blurhashRef: Ref<string>, imageRef: Ref<string>): Promise<void> {
 		// Decode blurhash
 		if (image.width !== undefined && image.height !== undefined && image.blurhash) {
 			this.blurhashQueue.push({
@@ -100,7 +110,7 @@ class WebWorkerRenderer {
 
 		// Decode image
 		this.imageQueue.push({
-			data: [image.src, image.format, globalStore.token],
+			data: [image.src, image.format],
 			renderedDataRef: imageRef,
 		});
 		this.processQueue(this.imageQueue, this.imageWorkers);
@@ -108,7 +118,7 @@ class WebWorkerRenderer {
 }
 
 class SharedWorkerRenderer {
-	async new(image: MyImage, blurhashRef: Ref<string>, imageRef: Ref<string>) {
+	async new(image: MyImage, blurhashRef: Ref<string>, imageRef: Ref<string>): Promise<void> {
 		// Decode blurhash
 		if (image.width !== undefined && image.height !== undefined && image.blurhash) {
 			const blurhashWorker = new SharedWorker(
@@ -116,11 +126,13 @@ class SharedWorkerRenderer {
 				{
 					type: "module",
 					name: "blurhashRenderer",
-				}
+				},
 			);
 
-			blurhashWorker.port.onmessage = (event: MessageEvent<string>) =>
-				(blurhashRef.value = event.data);
+			blurhashWorker.port.onmessage = (event: MessageEvent<string>): void => {
+				blurhashRef.value = event.data;
+			};
+
 			blurhashWorker.port.postMessage([image.blurhash, image.width, image.height]);
 		}
 
@@ -136,10 +148,10 @@ class SharedWorkerRenderer {
 			{
 				type: "module",
 				name: "imageRenderer",
-			}
+			},
 		);
 
-		imageWorker.port.onmessage = (event: MessageEvent<string>) => {
+		imageWorker.port.onmessage = (event: MessageEvent<string>): void => {
 			imageRef.value = event.data;
 		};
 
@@ -158,7 +170,7 @@ const renderer = "SharedWorker" in window ? new SharedWorkerRenderer() : new Web
 export default function renderImage(
 	image: MyImage,
 	blurhashRef: Ref<string>,
-	imageRef: Ref<string>
-) {
+	imageRef: Ref<string>,
+): void {
 	void renderer.new(image, blurhashRef, imageRef);
 }

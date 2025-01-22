@@ -1,13 +1,14 @@
 import avifDec from "~/assets/polyfill/avif_dec";
 import jxlDec from "~/assets/polyfill/jxl_dec";
 
-function getDecoder(format: string) {
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+function getDecoder(format: string): Promise<any> {
 	switch (format) {
 		case "jxl":
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 			return Promise.resolve(jxlDec());
 		case "avif":
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 			return Promise.resolve(avifDec());
 		default:
 			throw new Error(`Unknown format to polyfill: ${format}`);
@@ -23,7 +24,7 @@ export default async function imageDecode(data: [string, string, string]): Promi
 	const [src, format, token] = data;
 
 	/** Fetch image from network */
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 	const decoder = await getDecoder(format);
 	const response = await fetch(src, {
 		method: "GET",
