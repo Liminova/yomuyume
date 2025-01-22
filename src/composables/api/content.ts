@@ -78,7 +78,7 @@ export interface FilterTitleRequestBody {
 	tag_ids?: string[];
 }
 
-export type FilterTitleResponseBody = Array<{
+export interface TitleFromFilter {
 	author?: string;
 	category_id?: string;
 	cover_blurhash?: string;
@@ -91,7 +91,9 @@ export type FilterTitleResponseBody = Array<{
 	page_read?: number;
 	release?: string;
 	title?: string;
-}>;
+}
+
+export type FilterTitleResponseBody = TitleFromFilter[];
 
 export function useFilterTitle() {
 	return useMutation({
