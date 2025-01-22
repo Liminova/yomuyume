@@ -1,80 +1,58 @@
 <script setup lang="ts">
-import "@material/web/chips/assist-chip.js";
-import { homeStore } from "./utils";
-import type { FilterTitleResponseBody, TagResponseBody } from "~/composables/bridge";
-import ImagePoly from "~/components/ImagePoly.vue";
-import { fileApiUrl, indexApi, utilsApi } from "~/composables/api";
+import { ref } from "vue";
 
-const props = defineProps({
-	previewTitle: {
-		type: Object as () => FilterTitleResponseBody,
-		required: true,
-	},
-	isFirstTitle: { type: Boolean, default: true },
-	isLastTitle: { type: Boolean, default: false },
+import { NuxtLink } from "#components";
+import ImagePoly from "~/components/ImagePoly.vue";
+import { type TitleFromFilter, useGetTags } from "~/composables/api/content";
+import { toCoverApiEndpoint } from "~/composables/api/file";
+import type { MyImage } from "~/lib/types";
+
+import { homeStore } from "./utils";
+
+const props = withDefaults(defineProps<{
+	title: TitleFromFilter;
+	isFirstTitle?: boolean;
+	isLastTitle?: boolean;
+}>(), {
+	isFirstTitle: true,
+	isLastTitle: false,
 });
 
-const cover = {
-	src: fileApiUrl.cover(props.previewTitle.id),
-	width: props.previewTitle.width,
-	height: props.previewTitle.height,
-	format: props.previewTitle.format,
-	blurhash: props.previewTitle.blurhash,
+const cover: MyImage = {
+	src: toCoverApiEndpoint(props.title.id),
+	width: props.title.cover_width,
+	height: props.title.cover_height,
+	format: props.title.cover_format ?? "",
+	blurhash: props.title.cover_blurhash,
 };
 
 const store = homeStore();
-const fullTitle: Ref<TitleServerResponse> = ref({}) as Ref<TitleServerResponse>;
-const titleTagNames = ref<Array<string>>([]);
-const tagList = ref<Array<TagResponseBody>>([]);
-
-void (async () => {
-	const tagResp = await utilsApi.tags();
-
-	if (tagResp.data === undefined) {
-		store.snackbarMessage = tagResp.message ?? "";
-		return;
-	}
-
-	tagList.value = tagResp.data.data;
-
-	const resp = await indexApi.title(props.previewTitle.id);
-
-	if (resp.data === undefined) {
-		store.snackbarMessage = resp.message ?? "";
-		return;
-	}
-
-	fullTitle.value = resp.data;
-
-	titleTagNames.value = Array.from(resp.data.tag_ids).map((tagId: number) => {
-		const tagName = tagList.value.find((tag) => tag.id === tagId);
-
-		return tagName ? tagName.name : "";
-	});
-})();
-
-/** */
+const titleTagNames = ref<string[]>([]);
+const tags = useGetTags();
 </script>
 
 <template>
-	<nuxt-link
-		:to="`/title/${props.previewTitle.id}`"
+	<NuxtLink
+		:to="`/title/${props.title.id}`"
 		class="relative flex h-full flex-row justify-center overflow-hidden bg-black/50 sm:static"
-		:class="{ 'rounded-l-3xl': props.isFirstTitle, 'rounded-r-3xl': props.isLastTitle }"
-	>
+		:class="{
+			'rounded-l-3xl': props.isFirstTitle,
+			'rounded-r-3xl': props.isLastTitle,
+		}">
 		<!-- Background -->
 		<div
 			class="absolute left-0 top-0 z-[-1] hidden w-full overflow-hidden sm:block"
-			:class="{ 'rounded-l-3xl': props.isFirstTitle, 'rounded-r-3xl': props.isLastTitle }"
-			:style="{ height: `${store.recommendsContainerHeight}px` }"
-		>
+			:class="{
+				'rounded-l-3xl': props.isFirstTitle,
+				'rounded-r-3xl': props.isLastTitle,
+			}"
+			:style="{ height: `${store.recommendsContainerHeight}px` }">
 			<ImagePoly
 				class="w-full scale-110 overflow-hidden object-cover blur-sm"
 				:draggable="false"
 				:image="cover"
 				image-class="overflow-hidden"
-				:lazy="false"
-			/>
+				:lazy="false" />
 		</div>
 
 		<!-- Cover -->
@@ -83,50 +61,58 @@ void (async () => {
 				:draggable="false"
 				:image="cover"
 				class="h-full overflow-hidden lg:rounded-2xl"
-				image-class="h-full object-cover"
-			/>
+				image-class="h-full object-cover" />
 		</div>
 
 		<div
-			class="pointer-events-none absolute left-0 top-0 flex size-full bg-black/50 sm:hidden"
-		/>
+			class="pointer-events-none absolute left-0 top-0 flex size-full bg-black/50 sm:hidden" />
 
 		<!-- Informations -->
 		<div
-			class="absolute left-0 top-0 z-[1] flex size-full flex-col justify-end p-7 sm:static sm:z-auto sm:max-w-3xl sm:justify-start sm:bg-transparent sm:p-10"
-		>
-			<div class="text-lg font-light" data-theme="dark">
-				{{ props.previewTitle.author ?? "Unknown" }}
+			class="absolute left-0 top-0 z-[1] flex size-full flex-col justify-end p-7 sm:static sm:z-auto sm:max-w-3xl sm:justify-start sm:bg-transparent sm:p-10">
+			<div
+				class="text-lg font-light"
+				data-theme="dark">
+				{{ props.title.author ?? "Unknown" }}
 			</div>
-			<div class="truncate-2 mb-1 text-balance text-3xl font-bold" data-theme="dark">
-				{{ props.previewTitle.title }}
+			<div
+				class="truncate-2 mb-1 text-balance text-3xl font-bold"
+				data-theme="dark">
+				{{ props.title.title }}
 			</div>
 
 			<div class="truncate">
-				{{ props.previewTitle.release }}
+				{{ props.title.release }}
 			</div>
 
-			<div v-if="titleTagNames.includes(`completed`)" class="mb-2" data-theme="dark">
+			<div
+				v-if="titleTagNames.includes(`completed`)"
+				class="mb-2"
+				data-theme="dark">
 				<i class="fa-solid fa-circle-check mr-2" />
 				<span>Completed</span>
 			</div>
 
 			<div
 				v-if="titleTagNames.length !== 0"
-				class="mb-2 hidden flex-row flex-wrap gap-2 sm:flex"
-			>
-				<span v-for="tag in titleTagNames" :key="tag">
-					<md-assist-chip :key="tag" :label="tag" class="elevation-3" />
+				class="mb-2 hidden flex-row flex-wrap gap-2 sm:flex">
+				<span
+					v-for="tag in titleTagNames"
+					:key="tag">
+					<!-- <md-assist-chip
+						:key="tag"
+						:label="tag"
+						class="elevation-3"
+					/> -->
 				</span>
 			</div>
 
-			<div
-				v-if="fullTitle.description"
+			<!-- <div
+				v-if="props.title.description"
 				class="truncate-5 sm:truncate-8 z-[1] overflow-hidden"
-				data-theme="dark"
-			>
-				{{ fullTitle.description }}
-			</div>
+				data-theme="dark">
+				{{ props.title.description }}
+			</div> -->
 		</div>
-	</nuxt-link>
+	</NuxtLink>
 </template>
