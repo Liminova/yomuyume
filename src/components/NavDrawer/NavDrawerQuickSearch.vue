@@ -1,0 +1,26 @@
+<script setup lang="ts">
+import { useVibrate } from "@vueuse/core";
+
+import { NuxtLink } from "#components";
+const vibrate = useVibrate();
+</script>
+
+<template>
+	<NuxtLink
+		to="/filter"
+		class="elevation-1 relative overflow-hidden rounded-full"
+		@click="vibrate.vibrate">
+		<div
+			class="w-xs hidden h-12 flex-row items-center justify-between rounded-full bg-[--md-sys-color-surface-container-high] pl-4 pr-3 md:flex">
+			<div class="flex w-full items-center justify-center gap-4">
+				<i class="fa-light fa-filters text-xl text-[--md-sys-color-on-surface-variant]" />
+				<div class="bg-transparent pr-24 dark:text-[--md-sys-color-primary-fixed-dim]">
+					Ctrl + K
+				</div>
+			</div>
+		</div>
+		<div class="flex size-12 items-center justify-center md:hidden">
+			<i class="fa-light fa-filters text-[--md-sys-color-on-surface-variant)] text-2xl" />
+		</div>
+	</NuxtLink>
+</template>
