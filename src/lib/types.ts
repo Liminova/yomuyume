@@ -3,6 +3,6 @@ export interface MyImage {
 	width?: number;
 	height?: number;
 	blurhash?: string;
-	format: string;
+	format?: string;
 }
 
