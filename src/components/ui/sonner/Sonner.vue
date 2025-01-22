@@ -17,6 +17,5 @@ const props = defineProps<ToasterProps>();
 				cancelButton:
 					'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
 			},
-		}"
-	/>
+		}" />
 </template>

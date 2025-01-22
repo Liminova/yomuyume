@@ -6,8 +6,6 @@ import { cn } from "~/lib/utils";
 
 import { type ButtonVariants, buttonVariants } from ".";
 
-// interface Props extends PrimitiveProps
-
 const props = withDefaults(defineProps<PrimitiveProps & {
 	variant?: ButtonVariants["variant"];
 	size?: ButtonVariants["size"];
@@ -24,8 +22,7 @@ const props = withDefaults(defineProps<PrimitiveProps & {
 	<Primitive
 		:as="as"
 		:as-child="asChild"
-		:class="cn(buttonVariants({ variant, size }), props.class)"
-	>
+		:class="cn(buttonVariants({ variant, size }), props.class)">
 		<slot />
 	</Primitive>
 </template>
