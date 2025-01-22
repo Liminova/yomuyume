@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import { swiperBreakpoints } from "~/lib/swiper-break-points";
+
 import { homeStore } from "./utils";
-import { swiperBreakpoints } from "~/composables/swiperBreakPoint";
 
 const store = homeStore();
-
-/** */
 </script>
 
 <template>
@@ -12,8 +11,7 @@ const store = homeStore();
 		class="w-full overflow-hidden rounded-t-xl"
 		:space-between="store.gapPixel"
 		:slides-per-view="2"
-		:breakpoints="swiperBreakpoints"
-	>
+		:breakpoints="swiperBreakpoints">
 		<slot />
 	</swiper-container>
 </template>
