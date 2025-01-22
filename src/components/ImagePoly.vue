@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import renderImage from "./ImagePoly/renderImage";
-import type { MyImage } from "~/composables/types";
+import { ref } from "vue";
 
-const props = defineProps({
-	class: { type: String, default: "" },
-	draggable: { type: Boolean, default: false },
-	image: { type: Object as () => MyImage, required: true },
-	imageClass: { type: String, default: "" },
-	lazy: { type: Boolean, default: true },
+import type { MyImage } from "~/lib/types";
+
+import renderImage from "./ImagePoly/render-image";
+
+const props = withDefaults(defineProps<{
+	class?: string;
+	draggable?: boolean;
+	image: MyImage;
+	imageClass?: string;
+	lazy?: boolean;
+}>(), {
+	class: "",
+	draggable: false,
+	imageClass: "",
+	lazy: true,
 });
 
 const blurhashUrl = ref("");
@@ -16,7 +24,7 @@ const imageFullyLoaded = ref(false);
 
 const emit = defineEmits(["loaded"]);
 
-function handleImageLoad() {
+function handleImageLoad(): void {
 	imageFullyLoaded.value = true;
 	emit("loaded");
 }
@@ -25,7 +33,9 @@ renderImage(props.image, blurhashUrl, imageUrl);
 </script>
 
 <template>
-	<div class="relative" :class="props.class">
+	<div
+		class="relative"
+		:class="props.class">
 		<!-- Blurhash placeholder -->
 		<img
 			v-if="props.image.blurhash && blurhashUrl && !imageFullyLoaded"
@@ -36,8 +46,7 @@ renderImage(props.image, blurhashUrl, imageUrl);
 			}"
 			:class="props.imageClass"
 			:src="blurhashUrl"
-			:draggable="props.draggable"
-		/>
+			:draggable="props.draggable">
 
 		<!-- Actual image -->
 		<img
@@ -51,7 +60,6 @@ renderImage(props.image, blurhashUrl, imageUrl);
 			:src="imageUrl"
 			:class="props.imageClass"
 			:draggable="props.draggable"
-			@load="handleImageLoad"
-		/>
+			@load="handleImageLoad">
 	</div>
 </template>
