@@ -150,19 +150,17 @@ pub fn handle_title_as_directory(
         // use `page_cfg_path` to store in ComicInfo and DB
         let mut page_abs_path = None;
         let mut page_modified = None;
-        let page_cfg_and_path = comicinfo
+        let page_cfg = comicinfo
             .pages_mut()
             .iter_mut()
             // is configured as Cover
             .filter(|pc| pc.page_type == ComicPageType::FrontCover)
-            // contains page path
-            .filter_map(|page_cfg| {
-                page_cfg
-                    .image_path
-                    .clone()
-                    .map(|page_cfg_path| (page_cfg, page_cfg_path))
-            })
-            .find(|(_, page_cfg_path)| {
+            .filter(|page_cfg| page_cfg.image_path.is_some())
+            .find(|page_cfg| {
+                let Some(ref page_cfg_path) = page_cfg.image_path else {
+                    unreachable!()
+                };
+
                 pages_in_dir
                     .iter()
                     .filter_map(|page| page.last_modified.map(|m| (page, m)))
@@ -186,8 +184,8 @@ pub fn handle_title_as_directory(
             });
 
         // and use it if the fields are valid or encode-able to blurhash
-        if let Some(((page_cfg, page_cfg_path), (page_abs_path, modified))) =
-            page_cfg_and_path.zip(page_abs_path.zip(page_modified))
+        if let Some((page_cfg, (page_abs_path, modified))) =
+            page_cfg.zip(page_abs_path.zip(page_modified))
         {
             // use the configured page if lgtm
             if page_cfg
@@ -201,10 +199,10 @@ pub fn handle_title_as_directory(
                     valid_dimension && unmodified
                 })
                 .map(|(bh, _)| {
-                    cover_path = Some(page_cfg_path.clone());
-                    cover_blurhash = Some(bh.clone());
-                    cover_width = Some(page_cfg.image_width);
-                    cover_height = Some(page_cfg.image_height);
+                    cover_path.clone_from(&page_cfg.image_path);
+                    cover_blurhash.clone_from(&Some(bh.clone()));
+                    cover_width.clone_from(&Some(page_cfg.image_width));
+                    cover_height.clone_from(&Some(page_cfg.image_height));
                 })
                 .is_some()
             {
@@ -222,10 +220,10 @@ pub fn handle_title_as_directory(
                     page_cfg.image_height = bh_result.height;
                     page_cfg.modified_date_at_encode = Some(modified);
 
-                    cover_path = Some(page_cfg_path);
-                    cover_blurhash = Some(bh_result.blurhash);
-                    cover_width = Some(page_cfg.image_width);
-                    cover_height = Some(page_cfg.image_height);
+                    cover_path.clone_from(&page_cfg.image_path);
+                    cover_blurhash.clone_from(&Some(bh_result.blurhash));
+                    cover_width.clone_from(&Some(page_cfg.image_width));
+                    cover_height.clone_from(&Some(page_cfg.image_height));
                 })
                 .is_some()
             {

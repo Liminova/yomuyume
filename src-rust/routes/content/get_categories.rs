@@ -15,7 +15,7 @@ use crate::utils::{app_error::AppError, app_state::AppState, macros::bail_if_emp
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct CategoryResponseBody {
     pub id: String,
-    pub name: String,
+    pub name: Option<String>,
     pub description: Option<String>,
 }
 

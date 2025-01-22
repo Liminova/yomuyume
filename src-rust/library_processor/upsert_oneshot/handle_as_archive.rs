@@ -50,23 +50,22 @@ pub fn handle_title_as_archive(
     'cover_finder: {
         // check if there's a configured cover
         let mut page_modified = None;
-        let page_cfg_and_path = comicinfo
+        let page_cfg = comicinfo
             .pages_mut()
             .iter_mut()
             .rev()
             .filter(|p| p.page_type == ComicPageType::FrontCover)
-            .filter_map(|page_cfg| {
-                page_cfg
-                    .image_path
-                    .clone()
-                    .map(|page_cfg_path| (page_cfg, page_cfg_path))
-            })
-            .find(|(_, page_config_path)| {
+            .filter(|page_cfg| page_cfg.image_path.is_some())
+            .find(|page_cfg| {
                 pages_in_archive
                     .iter()
                     .filter_map(|p| p.last_modified.map(|m| (p, m)))
                     .any(|(p, modified)| {
-                        if p.path == *page_config_path {
+                        let Some(ref page_cfg_path) = page_cfg.image_path else {
+                            unreachable!()
+                        };
+
+                        if p.path == *page_cfg_path {
                             page_modified = Some(modified);
                             true
                         } else {
@@ -76,7 +75,7 @@ pub fn handle_title_as_archive(
             });
 
         // and use it if the fields are valid or encode-able to blurhash
-        if let Some(((page_cfg, page_cfg_path), modified)) = page_cfg_and_path.zip(page_modified) {
+        if let Some((page_cfg, modified)) = page_cfg.zip(page_modified) {
             if page_cfg
                 .blurhash
                 .as_ref()
@@ -88,20 +87,24 @@ pub fn handle_title_as_archive(
                     valid_dimension && unmodified
                 })
                 .map(|(bh, _)| {
-                    cover_path = Some(page_cfg_path.clone());
-                    cover_blurhash = Some(bh.clone());
-                    cover_width = Some(page_cfg.image_width);
-                    cover_height = Some(page_cfg.image_height);
+                    cover_path.clone_from(&page_cfg.image_path);
+                    cover_blurhash.clone_from(&Some(bh.clone()));
+                    cover_width.clone_from(&Some(page_cfg.image_width));
+                    cover_height.clone_from(&Some(page_cfg.image_height));
                 })
                 .is_some()
             {
                 break 'cover_finder;
             };
 
+            let Some(ref page_cfg_path) = page_cfg.image_path else {
+                unreachable!()
+            };
+
             // try re-encode if something went wrong
             if title_path
                 .as_ref()
-                .to_blurhash_from_archive(&page_cfg_path)
+                .to_blurhash_from_archive(page_cfg_path)
                 .okay(|e| warn!("can't re-encode cover file: {e:?}"))
                 .map(|blurhash_result| {
                     page_cfg.blurhash = Some(blurhash_result.blurhash.clone());
@@ -109,10 +112,10 @@ pub fn handle_title_as_archive(
                     page_cfg.image_height = blurhash_result.height;
                     page_cfg.modified_date_at_encode = Some(modified);
 
-                    cover_path = Some(page_cfg_path);
-                    cover_blurhash = Some(blurhash_result.blurhash);
-                    cover_width = Some(page_cfg.image_width);
-                    cover_height = Some(page_cfg.image_height);
+                    cover_path.clone_from(&page_cfg.image_path);
+                    cover_blurhash.clone_from(&Some(blurhash_result.blurhash));
+                    cover_width.clone_from(&Some(page_cfg.image_width));
+                    cover_height.clone_from(&Some(page_cfg.image_height));
                 })
                 .is_some()
             {

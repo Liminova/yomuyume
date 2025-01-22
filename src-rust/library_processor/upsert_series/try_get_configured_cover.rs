@@ -1,7 +1,7 @@
 use tracing::warn;
 
 use crate::{
-    library_processor::upsert_series::{ChapterInfo, ChapterType},
+    library_processor::upsert_series::{ChapterInfo, ChapterType, PageInArchive, PageInDirectory},
     traits::{
         do_something_and_ok::DoSomethingAndOk,
         to_blurhash::{ToBlurhashFromArchive, ToBlurhashFromFile},
@@ -11,6 +11,11 @@ use crate::{
         comic_info::ComicPageInfo,
     },
 };
+
+enum MatchedPage<'a> {
+    Archive(&'a PageInArchive),
+    Directory(&'a PageInDirectory),
+}
 
 pub fn try_get_configured_cover(
     page_cfg: &ComicPageInfo,
@@ -77,11 +82,12 @@ pub fn try_get_configured_cover(
         .iter()
         .find(|chapter| chapter.path == page_cfg_chapter_abs_path)?;
 
-    let (real_p_modified, real_p_path) = match &matched_chapter.chapter_type {
+    let matched_page = match &matched_chapter.chapter_type {
         ChapterType::Archive(pages) => pages
             .iter()
             .find(|p| p.path == splitted_page_cfg_path.1)
-            .map(|p| (p.last_modified, None)),
+            // .map(|p| (p.last_modified, None)),
+            .map(MatchedPage::Archive),
         ChapterType::Directory(pages) => {
             let page_cfg_abs_path = page_cfg_chapter_abs_path
                 .as_ref()
@@ -91,9 +97,14 @@ pub fn try_get_configured_cover(
             pages
                 .iter()
                 .find(|p| p.path == page_cfg_abs_path)
-                .map(|p| (p.last_modified, Some(p.path.clone())))
+                .map(MatchedPage::Directory)
         }
     }?;
+
+    let real_p_modified = match matched_page {
+        MatchedPage::Archive(p) => p.last_modified,
+        MatchedPage::Directory(p) => p.last_modified,
+    };
 
     if page_cfg.blurhash.is_some()
         && page_cfg.blurhash != Some(String::new())
@@ -110,8 +121,8 @@ pub fn try_get_configured_cover(
     }
 
     // try re-encode the configured page
-    match matched_chapter.chapter_type {
-        ChapterType::Archive(_) => {
+    match matched_page {
+        MatchedPage::Archive(page) => {
             let blurhash = matched_chapter
                 .path
                 .as_ref()
@@ -126,12 +137,14 @@ pub fn try_get_configured_cover(
             cover_height.clone_from(&Some(page_cfg.image_height));
             Some(())
         }
-        ChapterType::Directory(_) => {
-            let real_p_path = real_p_path?;
-            let blurhash = real_p_path
-                .as_ref()
-                .to_blurhash_from_file()
-                .okay(|e| warn!("can't use `{real_p_path}` as cover for `{title_path}`: {e:?}"))?;
+        // ChapterType::Directory(_) => {
+        MatchedPage::Directory(page) => {
+            let blurhash = page.path.as_ref().to_blurhash_from_file().okay(|e| {
+                warn!(
+                    "can't use `{}` as cover for `{title_path}`: {e:?}",
+                    page.path
+                );
+            })?;
 
             cover_path.clone_from(&page_cfg.image_path);
             cover_blurhash.clone_from(&Some(blurhash.blurhash));

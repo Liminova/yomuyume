@@ -16,8 +16,8 @@ use crate::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum UpsertCategoryErr {
-    #[error("can't convert category path to absolute")]
-    ConvertToAbsolute(AbsolutePathErr),
+    #[error("can't perform absolute/relative path conversion: {0:?}")]
+    AbsolutePath(AbsolutePathErr),
 
     #[error("can't read CategoryInfo.xml: {0:?}")]
     CategoryInfoRead(std::io::Error),
@@ -48,7 +48,7 @@ pub async fn upsert_category<'e>(
 ) -> Result<Option<CategoryID>, UpsertCategoryErr> {
     let category_path = match category_path {
         Some(category_path) => {
-            AbsolutePath::from(category_path, None).map_err(UpsertCategoryErr::ConvertToAbsolute)?
+            AbsolutePath::from(category_path, None).map_err(UpsertCategoryErr::AbsolutePath)?
         }
         None => return Ok(None),
     };
@@ -161,14 +161,11 @@ pub async fn upsert_category<'e>(
             .snowflake()
             .await
             .map_err(UpsertCategoryErr::GenerateID)?,
-        category_info
-            .name
-            .clone()
-            .unwrap_or_else(|| "Untitled".to_string()),
+        category_info.name.as_ref(),
         category_info.description.as_ref(),
         category_path
             .to_relative(Some(&app_state.config.library_path))
-            .map_err(UpsertCategoryErr::ConvertToAbsolute)?
+            .map_err(UpsertCategoryErr::AbsolutePath)?
             .to_string_lossy()
             .to_string(),
         configured_cover_path,

@@ -299,7 +299,7 @@ pub async fn upsert_series(
     };
 
     '_upsert_chapters_pages: {
-        let total_page_count: usize = handled_chapters
+        let series_page_count: usize = handled_chapters
             .iter()
             .map(|chapter| match chapter.chapter_type {
                 ChapterType::Archive(ref pages) => pages.len(),
@@ -308,19 +308,19 @@ pub async fn upsert_series(
             .sum();
 
         let mut page_ids_pool =
-            join_all((0..total_page_count).map(|_| app_state.id_generator.snowflake()))
+            join_all((0..series_page_count).map(|_| app_state.id_generator.snowflake()))
                 .await
                 .into_iter()
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(UpsertTitleErr::GenPageIDs)?;
 
-        let mut chapter_ids = Vec::with_capacity(handled_chapters.len());
-        let mut page_ids = Vec::with_capacity(total_page_count);
-        let mut page_paths = Vec::with_capacity(total_page_count);
-        let mut page_filesizes = Vec::with_capacity(total_page_count);
-        let mut page_descriptions = Vec::with_capacity(total_page_count);
+        let mut chapter_ids = Vec::with_capacity(series_page_count);
+        let mut page_ids = Vec::with_capacity(series_page_count);
+        let mut page_paths = Vec::with_capacity(series_page_count);
+        let mut page_filesizes = Vec::with_capacity(series_page_count);
+        let mut page_descriptions = Vec::with_capacity(series_page_count);
 
-        'next_chapter: for chapter in &handled_chapters {
+        'next_chapter: for chapter in handled_chapters {
             let Some(chapter_path_string) = chapter
                 .path
                 .to_relative(Some(&title_path))
@@ -335,7 +335,7 @@ pub async fn upsert_series(
                 continue 'next_chapter;
             };
 
-            match &chapter.chapter_type {
+            match chapter.chapter_type {
                 ChapterType::Archive(pages) => {
                     for page in pages {
                         chapter_ids.push(*chapter_id);
@@ -345,9 +345,9 @@ pub async fn upsert_series(
                             warn!("can't get page ID from pool, this should never happen");
                             continue 'next_chapter;
                         });
-                        page_paths.push(page.path.clone());
+                        page_paths.push(page.path);
                         page_filesizes.push(page.size.unwrap_or_default());
-                        page_descriptions.push(page.description.clone().unwrap_or_default());
+                        page_descriptions.push(page.description.unwrap_or_default());
                     }
                 }
                 ChapterType::Directory(pages) => {
@@ -368,7 +368,7 @@ pub async fn upsert_series(
                             warn!("can't get page ID from pool, this should never happen");
                             continue 'next_chapter;
                         });
-                        page_descriptions.push(page.description.clone().unwrap_or_default());
+                        page_descriptions.push(page.description.unwrap_or_default());
                         page_paths.push(page_path_str);
                         page_filesizes.push(page.size.unwrap_or_default());
                     }

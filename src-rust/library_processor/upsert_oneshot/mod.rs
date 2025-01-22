@@ -143,15 +143,15 @@ pub async fn upsert_oneshot(
         let mut page_filesizes = Vec::with_capacity(page_count);
         let mut page_descriptions = Vec::with_capacity(page_count);
 
-        for page in &title.pages_in_title {
-            page_paths.push(page.path.clone());
-            page_filesizes.push(page.size.unwrap_or_default());
+        for page in title.pages_in_title {
             page_descriptions.push(
                 title
                     .comicinfo
                     .get_page_description(&page.path)
                     .unwrap_or_default(),
             );
+            page_paths.push(page.path);
+            page_filesizes.push(page.size.unwrap_or_default());
         }
 
         sqlx::query!(

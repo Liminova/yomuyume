@@ -79,7 +79,7 @@ pub async fn get_whoami(
     };
 
     let now = Utc::now();
-    if (now - record.last_used_at.unwrap_or_else(|| now)).num_seconds()
+    if (now - record.last_used_at.unwrap_or(now)).num_seconds()
         > SESSION_TOKEN_LAST_USED_AT_UPDATE_INTERVAL
     {
         sqlx::query!(

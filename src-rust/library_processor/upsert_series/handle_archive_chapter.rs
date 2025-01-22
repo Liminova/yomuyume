@@ -50,7 +50,7 @@ pub fn handle_archive_chapter(
                 .into_iter()
                 .map(|p| PageInArchive {
                     description: chapter_comicinfo.get_page_description(&p.path),
-                    path: p.path.clone(),
+                    path: p.path,
                     size: p.size,
                     last_modified: p.last_modified,
                 })
