@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Context;
 use axum::{
-    extract::State,
-    http::StatusCode,
+    extract::{ConnectInfo, State},
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
@@ -30,6 +30,8 @@ pub struct RegisterRequestBody {
     (status = 500, description = "internal server error", body = String),
 ))]
 pub async fn post_register(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     State(app_state): State<Arc<AppState>>,
     query: Json<RegisterRequestBody>,
 ) -> Result<Response, AppError> {
@@ -57,6 +59,18 @@ pub async fn post_register(
             .into_response());
     }
 
+    let ip_address = app_state
+        .config
+        .reverse_proxy_ip_header
+        .as_ref()
+        .and_then(|header| {
+            headers
+                .get(header)
+                .or_else(|| headers.get(header.to_ascii_lowercase()))
+        })
+        .and_then(|value| value.to_str().ok())
+        .map_or_else(|| addr.ip().to_string(), |ip_str| ip_str.to_string());
+
     let p = &query.password;
     let has_uppercase = p.chars().any(char::is_uppercase);
     let has_lowercase = p.chars().any(char::is_lowercase);
@@ -68,7 +82,8 @@ pub async fn post_register(
     }
 
     sqlx::query!(
-        "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO users (id, username, email, password_hash, ip_address)
+        VALUES ($1, $2, $3, $4, $5)",
         app_state
             .id_generator
             .snowflake()
@@ -76,7 +91,8 @@ pub async fn post_register(
             .context("can't generate ID for record")?,
         query.username.as_str(),
         query.email.to_string().to_ascii_lowercase(),
-        hash_pass(p)?
+        hash_pass(p)?,
+        ip_address.as_str(),
     )
     .execute(&app_state.pool)
     .await
