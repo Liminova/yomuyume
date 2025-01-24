@@ -8,10 +8,12 @@ use axum::{
     Json,
 };
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
 use crate::utils::{app_error::AppError, app_state::AppState, macros::bail_if_empty};
 
+#[skip_serializing_none]
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct CategoryResponseBody {
     pub id: String,
