@@ -22,7 +22,7 @@ mod traits;
 mod types;
 mod utils;
 
-use std::time::Duration;
+use std::{net::SocketAddr, time::Duration};
 
 use anyhow::Result;
 use app_state::AppState;
@@ -132,7 +132,7 @@ async fn main() -> Result<()> {
             TcpListener::bind(&addr)
                 .await
                 .expect("can't start tcp listener"),
-            app.into_make_service(),
+            app.into_make_service_with_connect_info::<SocketAddr>(),
         )
         .await
         {
