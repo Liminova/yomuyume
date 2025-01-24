@@ -29,7 +29,7 @@ pub async fn get_title(
     Path(title_id): Path<i64>,
     Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
-    let Some(title_record) = sqlx::query!(
+    let Some(body) = sqlx::query!(
         r#"SELECT t.title AS title,
             c.name AS "category?",
             t.author AS author,
@@ -86,52 +86,35 @@ pub async fn get_title(
     .fetch_optional(&app_state.pool)
     .await
     .context("can't query title")?
-    else {
-        return Ok((StatusCode::NOT_FOUND).into_response());
-    };
+    .map(|r| TitleResponseBody {
+        id: title_id,
+        title: r.title,
+        category_id: r.category,
+        author: r.author,
+        description: r.description,
+        release: r.release.map(|d| d.format("%Y-%m-%d").to_string()),
+        is_series: r.is_series,
 
-    let body = TitleResponseBody {
-        title: title_record.title,
-        category_id: title_record.category,
-        author: title_record.author,
-        description: title_record.description,
-        release: title_record
-            .release
-            .map(|d| d.format("%Y-%m-%d").to_string()),
-        is_series: title_record.is_series,
-
-        cover_blurhash: title_record.cover_blurhash,
-        cover_width: title_record.cover_width,
-        cover_height: title_record.cover_height,
-        tags: title_record.tags.map_or_else(Vec::new, |tags| {
-            if tags.len() == 1 && tags.first() == Some(&"-".to_string()) {
-                return Vec::new();
-            }
-
-            tags.into_iter()
-                .map(|s| {
-                    let parts = s.split('-').collect::<Vec<_>>();
-                    TitleTagResponse {
-                        id: parts.get(1).map(|s| s.to_string()).unwrap_or_default(),
-                        name: parts.first().map(|s| s.to_string()).unwrap_or_default(),
-                    }
-                })
-                .collect()
-        }),
-        cover_jxl: title_record.cover_path.map(|path| {
+        cover_blurhash: r.cover_blurhash,
+        cover_width: r.cover_width,
+        cover_height: r.cover_height,
+        tags: r.tags.tags_split(),
+        cover_jxl: r.cover_path.map(|path| {
             std::path::Path::new(&path)
                 .extension()
                 .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
         }),
 
-        date_updated: title_record.date_updated.map(|d| d.to_rfc3339()),
+        date_updated: r.date_updated.map(|d| d.to_rfc3339()),
 
-        favorites: title_record.favorites_count,
-        bookmarks: title_record.bookmarks_count,
+        favorites: r.favorites_count,
+        bookmarks: r.bookmarks_count,
 
-        is_favorite: title_record.is_favorite,
-        is_bookmark: title_record.is_bookmark,
-        page_read: title_record.page_read,
+        is_favorite: r.is_favorite,
+        is_bookmark: r.is_bookmark,
+        page_read: r.page_read,
+    }) else {
+        return Ok((StatusCode::NOT_FOUND).into_response());
     };
 
     Ok((StatusCode::OK, Json(body)).into_response())
