@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
 import { useMutation } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 
 export function useLogin() {
 	return useMutation({
@@ -15,6 +16,11 @@ export function useLogin() {
 				throw new Error(`[${response.statusText}] ${await response.text()}`);
 			}
 		},
+		onError(error) {
+			toast.error("Login failed", {
+				description: error.message,
+			});
+		},
 	});
 }
 
@@ -28,6 +34,11 @@ export function useLogout() {
 			if (!response.ok) {
 				throw new Error(`[${response.statusText}] ${await response.text()}`);
 			}
+		},
+		onError(error) {
+			toast.error("Logout failed", {
+				description: error.message,
+			});
 		},
 	});
 }
@@ -44,6 +55,11 @@ export function useRegister() {
 			if (!response.ok) {
 				throw new Error(`[${response.statusText}] ${await response.text()}`);
 			}
+		},
+		onError(error) {
+			toast.error("Register failed", {
+				description: error.message,
+			});
 		},
 	});
 }
