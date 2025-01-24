@@ -7,15 +7,15 @@
 	"license": "MIT & Apache-2.0",
 	"type": "module",
 	"scripts": {
-		"lint-client": "eslint --fix --cache src/**/*.{ts,vue}",
-		"lint-server": "cargo fmt && cargo clippy",
+		"lint:client": "eslint --fix --cache src/**/*.{ts,vue}",
+		"lint:server": "cargo fmt && cargo clippy",
 		"lint": "concurrently \"pnpm lint-client\" \"pnpm lint-server\"",
-		"dev-client": "nuxt dev",
-		"dev-server": "cargo run -p yomuyume",
+		"dev:client": "nuxt dev",
+		"dev:server": "cargo run -p yomuyume",
 		"dev": "concurrently \"pnpm dev-client\" \"pnpm dev-server\"",
 		"postinstall": "nuxt prepare",
-		"build-server": "cargo build -p yomuyume",
-		"build-client": "nuxt generate"
+		"build:server": "cargo build -p yomuyume --release",
+		"build:client": "nuxt generate"
 	},
 	"devDependencies": {
 		"@nuxtjs/color-mode": "3.5.2",
