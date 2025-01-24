@@ -144,7 +144,7 @@ pub async fn get_title(
         cover_width: title_record.cover_width,
         cover_height: title_record.cover_height,
         tags: title_record.tags.map_or_else(Vec::new, |tags| {
-            if tags.len() == 1 && tags.get(0) == Some(&"-".to_string()) {
+            if tags.len() == 1 && tags.first() == Some(&"-".to_string()) {
                 return Vec::new();
             }
 
@@ -158,7 +158,11 @@ pub async fn get_title(
                 })
                 .collect()
         }),
-        cover_jxl: title_record.cover_path.map(|path| path.ends_with(".jxl")),
+        cover_jxl: title_record.cover_path.map(|path| {
+            std::path::Path::new(&path)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
+        }),
 
         date_updated: title_record.date_updated.map(|d| d.to_rfc3339()),
 

@@ -56,7 +56,11 @@ pub async fn get_categories(State(app_state): State<Arc<AppState>>) -> Result<Re
         cover_blurhash: record.cover_blurhash,
         cover_width: record.cover_width,
         cover_height: record.cover_height,
-        cover_jxl: record.cover_path.map(|path| path.ends_with(".jxl")),
+        cover_jxl: record.cover_path.map(|path| {
+            std::path::Path::new(&path)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
+        }),
     })
     .collect::<Vec<_>>();
 
