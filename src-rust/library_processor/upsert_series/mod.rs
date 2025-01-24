@@ -261,7 +261,7 @@ pub async fn upsert_series(
 
     tracing::debug!("upserted series: `{}`", title_path.as_ref().display());
 
-    upsert_tags(&app_state, &comicinfo, &title_id, &mut *txn).await?;
+    upsert_tags(&app_state, comicinfo.tags.as_ref(), &title_id, &mut *txn).await?;
 
     let chapter_path_to_id = '_upsert_chapters: {
         let chapter_ids =

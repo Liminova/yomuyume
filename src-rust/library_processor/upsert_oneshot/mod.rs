@@ -154,7 +154,13 @@ pub async fn upsert_oneshot(
     .map_err(UpsertTitleErr::UpsertOneShot)?
     .id;
 
-    upsert_tags(&app_state, &title.comicinfo, &title_id, &mut *txn).await?;
+    upsert_tags(
+        &app_state,
+        title.comicinfo.tags.as_ref(),
+        &title_id,
+        &mut *txn,
+    )
+    .await?;
 
     '_upsert_pages: {
         let page_count = title.pages_in_title.len();

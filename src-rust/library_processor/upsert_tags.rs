@@ -1,8 +1,6 @@
 use futures_util::future::join_all;
 
-use crate::{
-    app_state::AppState, types::comic_info::ComicInfo, utils::id_generator::GenerateIDErr,
-};
+use crate::{app_state::AppState, utils::id_generator::GenerateIDErr};
 
 #[derive(Debug, thiserror::Error)]
 pub enum UpsertTagsErr {
@@ -18,19 +16,23 @@ pub enum UpsertTagsErr {
 
 pub async fn upsert_tags<'e>(
     app_state: &AppState,
-    comicinfo: &ComicInfo,
+    tags: &[String],
     title_id: &i64,
     conn: impl sqlx::Executor<'e, Database = sqlx::Postgres> + 'e,
 ) -> Result<(), UpsertTagsErr> {
-    if comicinfo.tags.is_empty() {
-        sqlx::query!("DELETE FROM titles_tags WHERE title_id = $1", title_id)
-            .execute(conn)
-            .await
-            .map_err(UpsertTagsErr::CleanupTags)?;
+    if tags.is_empty() {
+        sqlx::query!(
+            "DELETE FROM titles_tags
+            WHERE title_id = $1",
+            title_id
+        )
+        .execute(conn)
+        .await
+        .map_err(UpsertTagsErr::CleanupTags)?;
         return Ok(());
     }
 
-    let tag_ids = join_all((0..comicinfo.tags.len()).map(|_| app_state.id_generator.snowflake()))
+    let tag_ids = join_all((0..tags.len()).map(|_| app_state.id_generator.snowflake()))
         .await
         .into_iter()
         .collect::<Result<Vec<_>, _>>()?;
@@ -55,7 +57,7 @@ pub async fn upsert_tags<'e>(
             id
         FROM tag_upsert ON CONFLICT DO NOTHING",
         &tag_ids,
-        &comicinfo.tags,
+        tags,
         title_id,
     )
     .execute(conn)
