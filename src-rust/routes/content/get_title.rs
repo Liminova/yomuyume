@@ -143,6 +143,10 @@ pub async fn get_title(
         cover_width: title_record.cover_width,
         cover_height: title_record.cover_height,
         tags: title_record.tags.map_or_else(Vec::new, |tags| {
+            if tags.len() == 1 && tags.get(0) == Some(&"-".to_string()) {
+                return Vec::new();
+            }
+
             tags.into_iter()
                 .map(|s| {
                     let parts = s.split('-').collect::<Vec<_>>();
