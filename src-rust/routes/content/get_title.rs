@@ -7,55 +7,13 @@ use axum::{
     response::{IntoResponse, Response},
     Extension, Json,
 };
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 
 use crate::{
+    routes::TitleResponseBody,
+    traits::tags_split::TagsSplit,
     types::UserID,
     utils::{app_error::AppError, app_state::AppState},
 };
-
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-pub struct TitleTagResponse {
-    pub id: String,
-    pub name: String,
-}
-
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
-pub struct TitleResponseBody {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub category_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub author: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub release: Option<String>,
-    pub is_series: bool,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cover_blurhash: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cover_width: Option<i32>,
-    pub cover_height: Option<i32>,
-    pub cover_jxl: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub date_updated: Option<String>,
-
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub tags: Vec<TitleTagResponse>,
-    pub favorites: i64,
-    pub bookmarks: i64,
-
-    pub is_favorite: bool,
-    pub is_bookmark: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_read: Option<i32>,
-}
 
 /// get title
 ///
