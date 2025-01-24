@@ -37,16 +37,19 @@ pub async fn post_register(
         return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
     }
 
-    let email_exists = sqlx::query!(
-        r#"SELECT EXISTS(SELECT 1 FROM users WHERE email = $1) AS "exists!""#,
+    if sqlx::query!(
+        r#"SELECT EXISTS(
+                SELECT 1
+                FROM users
+                WHERE email = $1
+            ) AS "exists!""#,
         query.email.to_string().to_ascii_lowercase()
     )
     .fetch_one(&app_state.pool)
     .await
     .context("can't query to check if email exists")?
-    .exists;
-
-    if email_exists {
+    .exists
+    {
         return Ok((
             StatusCode::CONFLICT,
             "a user with this email already exists",
