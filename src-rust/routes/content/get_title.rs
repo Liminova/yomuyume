@@ -41,6 +41,7 @@ pub struct TitleResponseBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cover_width: Option<i32>,
     pub cover_height: Option<i32>,
+    pub cover_jxl: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_updated: Option<String>,
@@ -157,6 +158,7 @@ pub async fn get_title(
                 })
                 .collect()
         }),
+        cover_jxl: title_record.cover_path.map(|path| path.ends_with(".jxl")),
 
         date_updated: title_record.date_updated.map(|d| d.to_rfc3339()),
 
