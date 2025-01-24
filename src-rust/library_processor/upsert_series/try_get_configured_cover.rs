@@ -126,7 +126,7 @@ pub fn try_get_configured_cover(
             let blurhash = matched_chapter
                 .path
                 .as_ref()
-                .to_blurhash_from_archive(splitted_page_cfg_path.1)
+                .to_blurhash_from_archive(&page.path)
                 .okay(|e| {
                     warn!("can't use `{page_cfg_path}` as cover for `{title_path}`: {e:?}");
                 })?;
