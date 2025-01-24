@@ -137,7 +137,6 @@ pub fn try_get_configured_cover(
             cover_height.clone_from(&Some(page_cfg.image_height));
             Some(())
         }
-        // ChapterType::Directory(_) => {
         MatchedPage::Directory(page) => {
             let blurhash = page.path.as_ref().to_blurhash_from_file().okay(|e| {
                 warn!(
