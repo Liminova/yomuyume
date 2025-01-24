@@ -41,10 +41,11 @@ export const useAuthRegisterStore = defineStore("auth-screen-store-register", ()
 
 	const mutation = useRegister();
 
-	const registerButtonDisabled = computed(() => !isPasswordRetypeMatch.value
+	const registerButtonDisabled = computed(() => username.value === ""
+		|| !isPasswordRetypeMatch.value
 		|| !isPasswordStrong.value
+		|| !isEmailValid.value
 		|| mutation.isPending.value
-		|| isEmailValid.value
 		|| password.value === ""
 		|| passwordRetype.value === ""
 		|| email.value === "");
