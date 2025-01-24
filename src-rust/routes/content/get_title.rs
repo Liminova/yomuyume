@@ -83,7 +83,9 @@ pub async fn get_title(
             t.cover_width AS cover_width,
             t.cover_height AS cover_height,
             t.date_updated AS date_updated,
-            ARRAY_AGG(DISTINCT CONCAT(tg.name, '-', tg.id)) AS "tags",
+            ARRAY_AGG(DISTINCT CONCAT(tg.name, '-', tg.id)) FILTER (
+                WHERE tg.name IS NOT NULL
+            ) AS "tags",
             (
                 SELECT COUNT(*)
                 FROM favorites
