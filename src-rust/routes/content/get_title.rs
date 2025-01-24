@@ -71,69 +71,54 @@ pub async fn get_title(
     Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
     let Some(title_record) = sqlx::query!(
-        r#"
-        SELECT
-            t.title AS title,
-
+        r#"SELECT t.title AS title,
             c.name AS "category?",
             t.author AS author,
             t.description AS "description?",
             t.release AS release,
             t.is_series AS is_series,
-
             t.cover_path AS cover_path,
             t.cover_blurhash AS cover_blurhash,
             t.cover_width AS cover_width,
             t.cover_height AS cover_height,
-
             t.date_updated AS date_updated,
-
             ARRAY_AGG(DISTINCT CONCAT(tg.name, '-', tg.id)) AS "tags",
-
-            COALESCE(fav.count, 0) AS "favorites_count!",
-            COALESCE(bkm.count, 0) AS "bookmarks_count!",
-            CASE WHEN fav_user.count = 1 THEN TRUE ELSE FALSE END AS "is_favorite!",
-            CASE WHEN bkm_user.count = 1 THEN TRUE ELSE FALSE END AS "is_bookmark!",
+            (
+                SELECT COUNT(*)
+                FROM favorites
+                WHERE title_id = $1
+            ) AS "favorites_count!",
+            (
+                SELECT COUNT(*)
+                FROM bookmarks
+                WHERE title_id = $1
+            ) AS "bookmarks_count!",
+            EXISTS(
+                SELECT 1
+                FROM favorites
+                WHERE title_id = $1
+                    AND user_id = $2
+            ) AS "is_favorite!",
+            EXISTS(
+                SELECT 1
+                FROM bookmarks
+                WHERE title_id = $1
+                    AND user_id = $2
+            ) AS "is_bookmark!",
             pr.page AS "page_read?"
-
         FROM titles t
             LEFT JOIN categories c ON c.id = t.category_id
             LEFT JOIN oneshots_pages p ON p.title_id = t.id
             LEFT JOIN titles_tags tt ON tt.title_id = t.id
             LEFT JOIN tags tg ON tg.id = tt.tag_id
-            LEFT JOIN progresses pr ON (pr.title_id = t.id AND pr.user_id = $2)
-
-            -- count favorites and bookmarks
-            LEFT JOIN (
-                SELECT title_id, COUNT(*) AS count
-                FROM favorites WHERE title_id = $1
-                GROUP BY title_id
-            ) fav ON fav.title_id = t.id
-            LEFT JOIN (
-                SELECT title_id, COUNT(*) AS count
-                FROM bookmarks WHERE title_id = $1
-                GROUP BY title_id
-            ) bkm ON bkm.title_id = t.id
-
-            -- count favorites and bookmarks by user (either 1 or NULL)
-            LEFT JOIN (
-                SELECT title_id, COUNT(*) AS count
-                FROM favorites
-                WHERE title_id = $1 AND user_id = $2
-                GROUP BY title_id
-            ) fav_user ON fav_user.title_id = t.id
-            LEFT JOIN (
-                SELECT title_id, COUNT(*) AS count
-                FROM bookmarks
-                WHERE title_id = $1 AND user_id = $2
-                GROUP BY title_id
-            ) bkm_user ON bkm_user.title_id = t.id
-
+            LEFT JOIN progresses pr ON (
+                pr.title_id = t.id
+                AND pr.user_id = $2
+            )
         WHERE t.id = $1
-        GROUP BY
-            t.id, c.name, t.description,
-            fav.count, bkm.count, fav_user.count, bkm_user.count, pr.page
-        "#,
+        GROUP BY t.id,
+            c.name,
+            pr.page"#,
         title_id,
         user_id
     )
