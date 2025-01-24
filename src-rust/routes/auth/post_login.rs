@@ -4,7 +4,7 @@ use anyhow::Context;
 use axum::{
     extract::{ConnectInfo, State},
     http::{header, HeaderMap, StatusCode},
-    response::{IntoResponse, Response},
+    response::{AppendHeaders, IntoResponse, Response},
     Json,
 };
 use axum_extra::extract::cookie::{Cookie, SameSite};
@@ -76,10 +76,17 @@ pub async fn post_login(
 
     let session_secret = app_state.id_generator.secure();
 
-    sqlx::query!(
-        "INSERT INTO session_tokens
-            (id, session_secret, user_id, user_agent, ip_address, last_used_at)
-        VALUES ($1, $2, $3, $4, $5, $6)",
+    let session_id = sqlx::query!(
+        "INSERT INTO session_tokens (
+                id,
+                session_secret,
+                user_id,
+                user_agent,
+                ip_address,
+                last_used_at
+            )
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id",
         app_state
             .id_generator
             .snowflake()
@@ -91,18 +98,33 @@ pub async fn post_login(
         ip_address.as_str(),
         chrono::Utc::now(),
     )
-    .execute(&app_state.pool)
+    .fetch_one(&app_state.pool)
     .await
-    .context("can't insert session token")?;
-
-    let session_secret_cookie = Cookie::build(("session-secret", session_secret.to_string()))
-        .path("/")
-        .same_site(SameSite::Lax)
-        .http_only(true);
+    .map(|r| r.id)
+    .context("can't insert session token and get session id")?;
 
     Ok((
         StatusCode::OK,
-        [(header::SET_COOKIE, session_secret_cookie.to_string())],
+        AppendHeaders([
+            (
+                header::SET_COOKIE,
+                Cookie::build(("session-id", session_id.to_string()))
+                    .path("/")
+                    .secure(true)
+                    .http_only(true)
+                    .same_site(SameSite::Strict)
+                    .to_string(),
+            ),
+            (
+                header::SET_COOKIE,
+                Cookie::build(("session-secret", session_secret.to_string()))
+                    .path("/")
+                    .secure(true)
+                    .http_only(true)
+                    .same_site(SameSite::Strict)
+                    .to_string(),
+            ),
+        ]),
     )
         .into_response())
 }
