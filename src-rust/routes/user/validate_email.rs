@@ -35,7 +35,12 @@ pub async fn get_validate_email(
 
     // check user
     let user_record = sqlx::query!(
-        "SELECT id, username, email, verified_at FROM users WHERE id = $1",
+        "SELECT id,
+            username,
+            email,
+            verified_at
+        FROM users
+        WHERE id = $1",
         user_id
     )
     .fetch_one(&app_state.pool)
@@ -51,7 +56,10 @@ pub async fn get_validate_email(
 
     // too many requests
     let temp_code_record = sqlx::query!(
-        "SELECT created_at FROM temp_codes WHERE purpose = $1 AND user_id = $2",
+        "SELECT created_at
+        FROM temp_codes
+        WHERE purpose = $1
+            AND user_id = $2",
         TempCodePurpose::ValidateEmail as TempCodePurpose,
         user_record.id
     )
@@ -70,9 +78,9 @@ pub async fn get_validate_email(
     let new_code = app_state.id_generator.secure();
     let code = sqlx::query!(
         "INSERT INTO temp_codes (purpose, user_id, code, created_at)
-            VALUES ($1, $2, $3, $4)
-        ON CONFLICT (purpose, user_id)
-            DO UPDATE SET created_at = $4
+        VALUES ($1, $2, $3, $4) ON CONFLICT (purpose, user_id) DO
+        UPDATE
+        SET created_at = $4
         RETURNING code",
         TempCodePurpose::ValidateEmail as TempCodePurpose,
         user_record.id,
@@ -124,7 +132,12 @@ pub async fn post_validate_email(
 ) -> Result<Response, AppError> {
     // check user
     let user_record = sqlx::query!(
-        "SELECT id, username, email, verified_at FROM users WHERE id = $1",
+        "SELECT id,
+            username,
+            email,
+            verified_at
+        FROM users
+        WHERE id = $1",
         user_id
     )
     .fetch_one(&app_state.pool)
@@ -140,7 +153,10 @@ pub async fn post_validate_email(
 
     // check temp code
     let code_creation_time = sqlx::query!(
-        "DELETE FROM temp_codes WHERE code = $1 AND purpose = $2 AND user_id = $3
+        "DELETE FROM temp_codes
+        WHERE code = $1
+            AND purpose = $2
+            AND user_id = $3
         RETURNING created_at",
         query.code.as_str(),
         TempCodePurpose::ValidateEmail as TempCodePurpose,
@@ -159,7 +175,9 @@ pub async fn post_validate_email(
     }
 
     sqlx::query!(
-        "UPDATE users SET verified_at = $1 WHERE id = $2",
+        "UPDATE users
+        SET verified_at = $1
+        WHERE id = $2",
         Utc::now(),
         user_record.id
     )

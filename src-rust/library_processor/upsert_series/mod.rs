@@ -187,14 +187,40 @@ pub async fn upsert_series(
 
     // upsert title and get its id
     let title_id = sqlx::query!(
-        "INSERT INTO titles
-            (id, title, category_id, author, description, release, path, is_dir,
-            is_series, cover_path, cover_blurhash, cover_width, cover_height,
-            date_updated)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, TRUE, $8, $9, $10, $11, $12)
-        ON CONFLICT (path)
-        DO UPDATE SET
-            title = EXCLUDED.title,
+        "INSERT INTO titles (
+                id,
+                title,
+                category_id,
+                author,
+                description,
+                release,
+                path,
+                is_dir,
+                is_series,
+                cover_path,
+                cover_blurhash,
+                cover_width,
+                cover_height,
+                date_updated
+            )
+        VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                $7,
+                TRUE,
+                TRUE,
+                $8,
+                $9,
+                $10,
+                $11,
+                $12
+            ) ON CONFLICT (path) DO
+        UPDATE
+        SET title = EXCLUDED.title,
             category_id = EXCLUDED.category_id,
             author = EXCLUDED.author,
             description = EXCLUDED.description,
@@ -273,14 +299,25 @@ pub async fn upsert_series(
 
         let upserted_chapters = sqlx::query!(
             "INSERT INTO chapters (id, title_id, path, number, description, is_dir)
-            SELECT id, $1, path, number, NULLIF(description, ''), is_dir
-                FROM UNNEST($2::bigint[], $3::text[], $4::integer[], $5::text[], $6::boolean[])
-                AS t(id, path, number, description, is_dir)
-            ON CONFLICT (title_id, path) DO UPDATE SET
-                number = EXCLUDED.number,
+            SELECT id,
+                $1,
+                path,
+                number,
+                NULLIF(description, ''),
+                is_dir
+            FROM UNNEST(
+                    $2::bigint [],
+                    $3::text [],
+                    $4::integer [],
+                    $5::text [],
+                    $6::boolean []
+                ) AS t(id, path, number, description, is_dir) ON CONFLICT (title_id, path) DO
+            UPDATE
+            SET number = EXCLUDED.number,
                 description = EXCLUDED.description,
                 is_dir = EXCLUDED.is_dir
-            RETURNING id, path",
+            RETURNING id,
+                path",
             title_id,
             &chapter_ids,
             &chapter_paths,
@@ -378,10 +415,19 @@ pub async fn upsert_series(
 
         sqlx::query!(
             "INSERT INTO chapters_pages (id, chapter_id, path, filesize, description)
-            SELECT id, chapter_id, path, NULLIF(filesize, 0), NULLIF(description, '')
-                FROM UNNEST($1::bigint[], $2::bigint[], $3::text[], $4::bigint[], $5::text[])
-                AS t(id, chapter_id, path, filesize, description)
-            ON CONFLICT (chapter_id, path) DO UPDATE
+            SELECT id,
+                chapter_id,
+                path,
+                NULLIF(filesize, 0),
+                NULLIF(description, '')
+            FROM UNNEST(
+                    $1::bigint [],
+                    $2::bigint [],
+                    $3::text [],
+                    $4::bigint [],
+                    $5::text []
+                ) AS t(id, chapter_id, path, filesize, description) ON CONFLICT (chapter_id, path) DO
+            UPDATE
             SET description = EXCLUDED.description",
             &page_ids,
             &chapter_ids,

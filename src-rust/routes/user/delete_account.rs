@@ -55,9 +55,9 @@ pub async fn get_delete_account(
     let new_code = app_state.id_generator.secure();
     let code = sqlx::query!(
         "INSERT INTO temp_codes (purpose, user_id, code, created_at)
-            VALUES ($1, $2, $3, $4)
-        ON CONFLICT (purpose, user_id)
-            DO UPDATE SET created_at = $4
+        VALUES ($1, $2, $3, $4) ON CONFLICT (purpose, user_id) DO
+        UPDATE
+        SET created_at = $4
         RETURNING code",
         TempCodePurpose::DeleteAccount as TempCodePurpose,
         user_id,
@@ -131,7 +131,11 @@ pub async fn post_delete_account(
 
     // check temp code
     let code_creation_time = sqlx::query!(
-        "DELETE FROM temp_codes WHERE code = $1 AND purpose = $2 AND user_id = $3 RETURNING created_at",
+        "DELETE FROM temp_codes
+        WHERE code = $1
+            AND purpose = $2
+            AND user_id = $3
+        RETURNING created_at",
         query.code.as_str(),
         TempCodePurpose::DeleteAccount as TempCodePurpose,
         user_id,

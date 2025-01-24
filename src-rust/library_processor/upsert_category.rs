@@ -143,13 +143,19 @@ pub async fn upsert_category<'e>(
     }
 
     let category_id = sqlx::query!(
-        "INSERT INTO categories
-            (id, name, description, path,
-            cover_path, cover_blurhash,
-            cover_width, cover_height)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT (path) DO UPDATE SET
-            name = EXCLUDED.name,
+        "INSERT INTO categories (
+                id,
+                name,
+                description,
+                path,
+                cover_path,
+                cover_blurhash,
+                cover_width,
+                cover_height
+            )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (path) DO
+        UPDATE
+        SET name = EXCLUDED.name,
             description = EXCLUDED.description,
             cover_path = EXCLUDED.cover_path,
             cover_blurhash = EXCLUDED.cover_blurhash,

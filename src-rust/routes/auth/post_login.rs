@@ -38,7 +38,11 @@ pub async fn post_login(
     query: Json<LoginRequestBody>,
 ) -> Result<Response, AppError> {
     let Some((user_id, password_hash)) = sqlx::query!(
-        "SELECT id, password_hash FROM users WHERE username = $1 OR email = $1",
+        "SELECT id,
+            password_hash
+        FROM users
+        WHERE username = $1
+            OR email = $1",
         query.login
     )
     .fetch_optional(&app_state.pool)

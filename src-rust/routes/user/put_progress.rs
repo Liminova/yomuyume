@@ -26,9 +26,9 @@ pub async fn put_progress(
 ) -> Result<Response, AppError> {
     sqlx::query!(
         "INSERT INTO progresses (user_id, title_id, last_read_at, page)
-            VALUES ($1, $2, $3, $4)
-        ON CONFLICT (user_id, title_id) DO UPDATE SET
-            last_read_at = EXCLUDED.last_read_at,
+        VALUES ($1, $2, $3, $4) ON CONFLICT (user_id, title_id) DO
+        UPDATE
+        SET last_read_at = EXCLUDED.last_read_at,
             page = EXCLUDED.page",
         user_id,
         title_id,

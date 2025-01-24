@@ -38,7 +38,12 @@ pub async fn get_reset_password(
 
     // valid user
     let user_record = sqlx::query!(
-        "SELECT id, username, email, verified_at FROM users WHERE email = $1",
+        "SELECT id,
+            username,
+            email,
+            verified_at
+        FROM users
+        WHERE email = $1",
         email.to_string().to_ascii_lowercase()
     )
     .fetch_optional(&app_state.pool)
@@ -54,7 +59,10 @@ pub async fn get_reset_password(
 
     // too many requests
     let temp_code_record = sqlx::query!(
-        "SELECT created_at FROM temp_codes WHERE purpose = $1 AND user_id = $2",
+        "SELECT created_at
+        FROM temp_codes
+        WHERE purpose = $1
+            AND user_id = $2",
         TempCodePurpose::ResetPassword as TempCodePurpose,
         user_record.id
     )
@@ -73,9 +81,9 @@ pub async fn get_reset_password(
     let new_code = app_state.id_generator.secure();
     let code = sqlx::query!(
         "INSERT INTO temp_codes (purpose, user_id, code, created_at)
-            VALUES ($1, $2, $3, $4)
-        ON CONFLICT (purpose, user_id)
-            DO UPDATE SET created_at = $4
+        VALUES ($1, $2, $3, $4) ON CONFLICT (purpose, user_id) DO
+        UPDATE
+        SET created_at = $4
         RETURNING code",
         TempCodePurpose::ResetPassword as TempCodePurpose,
         user_record.id,
@@ -132,7 +140,11 @@ pub async fn post_reset_password(
 
     // check temp code
     let temp_code_record = sqlx::query!(
-        "DELETE FROM temp_codes WHERE code = $1 AND purpose = $2 RETURNING created_at, user_id",
+        "DELETE FROM temp_codes
+        WHERE code = $1
+            AND purpose = $2
+        RETURNING created_at,
+            user_id",
         query.code.as_str(),
         TempCodePurpose::ResetPassword as TempCodePurpose,
     )
@@ -151,7 +163,10 @@ pub async fn post_reset_password(
     // update password
     let password_hash = hash_pass(query.new_password)?;
     sqlx::query!(
-        "UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3",
+        "UPDATE users
+        SET password_hash = $1,
+            updated_at = $2
+        WHERE id = $3",
         password_hash.as_str(),
         Utc::now(),
         temp_code_record.user_id

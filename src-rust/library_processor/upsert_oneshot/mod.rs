@@ -81,14 +81,40 @@ pub async fn upsert_oneshot(
 
     // upsert title and get its id
     let title_id = sqlx::query!(
-        "INSERT INTO titles
-            (id, title, category_id, author, description, release, path, is_dir,
-            is_series, cover_path, cover_blurhash, cover_width, cover_height,
-            date_updated)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE, $9, $10, $11, $12, $13)
-        ON CONFLICT (path)
-        DO UPDATE SET
-            title = EXCLUDED.title,
+        "INSERT INTO titles (
+                id,
+                title,
+                category_id,
+                author,
+                description,
+                release,
+                path,
+                is_dir,
+                is_series,
+                cover_path,
+                cover_blurhash,
+                cover_width,
+                cover_height,
+                date_updated
+            )
+        VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                $7,
+                $8,
+                FALSE,
+                $9,
+                $10,
+                $11,
+                $12,
+                $13
+            ) ON CONFLICT (path) DO
+        UPDATE
+        SET title = EXCLUDED.title,
             category_id = EXCLUDED.category_id,
             author = EXCLUDED.author,
             description = EXCLUDED.description,
@@ -156,15 +182,26 @@ pub async fn upsert_oneshot(
 
         sqlx::query!(
             "WITH _ AS (
-            INSERT INTO oneshots_pages (id, title_id, path, filesize, description)
-            SELECT id, $1, path, NULLIF(filesize, 0), NULLIF(description, '')
-                FROM UNNEST($2::bigint[], $3::text[], $4::bigint[], $5::text[])
-                AS t(id, path, filesize, description)
-            ON CONFLICT (title_id, path) DO UPDATE
+                INSERT INTO oneshots_pages (id, title_id, path, filesize, description)
+                SELECT id,
+                    $1,
+                    path,
+                    NULLIF(filesize, 0),
+                    NULLIF(description, '')
+                FROM UNNEST(
+                        $2::bigint [],
+                        $3::text [],
+                        $4::bigint [],
+                        $5::text []
+                    ) AS t(id, path, filesize, description) ON CONFLICT (title_id, path) DO
+                UPDATE
                 SET description = EXCLUDED.description
             )
-            DELETE FROM oneshots_pages WHERE title_id = $1
-                AND path NOT IN (SELECT UNNEST($3::text[]) AS path)",
+            DELETE FROM oneshots_pages
+            WHERE title_id = $1
+                AND path NOT IN (
+                    SELECT UNNEST($3::text []) AS path
+                )",
             title_id,
             &page_ids,
             &page_paths,

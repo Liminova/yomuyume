@@ -62,8 +62,10 @@ impl LiveConfig {
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "INSERT INTO live_config (id, value, last_updated_at)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3",
+            VALUES ($1, $2, $3) ON CONFLICT (id) DO
+            UPDATE
+            SET value = $2,
+                last_updated_at = $3",
             "nomedia_support",
             if value { "true" } else { "false" },
             Utc::now()
@@ -83,8 +85,10 @@ impl LiveConfig {
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "INSERT INTO live_config (id, value, last_updated_at)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3",
+            VALUES ($1, $2, $3) ON CONFLICT (id) DO
+            UPDATE
+            SET value = $2,
+                last_updated_at = $3",
             "komga_oneshot_support",
             if value { "true" } else { "false" },
             Utc::now()
@@ -104,8 +108,10 @@ impl LiveConfig {
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "INSERT INTO live_config (id, value, last_updated_at)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3",
+            VALUES ($1, $2, $3) ON CONFLICT (id) DO
+            UPDATE
+            SET value = $2,
+                last_updated_at = $3",
             "komga_recycle_support",
             if value { "true" } else { "false" },
             Utc::now()
@@ -125,8 +131,10 @@ impl LiveConfig {
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "INSERT INTO live_config (id, value, last_updated_at)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3",
+            VALUES ($1, $2, $3) ON CONFLICT (id) DO
+            UPDATE
+            SET value = $2,
+                last_updated_at = $3",
             "rescan_enabled",
             if value { "true" } else { "false" },
             Utc::now()
@@ -146,8 +154,10 @@ impl LiveConfig {
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "INSERT INTO live_config (id, value, last_updated_at)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET value = $2, last_updated_at = $3",
+            VALUES ($1, $2, $3) ON CONFLICT (id) DO
+            UPDATE
+            SET value = $2,
+                last_updated_at = $3",
             "rescan_interval_in_minutes",
             format!("{}", value),
             Utc::now()

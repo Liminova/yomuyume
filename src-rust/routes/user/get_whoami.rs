@@ -54,8 +54,7 @@ pub async fn get_whoami(
     };
 
     let Some(record) = sqlx::query!(
-        "SELECT
-            users.id as user_id,
+        "SELECT users.id as user_id,
             users.username,
             users.email,
             users.profile_picture,
@@ -83,7 +82,9 @@ pub async fn get_whoami(
         > SESSION_TOKEN_LAST_USED_AT_UPDATE_INTERVAL
     {
         sqlx::query!(
-            "UPDATE session_tokens SET last_used_at = $1 WHERE id = $2",
+            "UPDATE session_tokens
+            SET last_used_at = $1
+            WHERE id = $2",
             now,
             session_id
         )

@@ -27,8 +27,8 @@ pub async fn put_favorite(
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
     sqlx::query!(
-        "INSERT INTO favorites (id, title_id, user_id) VALUES ($1, $2, $3)
-        ON CONFLICT (title_id, user_id) DO NOTHING",
+        "INSERT INTO favorites (id, title_id, user_id)
+        VALUES ($1, $2, $3) ON CONFLICT (title_id, user_id) DO NOTHING",
         app_state
             .id_generator
             .snowflake()
@@ -58,8 +58,8 @@ pub async fn put_bookmark(
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
     sqlx::query!(
-        "INSERT INTO bookmarks (id, title_id, user_id) VALUES ($1, $2, $3)
-        ON CONFLICT (title_id, user_id) DO NOTHING",
+        "INSERT INTO bookmarks (id, title_id, user_id)
+        VALUES ($1, $2, $3) ON CONFLICT (title_id, user_id) DO NOTHING",
         app_state
             .id_generator
             .snowflake()
@@ -89,7 +89,9 @@ pub async fn delete_favorite(
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
     sqlx::query!(
-        "DELETE FROM favorites WHERE title_id = $1 AND user_id = $2",
+        "DELETE FROM favorites
+        WHERE title_id = $1
+            AND user_id = $2",
         title_id,
         user_id
     )
@@ -114,7 +116,9 @@ pub async fn delete_bookmark(
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
     sqlx::query!(
-        "DELETE FROM bookmarks WHERE title_id = $1 AND user_id = $2",
+        "DELETE FROM bookmarks
+        WHERE title_id = $1
+            AND user_id = $2",
         title_id,
         &user_id
     )
