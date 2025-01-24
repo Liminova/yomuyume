@@ -10,9 +10,11 @@ pub use middlewares::auth::auth;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use rand_core::OsRng;
+use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
-    Modify, OpenApi,
+    Modify, OpenApi, ToSchema,
 };
 
 struct SecurityAddon;
@@ -83,7 +85,7 @@ use crate::utils::app_error::AppError;
         user::put_progress,
 
         content::get_categories,
-        content::post_filter,
+        content::post_search,
         content::get_title,
 
         utils::get_status,
@@ -108,12 +110,12 @@ use crate::utils::app_error::AppError;
         WhoAmIResponseBody,
 
         // Content
-        CategoryResponseBody,
+        OrderBy,
         TitleResponseBody,
-        TitleTagResponse,
+        TitleResponseBody,
+        CategoryResponseBody,
         FilterRequestBody,
         FilterResponseBody,
-        FilterTitleResponseBody,
 
         // Utils
         StatusRequestBody,
@@ -143,4 +145,32 @@ fn hash_pass(input: impl AsRef<str>) -> Result<String, AppError> {
         .hash_password(input, &SaltString::generate(&mut OsRng))
         .map(|hash| hash.to_string())
         .map_err(|e| anyhow::anyhow!("can't hash password: {}", e).into())
+}
+
+#[skip_serializing_none]
+#[derive(Debug, ToSchema, Serialize, Deserialize)]
+pub struct TitleResponseBody {
+    pub id: i64,
+    pub title: Option<String>,
+    pub author: Option<String>,
+
+    pub category_id: Option<String>,
+    pub description: Option<String>,
+    pub release: Option<String>,
+    pub is_series: bool,
+
+    pub cover_blurhash: Option<String>,
+    pub cover_width: Option<i32>,
+    pub cover_height: Option<i32>,
+    pub cover_jxl: Option<bool>,
+
+    pub date_updated: Option<String>,
+
+    pub tags: Option<Vec<(String, String)>>,
+    pub favorites: i64,
+    pub bookmarks: i64,
+
+    pub is_favorite: bool,
+    pub is_bookmark: bool,
+    pub page_read: Option<i32>,
 }
