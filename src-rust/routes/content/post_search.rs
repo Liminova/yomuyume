@@ -161,7 +161,7 @@ pub async fn post_search(
     .context("can't query titles")?
     .into_iter()
     .map(|r| TitleResponseBody {
-        id: r.id,
+        id: r.id.to_string(),
         title: r.title,
         author: r.author,
         category_id: r.category_id.map(|i| i.to_string()),
