@@ -1,8 +1,11 @@
+use dashmap::DashMap;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 
-use crate::utils::{config::Config, id_generator::IDGenerator, live_config::LiveConfig};
+use crate::utils::{
+    config::Config, id_generator::IDGenerator, live_config::LiveConfig, session_token::SessionToken,
+};
 
 #[derive(Debug)]
 pub struct AppState {
@@ -12,6 +15,7 @@ pub struct AppState {
     pub scanning_complete: Mutex<bool>,
     pub scanning_progress: Mutex<f64>,
     pub id_generator: IDGenerator,
+    pub cached_session_tokens: DashMap<String, SessionToken>,
 }
 
 impl AppState {
@@ -35,6 +39,7 @@ impl AppState {
             scanning_complete: Mutex::new(false),
             scanning_progress: Mutex::new(0.0),
             id_generator: IDGenerator::default(),
+            cached_session_tokens: DashMap::new(),
         })
     }
 }
