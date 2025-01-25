@@ -77,7 +77,7 @@ use crate::utils::app_error::AppError;
         user::get_reset_password,
         user::get_validate_email,
         user::post_delete_account,
-        user::post_modify_info,
+        user::post_modify,
         user::post_reset_password,
         user::post_validate_email,
         user::put_bookmark,
