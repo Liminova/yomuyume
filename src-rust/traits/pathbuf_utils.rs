@@ -2,7 +2,7 @@ use std::{collections::VecDeque, path::PathBuf};
 
 use chrono::{DateTime, Timelike, Utc};
 
-use crate::utils::config::{SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS};
+use crate::utils::config::{CATEGORYINFO, SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS};
 
 pub trait PathBufUtils {
     fn has_image_ext(&self) -> bool;
@@ -82,7 +82,7 @@ impl PathBufUtils for PathBuf {
 
     /// Check if the path (assumed to be a directory) contains `CategoryInfo.xml`
     fn contains_category_info_file(&self) -> bool {
-        self.join("CategoryInfo.xml").exists()
+        self.join(CATEGORYINFO).exists()
     }
 
     /// Get the last modified time of the path
