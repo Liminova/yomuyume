@@ -98,5 +98,5 @@ pub async fn post_register(
     .await
     .context("can't insert user")?;
 
-    Ok((StatusCode::OK).into_response())
+    Ok(StatusCode::OK.into_response())
 }
