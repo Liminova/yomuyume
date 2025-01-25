@@ -26,9 +26,9 @@ use crate::{
     types::{
         absolute_path::{AbsolutePath, ToAbsolute},
         comic_info::{ComicInfo, ComicPageType},
-        TitleID,
+        CategoryID, TitleID,
     },
-    utils::{config::COMICINFO_FILENAME, macros::bail_if_empty},
+    utils::{config::COMICINFO, macros::bail_if_empty},
 };
 
 /// differ from [`PageInTitle`] in that it also contains the page description
@@ -69,12 +69,12 @@ pub async fn upsert_series(
     title_path: PathBuf,
     chapters: Vec<ScannedChapterInfo>,
     parent_path: Option<PathBuf>,
-    category_path_to_id: Arc<RwLock<HashMap<AbsolutePath, i64>>>,
+    category_path_to_id: Arc<RwLock<HashMap<AbsolutePath, CategoryID>>>,
     nomedia_support: bool,
 ) -> Result<TitleID, UpsertTitleErr> {
     let title_path = title_path.to_absolute(None)?;
 
-    let comicinfo_path = title_path.as_ref().join(COMICINFO_FILENAME);
+    let comicinfo_path = title_path.as_ref().join(COMICINFO);
     let (original_comicinfo, mut comicinfo) = {
         if comicinfo_path.exists() {
             let s = read_to_string(&comicinfo_path).map_err(UpsertTitleErr::ComicInfoReadFromFs)?;
@@ -240,7 +240,7 @@ pub async fn upsert_series(
             .await
             .map_err(UpsertTitleErr::GenTitleID)?,
         comicinfo.title,
-        category_id,
+        category_id.map(|id| id.as_ref()),
         comicinfo.penciller.as_ref(),
         comicinfo.summary.as_ref(),
         comicinfo.get_release(),
@@ -449,5 +449,5 @@ pub async fn upsert_series(
         .await
         .map_err(UpsertTitleErr::TransactionCommit)?;
 
-    Ok(title_id)
+    Ok(title_id.into())
 }
