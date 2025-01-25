@@ -30,14 +30,15 @@ pub async fn get_logout(
 ) -> Result<Response, AppError> {
     let Some(session_id): Option<SessionID> = cookie_jar
         .get("session-id")
-        .and_then(|cookie| cookie.value().to_string().parse::<i64>().ok())
+        .and_then(|cookie| cookie.to_string().parse::<i64>().ok())
+        .map(|id| id.into())
     else {
         return Ok((StatusCode::UNAUTHORIZED, "no valid session id provided").into_response());
     };
 
     let Some(session_secret) = cookie_jar
         .get("session-secret")
-        .map(|cookie| cookie.value().to_string())
+        .map(|cookie| cookie.to_string())
     else {
         return Ok((StatusCode::UNAUTHORIZED, "no valid session secret provided").into_response());
     };
