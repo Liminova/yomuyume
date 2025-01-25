@@ -107,12 +107,20 @@ pub async fn get_title(
 
         date_updated: r.date_updated.map(|d| d.to_rfc3339()),
 
-        favorites: r.favorites_count,
-        bookmarks: r.bookmarks_count,
+        favorites: if r.favorites_count != 0 {
+            Some(r.favorites_count)
+        } else {
+            None
+        },
+        bookmarks: if r.bookmarks_count != 0 {
+            Some(r.favorites_count)
+        } else {
+            None
+        },
 
         is_favorite: r.is_favorite,
         is_bookmark: r.is_bookmark,
-        page_read: r.page_read,
+        page_read: r.page_read.filter(|i| *i != 0),
     }) else {
         return Ok((StatusCode::NOT_FOUND).into_response());
     };
