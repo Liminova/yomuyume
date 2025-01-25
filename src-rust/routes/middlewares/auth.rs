@@ -115,7 +115,8 @@ pub async fn auth(
         app_state.session_cache.remove(&provided_session_id);
 
         sqlx::query!(
-            "DELETE FROM session_tokens WHERE id = $1",
+            "DELETE FROM session_tokens
+            WHERE id = $1",
             provided_session_id.as_ref()
         )
         .execute(&app_state.pool)
@@ -131,7 +132,9 @@ pub async fn auth(
         &Duration::seconds(SESSION_TOKEN_UPDATE_LAST_USED_AT_INTERVAL),
     ) {
         sqlx::query!(
-            "UPDATE session_tokens SET last_used_at = $1 WHERE id = $2",
+            "UPDATE session_tokens
+            SET last_used_at = $1
+            WHERE id = $2",
             now,
             provided_session_id.as_ref()
         )
