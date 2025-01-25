@@ -7,6 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
     Extension, Json,
 };
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -31,7 +32,7 @@ pub struct ModifyRequestBody {
     (status = 401, description = "unauthorized", body = String),
     (status = 500, description = "internal server error", body = String)
 ), security(("session-id" = [], "session-secret" = [])))]
-pub async fn post_modify_info(
+pub async fn post_modify(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Json(body): Json<ModifyRequestBody>,
@@ -50,7 +51,7 @@ pub async fn post_modify_info(
                 "SELECT password_hash
                 FROM users
                 WHERE id = $1",
-                user_id
+                user_id.as_ref()
             )
             .fetch_one(&app_state.pool)
             .await
@@ -63,6 +64,10 @@ pub async fn post_modify_info(
         }
         _ => {}
     }
+
+    let username = body.username.unwrap_or_default();
+    let email = body.email.unwrap_or_default();
+    let now = Utc::now();
 
     sqlx::query!(
         "UPDATE users
@@ -78,16 +83,27 @@ pub async fn post_modify_info(
                 WHEN $3 = '' THEN password_hash
                 ELSE $3
             END,
-            updated_at = NOW()
-        WHERE id = $4",
-        body.username.unwrap_or_default(),
-        body.email.unwrap_or_default(),
+            updated_at = $4
+        WHERE id = $5",
+        &username,
+        &email,
         new_password_hash,
-        user_id
+        &now,
+        user_id.as_ref()
     )
     .execute(&app_state.pool)
     .await
     .context("can't update user")?;
+
+    '_update_cache: {
+        let mut user = app_state
+            .user_cache
+            .get_mut(&user_id)
+            .context("can't find user in cache, this should never happen")?;
+        user.value_mut().username = username;
+        user.value_mut().email = email;
+        user.value_mut().updated_at = Some(now);
+    }
 
     Ok((StatusCode::OK).into_response())
 }

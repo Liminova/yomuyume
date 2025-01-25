@@ -42,9 +42,9 @@ use crate::{
     routes::{
         auth, delete_bookmark, delete_favorite, get_categories, get_cover, get_delete_account,
         get_logout, get_page, get_reset_password, get_scanning_progress, get_status, get_tags,
-        get_title, get_validate_email, get_whoami, post_delete_account, post_login,
-        post_modify_info, post_register, post_reset_password, post_search, post_status,
-        post_validate_email, put_bookmark, put_favorite, put_progress, ApiDoc,
+        get_title, get_validate_email, get_whoami, post_delete_account, post_login, post_modify,
+        post_register, post_reset_password, post_search, post_status, post_validate_email,
+        put_bookmark, put_favorite, put_progress, ApiDoc,
     },
     utils::app_state,
 };
@@ -88,7 +88,7 @@ async fn main() -> Result<()> {
                 .route("/whoami", get(get_whoami))
                 .route("/delete", get(get_delete_account).post(post_delete_account))
                 .route("/verify", get(get_validate_email).post(post_validate_email))
-                .route("/modify", post(post_modify_info))
+                .route("/modify", post(post_modify))
                 .route(
                     "/bookmark/:title_id",
                     put(put_bookmark).delete(delete_bookmark),
