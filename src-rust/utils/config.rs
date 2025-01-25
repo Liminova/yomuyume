@@ -9,10 +9,10 @@ pub const SUPPORTED_IMAGE_FORMATS: &[&str] = &[
 
 pub const COMICINFO_SCHEMA: &str =
     r#"<?xml-model href="https://delnegend.com/comicinfo-2.1-extended.xsd"?>"#;
-pub const COMICINFO_FILENAME: &str = "ComicInfo.xml";
+pub const COMICINFO: &str = "ComicInfo.xml";
 pub const CATEGORY_INFO_SCHEMA: &str =
     r#"<?xml-model href="https://delnegend.com/categoryinfo-1.0.xsd"?>"#;
-pub const CATEGORY_INFO_FILENAME: &str = "CategoryInfo.xml";
+pub const CATEGORYINFO: &str = "CategoryInfo.xml";
 
 pub(super) const SECURE_ID_LENGTH: usize = 32;
 pub(super) const SECURE_ID_CHARSET: &[char; 64] = &[
@@ -25,6 +25,9 @@ pub(super) const SECURE_ID_MASK: usize = SECURE_ID_CHARSET.len().next_power_of_t
 
 pub const SESSION_TOKEN_UPDATE_LAST_USED_AT_INTERVAL: i64 = 5 * 60;
 pub const SESSION_TOKEN_EXPIRED_AFTER: i64 = 60 * 60 * 24 * 7; // 7 days
+
+pub const TEMP_CODE_REQUEST_RATE_LIMIT: i64 = 60 * 5; // 5 minutes per request
+pub const TEMP_CODE_EXPIRED_AFTER: i64 = 60 * 5; // 5 minutes after request
 
 const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
