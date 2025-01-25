@@ -150,7 +150,7 @@ fn hash_pass(input: impl AsRef<str>) -> Result<String, AppError> {
 #[skip_serializing_none]
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct TitleResponseBody {
-    pub id: i64,
+    pub id: String,
     pub title: Option<String>,
     pub author: Option<String>,
 
