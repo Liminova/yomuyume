@@ -87,7 +87,7 @@ pub async fn get_title(
     .await
     .context("can't query title")?
     .map(|r| TitleResponseBody {
-        id: title_id,
+        id: title_id.to_string(),
         title: r.title,
         category_id: r.category,
         author: r.author,
