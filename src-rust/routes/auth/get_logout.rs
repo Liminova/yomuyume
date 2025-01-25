@@ -45,7 +45,7 @@ pub async fn get_logout(
 
     sqlx::query!(
         "DELETE FROM session_tokens WHERE id = $1 AND session_secret = $2",
-        session_id,
+        session_id.as_ref(),
         session_secret.as_str()
     )
     .execute(&app_state.pool)
