@@ -39,5 +39,5 @@ pub async fn put_progress(
     .await
     .context("can't upsert progress")?;
 
-    Ok((StatusCode::OK).into_response())
+    Ok(StatusCode::OK.into_response())
 }
