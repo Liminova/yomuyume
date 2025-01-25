@@ -11,7 +11,7 @@ use crate::{
         category_info::CategoryInfo,
         CategoryID,
     },
-    utils::{config::CATEGORY_INFO_FILENAME, id_generator::GenerateIDErr},
+    utils::{config::CATEGORYINFO, id_generator::GenerateIDErr},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -19,13 +19,13 @@ pub enum UpsertCategoryErr {
     #[error("can't perform absolute/relative path conversion: {0:?}")]
     AbsolutePath(AbsolutePathErr),
 
-    #[error("can't read CategoryInfo.xml: {0:?}")]
+    #[error("can't read {CATEGORYINFO}: {0:?}")]
     CategoryInfoRead(std::io::Error),
-    #[error("can't deserialize CategoryInfo.xml: {0:?}")]
+    #[error("can't deserialize {CATEGORYINFO}: {0:?}")]
     CategoryInfoParse(quick_xml::DeError),
-    #[error("can't serialize CategoryInfo.xml: {0:?}")]
+    #[error("can't serialize {CATEGORYINFO}: {0:?}")]
     CategoryInfoSerialize(quick_xml::DeError),
-    #[error("can't write CategoryInfo.xml: {0:?}")]
+    #[error("can't write {CATEGORYINFO}: {0:?}")]
     CategoryInfoWrite(std::io::Error),
 
     #[error("can't generate an ID for the category: {0:?}")]
@@ -43,7 +43,7 @@ pub enum UpsertCategoryErr {
 pub async fn upsert_category<'e>(
     app_state: &Arc<AppState>,
     category_path: Option<&PathBuf>,
-    category_path_to_id: &Arc<RwLock<HashMap<AbsolutePath, i64>>>,
+    category_path_to_id: &Arc<RwLock<HashMap<AbsolutePath, CategoryID>>>,
     conn: impl sqlx::Executor<'e, Database = sqlx::Postgres> + 'e,
 ) -> Result<Option<CategoryID>, UpsertCategoryErr> {
     let category_path = match category_path {
@@ -58,7 +58,7 @@ pub async fn upsert_category<'e>(
         return Ok(Some(*category_id));
     };
 
-    let category_info_path = category_path.as_ref().join(CATEGORY_INFO_FILENAME);
+    let category_info_path = category_path.as_ref().join(CATEGORYINFO);
     let (original_category_info, mut category_info) = {
         if category_info_path.exists() {
             let s = std::fs::read_to_string(&category_info_path)
@@ -187,7 +187,7 @@ pub async fn upsert_category<'e>(
     category_path_to_id
         .write()
         .await
-        .insert(category_path, category_id);
+        .insert(category_path, category_id.into());
 
-    Ok(Some(category_id))
+    Ok(Some(category_id.into()))
 }
