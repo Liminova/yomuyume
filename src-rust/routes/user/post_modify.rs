@@ -95,15 +95,14 @@ pub async fn post_modify(
     .await
     .context("can't update user")?;
 
-    '_update_cache: {
-        let mut user = app_state
-            .user_cache
-            .get_mut(&user_id)
-            .context("can't find user in cache, this should never happen")?;
-        user.value_mut().username = username;
-        user.value_mut().email = email;
-        user.value_mut().updated_at = Some(now);
-    }
+    let mut user = app_state
+        .user_cache
+        .get_mut(&user_id)
+        .context("can't find user in cache, this should never happen")?;
+    user.value_mut().username = username;
+    user.value_mut().email = email;
+    user.value_mut().updated_at = Some(now);
+    drop(user);
 
     Ok((StatusCode::OK).into_response())
 }
