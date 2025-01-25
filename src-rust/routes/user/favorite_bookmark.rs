@@ -41,7 +41,7 @@ pub async fn put_favorite(
     .await
     .context("can't upsert favorite")?;
 
-    Ok((StatusCode::OK).into_response())
+    Ok(StatusCode::OK.into_response())
 }
 
 /// add bookmark
@@ -72,7 +72,7 @@ pub async fn put_bookmark(
     .await
     .context("can't upsert bookmark")?;
 
-    Ok((StatusCode::OK).into_response())
+    Ok(StatusCode::OK.into_response())
 }
 
 /// delete favorite
@@ -99,7 +99,7 @@ pub async fn delete_favorite(
     .await
     .context("can't delete favorite")?;
 
-    Ok((StatusCode::OK).into_response())
+    Ok(StatusCode::OK.into_response())
 }
 
 /// delete bookmark
@@ -126,5 +126,5 @@ pub async fn delete_bookmark(
     .await
     .context("can't delete bookmark")?;
 
-    Ok((StatusCode::OK).into_response())
+    Ok(StatusCode::OK.into_response())
 }
