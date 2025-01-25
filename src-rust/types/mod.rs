@@ -8,9 +8,35 @@ use serde::{Deserialize, Deserializer};
 
 use crate::utils::macros::bail_if_empty;
 
-pub type TitleID = i64;
-pub type CategoryID = i64;
-pub type UserID = i64;
+macro_rules! mental_new_type {
+    ($name:ident, $inner:ty) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub struct $name($inner);
+
+        impl From<$inner> for $name {
+            fn from(value: $inner) -> Self {
+                Self(value)
+            }
+        }
+
+        impl From<$name> for $inner {
+            fn from(value: $name) -> Self {
+                value.0
+            }
+        }
+
+        impl $name {
+            pub fn as_ref(&self) -> $inner {
+                self.0
+            }
+        }
+    };
+}
+
+mental_new_type!(TitleID, i64);
+mental_new_type!(CategoryID, i64);
+mental_new_type!(UserID, i64);
+mental_new_type!(SessionID, i64);
 
 fn option_blurhash_deserializer<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
