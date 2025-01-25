@@ -149,6 +149,7 @@ fn hash_pass(input: impl AsRef<str>) -> Result<String, AppError> {
 
 #[skip_serializing_none]
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct TitleResponseBody {
     pub id: String,
     pub title: Option<String>,
