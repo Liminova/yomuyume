@@ -36,15 +36,11 @@ impl Mailer {
         let from_email = env
             .smtp_from_email
             .as_ref()
-            .map(|a| a.trim())
-            .filter(|a| !a.is_empty())
             .filter(|a| EmailAddress::is_valid(a))
             .ok_or_else(|| anyhow!("invalid smtp from email, contact the server owner"))?;
         let from_name = env
             .smtp_from_name
             .as_ref()
-            .map(|a| a.trim())
-            .filter(|a| !a.is_empty())
             .ok_or_else(|| anyhow!("invalid smtp from name, contact the server owner"))?;
         let sender: Mailbox = format!("{from_name} <{from_email}>")
             .parse()
@@ -53,20 +49,14 @@ impl Mailer {
         let host = env
             .smtp_host
             .as_ref()
-            .map(|a| a.trim())
-            .filter(|a| !a.is_empty())
             .ok_or_else(|| anyhow!("invalid smtp host, contact the server owner"))?;
         let smtp_username = env
             .smtp_username
             .as_ref()
-            .map(|a| a.trim())
-            .filter(|a| !a.is_empty())
             .ok_or_else(|| anyhow!("invalid smtp username, contact the server owner"))?;
         let smtp_password = env
             .smtp_password
             .as_ref()
-            .map(|a| a.trim())
-            .filter(|a| !a.is_empty())
             .ok_or_else(|| anyhow!("invalid smtp password, contact the server owner"))?;
 
         let mailer = SmtpTransport::relay(host)
