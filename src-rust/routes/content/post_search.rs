@@ -149,7 +149,7 @@ pub async fn post_search(
                 WHEN NOT $3 THEN $4
             END DESC
         LIMIT $5 OFFSET $6"#,
-        user_id,
+        user_id.as_ref(),
         keywords,
         is_ascending,
         order_by,

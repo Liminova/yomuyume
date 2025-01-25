@@ -81,7 +81,7 @@ pub async fn get_title(
             c.name,
             pr.page"#,
         title_id,
-        user_id
+        user_id.as_ref()
     )
     .fetch_optional(&app_state.pool)
     .await

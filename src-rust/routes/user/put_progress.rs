@@ -30,7 +30,7 @@ pub async fn put_progress(
         UPDATE
         SET last_read_at = EXCLUDED.last_read_at,
             page = EXCLUDED.page",
-        user_id,
+        user_id.as_ref(),
         title_id,
         chrono::Utc::now(),
         page

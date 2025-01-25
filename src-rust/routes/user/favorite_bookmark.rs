@@ -35,7 +35,7 @@ pub async fn put_favorite(
             .await
             .context("can't generate id")?,
         title_id,
-        user_id
+        user_id.as_ref()
     )
     .execute(&app_state.pool)
     .await
@@ -66,7 +66,7 @@ pub async fn put_bookmark(
             .await
             .context("can't generate id")?,
         title_id,
-        &user_id
+        user_id.as_ref()
     )
     .execute(&app_state.pool)
     .await
@@ -93,7 +93,7 @@ pub async fn delete_favorite(
         WHERE title_id = $1
             AND user_id = $2",
         title_id,
-        user_id
+        user_id.as_ref()
     )
     .execute(&data.pool)
     .await
@@ -120,7 +120,7 @@ pub async fn delete_bookmark(
         WHERE title_id = $1
             AND user_id = $2",
         title_id,
-        &user_id
+        user_id.as_ref()
     )
     .execute(&data.pool)
     .await
