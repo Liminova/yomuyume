@@ -167,8 +167,10 @@ pub struct TitleResponseBody {
     pub date_updated: Option<String>,
 
     pub tags: Option<Vec<(String, String)>>,
-    pub favorites: i64,
-    pub bookmarks: i64,
+    /// null if the value is 0
+    pub favorites: Option<i64>,
+    /// null if the value is 0
+    pub bookmarks: Option<i64>,
 
     pub is_favorite: bool,
     pub is_bookmark: bool,
