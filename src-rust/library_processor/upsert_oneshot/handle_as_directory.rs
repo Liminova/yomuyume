@@ -14,7 +14,7 @@ use crate::{
         absolute_path::{AbsolutePath, ToAbsolute},
         comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
     },
-    utils::{config::COMICINFO_FILENAME, macros::bail_if_empty},
+    utils::{config::COMICINFO, macros::bail_if_empty},
 };
 
 #[derive(Debug, Clone)]
@@ -58,7 +58,7 @@ pub fn handle_title_as_directory(
 ) -> Result<TitleHandlerOk, UpsertTitleErr> {
     bail_if_empty!(sub_entries, Err(UpsertTitleErr::IsEmpty));
 
-    let comicinfo_path = title_path.as_ref().join(COMICINFO_FILENAME);
+    let comicinfo_path = title_path.as_ref().join(COMICINFO);
 
     let (original_comicinfo, mut comicinfo) = if comicinfo_path.exists() {
         let s = std::fs::read_to_string(&comicinfo_path)
