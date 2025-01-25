@@ -15,7 +15,7 @@ use crate::{
     },
     utils::{
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
-        config::COMICINFO_FILENAME,
+        config::COMICINFO,
         macros::bail_if_empty,
     },
 };
@@ -35,7 +35,7 @@ pub fn handle_title_as_archive(
     let (original_comicinfo, mut comicinfo) = {
         let tmp = title_path
             .as_ref()
-            .read_file_from_archive(COMICINFO_FILENAME)
+            .read_file_from_archive(COMICINFO)
             .map_err(UpsertTitleErr::ComicInfoExtract)
             .and_then(|b| String::from_utf8(b).map_err(UpsertTitleErr::ComicInfoReadFromVecU8))
             .and_then(|s| ComicInfo::from_str(&s).map_err(UpsertTitleErr::ComicInfoParse))?;
@@ -165,7 +165,7 @@ pub fn handle_title_as_archive(
             .and_then(|s| {
                 title_path
                     .as_ref()
-                    .upsert_file_to_archive(COMICINFO_FILENAME, Arc::new(s.as_bytes().to_vec()))
+                    .upsert_file_to_archive(COMICINFO, Arc::new(s.as_bytes().to_vec()))
                     .map_err(UpsertTitleErr::ComicInfoWriteArchive)
             })?;
     }
