@@ -9,7 +9,7 @@ use crate::{
         absolute_path::{AbsolutePath, ToAbsolute},
         comic_info::ComicInfo,
     },
-    utils::config::COMICINFO_FILENAME,
+    utils::config::COMICINFO,
 };
 
 use super::bail_if_empty;
@@ -30,14 +30,14 @@ pub fn handle_directory_chapter(
     nomedia_support: bool,
 ) -> Result<ChapterInfo, HandleDirectoryChapterErr> {
     let chapter_comicinfo = {
-        let path = chapter_path.as_ref().join(COMICINFO_FILENAME);
+        let path = chapter_path.as_ref().join(COMICINFO);
         path.exists()
             .then(|| {
                 read_to_string(&path)
-                    .okay(|e| warn!("can't read `{COMICINFO_FILENAME}` in directory-chapter `{chapter_path}`: {e:?}"))
+                    .okay(|e| warn!("can't read `{COMICINFO}` in directory-chapter `{chapter_path}`: {e:?}"))
                     .and_then(|s| {
                         ComicInfo::from_str(&s)
-                        .okay(|e| warn!("can't parse `{COMICINFO_FILENAME}` in directory-chapter `{chapter_path}`: {e:?}"))
+                        .okay(|e| warn!("can't parse `{COMICINFO}` in directory-chapter `{chapter_path}`: {e:?}"))
                     })
             })
             .flatten()
