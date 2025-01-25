@@ -10,6 +10,7 @@ use futures_util::future::join_all;
 use tokio::sync::RwLock;
 
 use crate::types::absolute_path::ToAbsolute;
+use crate::types::CategoryID;
 use crate::{
     app_state::AppState,
     library_processor::{
@@ -51,7 +52,7 @@ pub async fn upsert_oneshot(
     title_path: PathBuf,
     oneshot_type: OneshotType,
     parent_path: Option<PathBuf>,
-    category_path_to_id: Arc<RwLock<HashMap<AbsolutePath, i64>>>,
+    category_path_to_id: Arc<RwLock<HashMap<AbsolutePath, CategoryID>>>,
     nomedia_support: bool,
 ) -> Result<TitleID, UpsertTitleErr> {
     let title_path = title_path.to_absolute(None)?;
@@ -134,7 +135,7 @@ pub async fn upsert_oneshot(
             .await
             .map_err(UpsertTitleErr::GenTitleID)?,
         title.comicinfo.title,
-        category_id,
+        category_id.map(|id| id.as_ref()),
         title.comicinfo.penciller.as_ref(),
         title.comicinfo.summary.as_ref(),
         title.comicinfo.get_release(),
@@ -223,5 +224,5 @@ pub async fn upsert_oneshot(
         .await
         .map_err(UpsertTitleErr::TransactionCommit)?;
 
-    Ok(title_id)
+    Ok(title_id.into())
 }
