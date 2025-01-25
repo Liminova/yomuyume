@@ -7,15 +7,21 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use chrono::Utc;
+use chrono::{Duration, Utc};
 use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
     routes::{hash_pass, Mailer},
+    traits::chrono_utils::ChronoUtils,
     types::temp_code_purpose::TempCodePurpose,
-    utils::{app_error::AppError, app_state::AppState},
+    utils::{
+        app_error::AppError,
+        app_state::AppState,
+        config::{TEMP_CODE_EXPIRED_AFTER, TEMP_CODE_REQUEST_RATE_LIMIT},
+        macros::bail_if_empty,
+    },
 };
 
 /// reset password
@@ -37,7 +43,7 @@ pub async fn get_reset_password(
     let mailer = Mailer::from(&app_state.config)?;
 
     // valid user
-    let user_record = sqlx::query!(
+    let Some((user_id, username, email, verified_at)) = sqlx::query!(
         "SELECT id,
             username,
             email,
@@ -48,32 +54,33 @@ pub async fn get_reset_password(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query user")?;
-
-    let Some(user_record) = user_record else {
+    .context("can't query user")?
+    .map(|r| (r.id, r.username, r.email, r.verified_at)) else {
         return Ok((StatusCode::BAD_REQUEST, "user not found").into_response());
     };
-    if user_record.verified_at.is_none() {
+
+    if verified_at.is_none() {
         return Ok((StatusCode::BAD_REQUEST, "user is not verified").into_response());
     };
 
+    let now = Utc::now();
+
     // too many requests
-    let temp_code_record = sqlx::query!(
+    if let Some(created_at) = sqlx::query!(
         "SELECT created_at
         FROM temp_codes
         WHERE purpose = $1
             AND user_id = $2",
         TempCodePurpose::ResetPassword as TempCodePurpose,
-        user_record.id
+        user_id
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query temp code")?;
-    if let Some(ref record) = temp_code_record {
-        if Utc::now() - record.created_at < chrono::Duration::minutes(5) {
-            {
-                return Ok((StatusCode::TOO_MANY_REQUESTS).into_response());
-            }
+    .context("can't query temp code")?
+    .map(|r| r.created_at)
+    {
+        if created_at.inside(&now, &Duration::seconds(TEMP_CODE_REQUEST_RATE_LIMIT)) {
+            return Ok((StatusCode::TOO_MANY_REQUESTS).into_response());
         }
     }
 
@@ -86,9 +93,9 @@ pub async fn get_reset_password(
         SET created_at = $4
         RETURNING code",
         TempCodePurpose::ResetPassword as TempCodePurpose,
-        user_record.id,
+        user_id,
         new_code.as_str(),
-        Utc::now()
+        now
     )
     .fetch_one(&app_state.pool)
     .await
@@ -97,8 +104,8 @@ pub async fn get_reset_password(
 
     mailer
         .send(
-            &user_record.username,
-            &user_record.email,
+            &username,
+            &email,
             format!("{} - Reset your password", &app_state.config.app_name),
             format!(
                 "Hello, {}!\n\n\
@@ -107,12 +114,12 @@ pub async fn get_reset_password(
                 If you did not request to reset your password, please ignore this email.\n\n\
                 Best regards,\n\
                 The {} team",
-                &user_record.username,
+                &username,
                 &code,
                 &app_state.config.app_name,
             ),
         )
-        .map(|_| Ok((StatusCode::OK).into_response()))?
+        .map(|_| Ok(StatusCode::OK.into_response()))?
 }
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
@@ -134,12 +141,16 @@ pub async fn post_reset_password(
     State(app_state): State<Arc<AppState>>,
     Json(query): Json<ResetRequestBody>,
 ) -> Result<Response, AppError> {
-    if query.new_password.is_empty() || query.code.is_empty() {
-        return Ok((StatusCode::BAD_REQUEST, "password and code cannot be empty").into_response());
-    }
+    bail_if_empty!(
+        query.new_password,
+        Ok((StatusCode::BAD_REQUEST, "password cannot be empty").into_response())
+    );
+    bail_if_empty!(
+        query.code,
+        Ok((StatusCode::BAD_REQUEST, "code cannot be empty").into_response())
+    );
 
-    // check temp code
-    let temp_code_record = sqlx::query!(
+    let Some((created_at, user_id)) = sqlx::query!(
         "DELETE FROM temp_codes
         WHERE code = $1
             AND purpose = $2
@@ -150,14 +161,16 @@ pub async fn post_reset_password(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query temp code")?;
-    let temp_code_record = if let Some(record) = temp_code_record {
-        if Utc::now() - record.created_at > chrono::Duration::minutes(5) {
-            return Ok((StatusCode::BAD_REQUEST, "code expired").into_response());
-        }
-        record
-    } else {
+    .context("can't query temp code")?
+    .map(|record| (record.created_at, record.user_id)) else {
         return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
+    };
+
+    let now = Utc::now();
+
+    // check temp code
+    if created_at.outside(&now, &Duration::seconds(TEMP_CODE_EXPIRED_AFTER)) {
+        return Ok((StatusCode::BAD_REQUEST, "code expired").into_response());
     };
 
     // update password
@@ -168,12 +181,17 @@ pub async fn post_reset_password(
             updated_at = $2
         WHERE id = $3",
         password_hash.as_str(),
-        Utc::now(),
-        temp_code_record.user_id
+        &now,
+        user_id
     )
     .execute(&app_state.pool)
     .await
     .context("can't update user")?;
 
-    Ok((StatusCode::OK).into_response())
+    // update cache
+    if let Some(mut user) = app_state.user_cache.get_mut(&user_id.into()) {
+        user.value_mut().updated_at = Some(now);
+    }
+
+    Ok(StatusCode::OK.into_response())
 }
