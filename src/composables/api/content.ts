@@ -2,6 +2,17 @@
 
 import { useMutation, useQuery } from "@tanstack/vue-query";
 
+export interface CategoriesResponseBodyInner {
+	id: string;
+	name?: string;
+	description?: string;
+
+	cover_blurhash?: string;
+	cover_height?: number;
+	cover_width?: number;
+	cover_jxl?: string;
+}
+
 export type GetCategoriesResponseBody = Array<{ id: string; name: string; description?: string }>;
 
 export function useGetCategories() {
@@ -22,35 +33,35 @@ export function useGetCategories() {
 	});
 }
 
-export interface TitleTagResponse {
-	id: string;
-	name: string;
-}
+export type TitleTagName = string;
+export type TitleTagID = string;
+export type TitleTag = [TitleTagID, TitleTagName];
 
-export interface GetTitleResponseBody {
+export interface TitleResponseBody {
 	author?: string;
-	bookmarks: number;
+	bookmarks?: number;
 	category_id?: string;
 	cover_blurhash?: string;
-	cover_format?: string;
 	cover_height?: number;
+	cover_jxl: boolean;
 	cover_width?: number;
 	date_updated?: string;
 	description?: string;
-	favorites: number;
+	favorites?: number;
+	id: string,
 	is_bookmark: boolean;
 	is_favorite: boolean;
 	is_series: boolean;
 	page_read?: number;
 	release?: string;
-	tags?: TitleTagResponse[];
+	tags?: TitleTag[];
 	title?: string;
 }
 
 export function useGetTitle(id: string) {
 	return useQuery({
 		queryKey: ["title", id],
-		async queryFn(): Promise<GetTitleResponseBody> {
+		async queryFn(): Promise<TitleResponseBody> {
 			const response = await fetch(`/api/content/title/${id}`, {
 				method: "GET",
 				headers: { "Content-Type": "application/json" },
@@ -73,31 +84,14 @@ export interface FilterTitleRequestBody {
 	is_reading?: boolean;
 	keywords?: string[];
 	limit?: number;
-	sort_by?: string;
+	order_by?: string;
 	sort_order?: string;
 	tag_ids?: string[];
 }
 
-export interface TitleFromFilter {
-	author?: string;
-	category_id?: string;
-	cover_blurhash?: string;
-	cover_format?: string;
-	cover_height?: number;
-	cover_width?: number;
-	favorite_count?: number;
-	id: string;
-	page_count: number;
-	page_read?: number;
-	release?: string;
-	title?: string;
-}
-
-export type FilterTitleResponseBody = TitleFromFilter[];
-
 export function useFilterTitle() {
 	return useMutation({
-		async mutationFn(body: FilterTitleRequestBody): Promise<FilterTitleResponseBody> {
+		async mutationFn(body: FilterTitleRequestBody): Promise<TitleResponseBody[]> {
 			const response = await fetch("/api/content/filter", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -116,7 +110,7 @@ export function useFilterTitle() {
 export function useGetTags() {
 	return useQuery({
 		queryKey: ["tags"],
-		queryFn: async (): Promise<Array<{ id: string; name: string }>> => {
+		queryFn: async (): Promise<TitleTag[]> => {
 			const response = await fetch("/api/content/tags", { method: "GET" });
 
 			if (!response.ok) {
