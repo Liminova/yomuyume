@@ -3,8 +3,9 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 
-use crate::utils::{
-    config::Config, id_generator::IDGenerator, live_config::LiveConfig, session_token::SessionToken,
+use crate::{
+    types::{user_cache::UserCache, SessionID, UserID},
+    utils::{config::Config, id_generator::IDGenerator, live_config::LiveConfig},
 };
 
 #[derive(Debug)]
@@ -15,7 +16,8 @@ pub struct AppState {
     pub scanning_complete: Mutex<bool>,
     pub scanning_progress: Mutex<f64>,
     pub id_generator: IDGenerator,
-    pub cached_session_tokens: DashMap<String, SessionToken>,
+    pub user_cache: DashMap<UserID, UserCache>,
+    pub session_cache: DashMap<SessionID, UserID>,
 }
 
 impl AppState {
@@ -39,7 +41,8 @@ impl AppState {
             scanning_complete: Mutex::new(false),
             scanning_progress: Mutex::new(0.0),
             id_generator: IDGenerator::default(),
-            cached_session_tokens: DashMap::new(),
+            user_cache: DashMap::new(),
+            session_cache: DashMap::new(),
         })
     }
 }
