@@ -2,7 +2,6 @@ use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone)]
 pub struct UserCache {
-    pub id: i64,
     pub username: String,
     pub email: String,
     pub profile_picture: Option<String>,
