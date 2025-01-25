@@ -100,7 +100,7 @@ pub async fn post_search(
             t.cover_height AS cover_height,
             t.date_updated AS date_updated,
             t.path AS path,
-            ARRAY_AGG(DISTINCT CONCAT(tg.name, '-', tg.id)) FILTER (
+            ARRAY_AGG(DISTINCT CONCAT(tg.id, '-', tg.name)) FILTER (
                 WHERE tg.name IS NOT NULL
             ) AS "tags",
             (

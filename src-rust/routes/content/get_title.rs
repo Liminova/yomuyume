@@ -41,7 +41,7 @@ pub async fn get_title(
             t.cover_width AS cover_width,
             t.cover_height AS cover_height,
             t.date_updated AS date_updated,
-            ARRAY_AGG(DISTINCT CONCAT(tg.name, '-', tg.id)) FILTER (
+            ARRAY_AGG(DISTINCT CONCAT(tg.id, '-', tg.name)) FILTER (
                 WHERE tg.name IS NOT NULL
             ) AS "tags",
             (
