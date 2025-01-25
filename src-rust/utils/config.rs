@@ -23,7 +23,8 @@ pub(super) const SECURE_ID_CHARSET: &[char; 64] = &[
 ];
 pub(super) const SECURE_ID_MASK: usize = SECURE_ID_CHARSET.len().next_power_of_two() - 1;
 
-pub const SESSION_TOKEN_LAST_USED_AT_UPDATE_INTERVAL: i64 = 5 * 60; // 5 minutes
+pub const SESSION_TOKEN_UPDATE_LAST_USED_AT_INTERVAL: i64 = 5 * 60;
+pub const SESSION_TOKEN_EXPIRED_AFTER: i64 = 60 * 60 * 24 * 7; // 7 days
 
 const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
