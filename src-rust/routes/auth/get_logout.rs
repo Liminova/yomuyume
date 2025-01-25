@@ -11,7 +11,10 @@ use axum_extra::extract::{
     CookieJar,
 };
 
-use crate::utils::{app_error::AppError, app_state::AppState};
+use crate::{
+    types::SessionID,
+    utils::{app_error::AppError, app_state::AppState},
+};
 
 /// logout
 ///
@@ -25,7 +28,7 @@ pub async fn get_logout(
     cookie_jar: CookieJar,
     State(app_state): State<Arc<AppState>>,
 ) -> Result<Response, AppError> {
-    let Some(session_id) = cookie_jar
+    let Some(session_id): Option<SessionID> = cookie_jar
         .get("session-id")
         .and_then(|cookie| cookie.value().to_string().parse::<i64>().ok())
     else {
