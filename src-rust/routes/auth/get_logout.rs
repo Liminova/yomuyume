@@ -52,6 +52,8 @@ pub async fn get_logout(
     .await
     .context("can't delete session token")?;
 
+    app_state.session_cache.remove(&session_id);
+
     let cookie = Cookie::build(("token", ""))
         .path("/")
         .same_site(SameSite::Lax)
