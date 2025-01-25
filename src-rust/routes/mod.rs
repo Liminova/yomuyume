@@ -160,7 +160,10 @@ pub struct TitleResponseBody {
     pub is_series: bool,
 
     pub cover_blurhash: Option<String>,
+    /// full width, you might want to clamp this down to a much, much smaller
+    /// value (<32px) before decoding the blurhash
     pub cover_width: Option<i32>,
+    /// same as `cover_width`
     pub cover_height: Option<i32>,
     pub cover_jxl: Option<bool>,
 
@@ -174,5 +177,6 @@ pub struct TitleResponseBody {
 
     pub is_favorite: bool,
     pub is_bookmark: bool,
+    /// null if the value is 0 or haven't read
     pub page_read: Option<i32>,
 }
