@@ -49,8 +49,8 @@ use crate::utils::app_error::AppError;
             description = "login, register, logout"
         ),
         (
-            name = "index",
-            description = "all the routes related to fetching index data"
+            name = "content",
+            description = "all the routes related to fetching contents"
         ),
         (
             name = "user",
