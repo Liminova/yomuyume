@@ -27,10 +27,14 @@ use crate::{
         upsert_tags::UpsertTagsErr,
     },
     traits::do_something_and_ok::DoSomethingAndOk,
-    types::absolute_path::{AbsolutePath, AbsolutePathErr},
+    types::{
+        absolute_path::{AbsolutePath, AbsolutePathErr},
+        CategoryID, TitleID,
+    },
     utils::{
         app_state::AppState,
         archive_file::{ArchiveFileError, ItemInArchive},
+        config::COMICINFO,
         id_generator::GenerateIDErr,
     },
 };
@@ -67,19 +71,19 @@ enum UpsertTitleErr {
     #[error("can't upsert series' chapters: {0:?}")]
     UpsertChapters(sqlx::Error),
 
-    #[error("can't extract ComicInfo.xml from archive: {0:?}")]
+    #[error("can't extract {COMICINFO} from archive: {0:?}")]
     ComicInfoExtract(ArchiveFileError),
-    #[error("can't decode ComicInfo.xml from vec<u8>: {0:?}")]
+    #[error("can't decode {COMICINFO} from vec<u8>: {0:?}")]
     ComicInfoReadFromVecU8(FromUtf8Error),
-    #[error("can't read ComicInfo.xml from filesystem: {0:?}")]
+    #[error("can't read {COMICINFO} from filesystem: {0:?}")]
     ComicInfoReadFromFs(std::io::Error),
-    #[error("can't deserialize ComicInfo.xml: {0:?}")]
+    #[error("can't deserialize {COMICINFO}: {0:?}")]
     ComicInfoParse(quick_xml::DeError),
-    #[error("can't serialize ComicInfo.xml: {0:?}")]
+    #[error("can't serialize {COMICINFO}: {0:?}")]
     ComicInfoSerialize(quick_xml::DeError),
-    #[error("can't write ComicInfo.xml to archive: {0:?}")]
+    #[error("can't write {COMICINFO} to archive: {0:?}")]
     ComicInfoWriteArchive(ArchiveFileError),
-    #[error("can't write ComicInfo.xml to directory: {0:?}")]
+    #[error("can't write {COMICINFO} to directory: {0:?}")]
     ComicInfoWriteDir(std::io::Error),
 
     #[error("can't generate an ID for the title: {0:?}")]
@@ -139,10 +143,10 @@ pub async fn full_scan(app_state: Arc<AppState>) {
 
     // processing tasks waiting to be .await-ed
     let mut tasks: Vec<(
-        BoxFuture<'static, anyhow::Result<i64, UpsertTitleErr>>,
+        BoxFuture<'static, anyhow::Result<TitleID, UpsertTitleErr>>,
         PathBuf,
     )> = vec![];
-    let category_path_to_id: Arc<RwLock<HashMap<AbsolutePath, i64>>> =
+    let category_path_to_id: Arc<RwLock<HashMap<AbsolutePath, CategoryID>>> =
         Arc::new(RwLock::new(HashMap::new()));
 
     // BFS
@@ -269,8 +273,14 @@ pub async fn full_scan(app_state: Arc<AppState>) {
             .await
             .values()
             .copied()
+            .map(|id| id.as_ref())
             .collect::<Vec<i64>>(),
-        &*upserted_title_ids.lock().await,
+        &*upserted_title_ids
+            .lock()
+            .await
+            .iter()
+            .map(|id| id.as_ref())
+            .collect::<Vec<i64>>(),
     )
     .execute(&app_state.pool)
     .await
