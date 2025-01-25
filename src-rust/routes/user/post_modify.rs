@@ -104,5 +104,5 @@ pub async fn post_modify(
     user.value_mut().updated_at = Some(now);
     drop(user);
 
-    Ok((StatusCode::OK).into_response())
+    Ok(StatusCode::OK.into_response())
 }
