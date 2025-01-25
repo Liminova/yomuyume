@@ -7,7 +7,7 @@ use crate::{
     types::{absolute_path::AbsolutePath, comic_info::ComicInfo},
     utils::{
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
-        config::COMICINFO_FILENAME,
+        config::COMICINFO,
         macros::bail_if_empty,
     },
 };
@@ -29,11 +29,11 @@ pub fn handle_archive_chapter(
 
     let chapter_comicinfo = chapter_path
         .as_ref()
-        .read_file_from_archive(COMICINFO_FILENAME)
+        .read_file_from_archive(COMICINFO)
         .context("can't extract from archive")
         .and_then(|buf| String::from_utf8(buf).context("can't decode to string"))
         .and_then(|str| ComicInfo::from_str(&str).context("can't deserialize"))
-        .okay(|e| warn!("can't parse ComicInfo.xml in archive-chapter: {e:?}"))
+        .okay(|e| warn!("can't parse {COMICINFO} in archive-chapter: {e:?}"))
         .unwrap_or_default();
 
     Ok(ChapterInfo {
