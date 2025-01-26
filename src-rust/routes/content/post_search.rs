@@ -17,16 +17,25 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, ToSchema, Serialize, Deserialize, Default)]
 pub enum OrderBy {
-    #[serde(rename = "id")]
-    ID,
     #[serde(rename = "title")]
+    #[default]
     Title,
     #[serde(rename = "release_date")]
     ReleaseDate,
     #[serde(rename = "update_date")]
     UpdateDate,
+}
+
+impl AsRef<str> for OrderBy {
+    fn as_ref(&self) -> &str {
+        match self {
+            OrderBy::Title => "title",
+            OrderBy::ReleaseDate => "release_date",
+            OrderBy::UpdateDate => "update_date",
+        }
+    }
 }
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
