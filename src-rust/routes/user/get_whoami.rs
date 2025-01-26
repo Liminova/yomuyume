@@ -8,6 +8,7 @@ use axum::{
     Extension, Json,
 };
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
 use crate::{
@@ -15,6 +16,7 @@ use crate::{
     utils::{app_error::AppError, app_state::AppState},
 };
 
+#[skip_serializing_none]
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct WhoAmIResponseBody {
     pub user_id: i64,
