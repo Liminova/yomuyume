@@ -76,15 +76,27 @@ pub async fn post_search(
 ) -> Result<Response, AppError> {
     let limit = request_body.limit.unwrap_or(10);
     let offset = request_body.offset.unwrap_or(0);
-    let order_by = request_body
-        .order_by
-        .map_or("title", |order_by| match order_by {
-            OrderBy::ID => "id",
-            OrderBy::Title => "title",
-            OrderBy::ReleaseDate => "release",
-            OrderBy::UpdateDate => "date_updated",
-        });
+    let order_by = request_body.order_by.unwrap_or_default();
     let is_ascending = request_body.is_ascending.unwrap_or(true);
+
+    let title_ids: Option<Vec<i64>> = None;
+    let category_ids = request_body
+        .category_ids
+        .map(|ids| {
+            ids.into_iter()
+                .filter_map(|id| id.parse::<i64>().ok())
+                .collect()
+        })
+        .filter(|ids: &Vec<i64>| !ids.is_empty());
+    let tag_ids = request_body
+        .tag_ids
+        .map(|ids| {
+            ids.into_iter()
+                .filter_map(|id| id.parse::<i64>().ok())
+                .collect()
+        })
+        .filter(|ids: &Vec<i64>| !ids.is_empty());
+    let release_year = request_body.release_year.map(|year| year as i32);
 
     let data = sqlx::query!(
         r#"SELECT t.id AS id,
