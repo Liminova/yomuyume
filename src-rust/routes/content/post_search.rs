@@ -39,8 +39,12 @@ impl AsRef<str> for OrderBy {
 }
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
-pub struct FilterRequestBody {
-    pub keywords: String,
+pub struct SearchRequestBody {
+    pub term: Option<String>,
+
+    pub category_ids: Option<Vec<String>>,
+    pub tag_ids: Option<Vec<String>>,
+    pub release_year: Option<i64>,
 
     pub offset: Option<i64>,
     pub limit: Option<i64>,
@@ -49,7 +53,7 @@ pub struct FilterRequestBody {
 }
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
-pub struct FilterResponseBody {
+pub struct SearchResponseBody {
     pub data: Vec<TitleResponseBody>,
 
     pub offset: i64,
@@ -60,15 +64,15 @@ pub struct FilterResponseBody {
 ///
 /// and also sorting them by various options
 #[utoipa::path(post, path = "api/content/search", responses(
-    (status = 200, description = "fetch all items successful", body = FilterResponseBody),
-    (status = 204, description = "fetch all items successful, but none were found", body = FilterResponseBody),
+    (status = 200, description = "fetch all items successful", body = SearchResponseBody),
+    (status = 204, description = "fetch all items successful, but none were found", body = SearchResponseBody),
     (status = 401, description = "unauthorized", body = String),
     (status = 500, description = "internal server error", body = String)
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn post_search(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
-    Json(request_body): Json<FilterRequestBody>,
+    Json(request_body): Json<SearchRequestBody>,
 ) -> Result<Response, AppError> {
     let keywords = request_body
         .keywords
