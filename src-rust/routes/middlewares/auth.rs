@@ -36,13 +36,15 @@ pub async fn auth(
     // preparing variables
     let Some(provided_session_id) = cookie_jar
         .get("session-id")
-        .map(|c| c.to_string())
+        .map(|c| c.value_trimmed().to_string())
         .and_then(|s| s.parse::<i64>().ok())
         .map(|i| i.into())
     else {
         return Ok((StatusCode::UNAUTHORIZED, "missing session id").into_response());
     };
-    let Some(provided_session_secret) = cookie_jar.get("session-secret").map(|c| c.to_string())
+    let Some(provided_session_secret) = cookie_jar
+        .get("session-secret")
+        .map(|c| c.value_trimmed().to_string())
     else {
         return Ok((StatusCode::UNAUTHORIZED, "missing session secret").into_response());
     };
