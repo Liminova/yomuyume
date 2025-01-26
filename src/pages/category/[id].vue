@@ -47,17 +47,7 @@ onUnmounted(() => {
 				v-for="title in titles"
 				:key="title.id"
 				:to="`/title/${title.id}`">
-				<ItemCard
-					:title="title.title"
-					:author="title.author ?? 'Unknown'"
-					:title-id="title.id"
-					:cover="{
-						width: title.cover_width,
-						height: title.cover_height,
-						blurhash: title.cover_blurhash,
-						format: title.cover_format,
-						src: toCoverApiEndpoint(title.id),
-					}" />
+				<ItemCard :title="title" />
 			</NuxtLink>
 		</div>
 	</NavDrawerWrapper>
