@@ -148,24 +148,55 @@ pub async fn post_search(
                 pr.title_id = t.id
                 AND pr.user_id = $1
             )
-        WHERE t.path ~* $2
-            OR t.title ~* $2
-            OR t.author ~* $2
-            OR t.description ~* $2
+        WHERE (
+                -- title ids
+                $2::bigint [] IS NULL
+                OR t.id IN (
+                    SELECT title_id
+                    FROM UNNEST($2::bigint []) AS t(title_id)
+                )
+            )
+            AND (
+                -- category ids
+                $3::bigint [] IS NULL
+                OR c.id IN (
+                    SELECT category_id
+                    FROM UNNEST($3::bigint []) AS c(category_id)
+                )
+            )
+            AND (
+                -- tag ids
+                $4::bigint [] IS NULL
+                OR tg.id IN (
+                    SELECT tag_id
+                    FROM UNNEST($4::bigint []) AS tg(tag_id)
+                )
+            )
+            AND (
+                -- release year
+                $5::int IS NULL
+                OR EXTRACT(
+                    YEAR
+                    FROM t.release
+                ) = $5
+            )
         GROUP BY t.id,
             c.id,
             pr.page
         ORDER BY CASE
-                WHEN $3 THEN $4
+                WHEN $6 THEN $7
             END ASC,
             CASE
-                WHEN NOT $3 THEN $4
+                WHEN NOT $6 THEN $7
             END DESC
-        LIMIT $5 OFFSET $6"#,
+        LIMIT $8 OFFSET $9"#,
         user_id.as_ref(),
-        keywords,
+        title_ids.as_deref(),
+        category_ids.as_deref(),
+        tag_ids.as_deref(),
+        release_year,
         is_ascending,
-        order_by,
+        order_by.as_ref(),
         limit,
         offset,
     )
