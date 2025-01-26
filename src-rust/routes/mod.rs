@@ -114,8 +114,8 @@ use crate::utils::app_error::AppError;
         TitleResponseBody,
         TitleResponseBody,
         CategoryResponseBody,
-        FilterRequestBody,
-        FilterResponseBody,
+        SearchRequestBody,
+        SearchResponseBody,
 
         // Utils
         StatusRequestBody,
