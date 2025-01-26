@@ -47,7 +47,7 @@ onUnmounted(() => {
 			:to="`/category/${id}`"
 			class="elevation-2 rounded-xl">
 			<div class="my-3 text-center text-xl font-bold">
-				{{ name }}
+				{{ name ?? "Untitled" }}
 			</div>
 		</NuxtLink>
 	</div>
