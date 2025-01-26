@@ -242,7 +242,7 @@ pub async fn post_search(
 
     Ok((
         StatusCode::OK,
-        Json(FilterResponseBody {
+        Json(SearchResponseBody {
             data,
             offset,
             limit,
