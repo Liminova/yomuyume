@@ -74,18 +74,6 @@ pub async fn post_search(
     Extension(user_id): Extension<UserID>,
     Json(request_body): Json<SearchRequestBody>,
 ) -> Result<Response, AppError> {
-    let keywords = request_body
-        .keywords
-        .split_whitespace()
-        .map(|s| {
-            s.chars()
-                .filter(|c| c.is_alphanumeric())
-                .collect::<String>()
-        })
-        .map(|s| s.to_lowercase())
-        .collect::<Vec<_>>()
-        .join("|");
-
     let limit = request_body.limit.unwrap_or(10);
     let offset = request_body.offset.unwrap_or(0);
     let order_by = request_body
