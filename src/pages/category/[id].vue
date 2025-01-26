@@ -3,7 +3,8 @@ import { onMounted, onUnmounted, ref } from "vue";
 
 import { useRoute } from "#app";
 import { NuxtLink } from "#components";
-import type { FilterTitleResponseBody } from "~/composables/api/content";
+import ItemCard from "~/components/ItemCard.vue";
+import type { TitleResponseBody } from "~/composables/api/content";
 import { toCoverApiEndpoint } from "~/composables/api/file";
 import NavDrawerWrapper from "~/layouts/nav-drawer.vue";
 import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
@@ -13,7 +14,7 @@ const spaceBetween = ref(16);
 
 const categoryId = useRoute().params.id as string;
 
-const titles = ref<FilterTitleResponseBody>([]);
+const titles = ref<TitleResponseBody[]>([]);
 
 const observer = new ResizeObserver(() => {
 	const breakPoint = getSwiperBreakpoint();
