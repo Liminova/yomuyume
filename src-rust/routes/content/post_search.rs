@@ -54,7 +54,7 @@ pub struct SearchRequestBody {
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct SearchResponseBody {
-    pub data: Vec<TitleResponseBody>,
+    pub data: Option<Vec<TitleResponseBody>>,
 
     pub offset: i64,
     pub limit: i64,
@@ -243,7 +243,7 @@ pub async fn post_search(
     Ok((
         StatusCode::OK,
         Json(SearchResponseBody {
-            data,
+            data: if data.is_empty() { None } else { Some(data) },
             offset,
             limit,
         }),
