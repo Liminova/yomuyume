@@ -29,6 +29,9 @@ importers:
       fast-blurhash:
         specifier: 1.1.4
         version: 1.1.4
+      jxl-webp-wasm:
+        specifier: ^0.11.0
+        version: 0.11.0
       lucide-vue-next:
         specifier: ^0.473.0
         version: 0.473.0(vue@3.5.13(typescript@5.7.3))
@@ -2503,6 +2506,9 @@ packages:
 
   jsonfile@6.1.0:
     resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==}
+
+  jxl-webp-wasm@0.11.0:
+    resolution: {integrity: sha512-M5JZD7fcaZm+668G/g7MuYcqttcUGqZ3oYc0vgEswLONczEjvuaSMvS9TQ8e9D2sXoZJok7icgCwxpsh0Q8x4Q==}
 
   keygrip@1.1.0:
     resolution: {integrity: sha512-iYSchDJ+liQ8iwbSI2QqsQOvqv58eJCEanyJPJi+Khyu8smkcKSFUCbPwzFcL7YVtZ6eONjqRX/38caJ7QjRAQ==}
@@ -6806,6 +6812,8 @@ snapshots:
       universalify: 2.0.1
     optionalDependencies:
       graceful-fs: 4.2.11
+
+  jxl-webp-wasm@0.11.0: {}
 
   keygrip@1.1.0:
     dependencies:
