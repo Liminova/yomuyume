@@ -1,0 +1,11 @@
+[package]
+name = "blurhash-encode"
+version = "0.1.0"
+edition = "2021"
+authors = ["Delnegend <kiennguyen19323@gmail.com>"]
+
+[dependencies]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "lib.rs"

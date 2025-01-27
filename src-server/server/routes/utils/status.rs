@@ -50,14 +50,14 @@ pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
 ))]
 pub async fn post_status(
     State(app_state): State<Arc<AppState>>,
-    query: Option<Json<StatusRequestBody>>,
+    query: Json<StatusRequestBody>,
 ) -> Response {
     (
         StatusCode::OK,
         Json(StatusResponseBody {
             server_time: Local::now().to_string(),
             version: app_state.config.get_version(),
-            echo: query.and_then(|q| q.echo.clone()),
+            echo: query.echo.clone(),
         }),
     )
         .into_response()

@@ -24,7 +24,7 @@ pub enum UpsertCategoryErr {
     #[error("can't deserialize {CATEGORYINFO}: {0:?}")]
     CategoryInfoParse(quick_xml::DeError),
     #[error("can't serialize {CATEGORYINFO}: {0:?}")]
-    CategoryInfoSerialize(quick_xml::DeError),
+    CategoryInfoSerialize(quick_xml::errors::serialize::SeError),
     #[error("can't write {CATEGORYINFO}: {0:?}")]
     CategoryInfoWrite(std::io::Error),
 

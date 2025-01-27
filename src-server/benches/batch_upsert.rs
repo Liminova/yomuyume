@@ -123,7 +123,7 @@ async fn json_table_method(
                 description TEXT PATH '$.description'
             ))
         ON CONFLICT (title_id, path) DO UPDATE
-            SET description = EXCLUDED.description;",
+            SET description = EXCLUDED.description",
         title_id.as_ref(),
         serde_json::to_string(pages.as_ref()).unwrap()
     )

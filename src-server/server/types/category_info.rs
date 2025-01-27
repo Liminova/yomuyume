@@ -109,7 +109,7 @@ impl CategoryInfo {
         quick_xml::de::from_str::<CategoryInfo>(s)
     }
 
-    pub fn to_pretty_string(&self) -> Result<String, quick_xml::DeError> {
+    pub fn to_pretty_string(&self) -> Result<String, quick_xml::errors::serialize::SeError> {
         let mut buffer = format!("{CATEGORY_INFO_SCHEMA}\n");
         let mut ser = quick_xml::se::Serializer::new(&mut buffer);
         ser.indent(' ', 4);

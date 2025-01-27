@@ -80,7 +80,7 @@ enum UpsertTitleErr {
     #[error("can't deserialize {COMICINFO}: {0:?}")]
     ComicInfoParse(quick_xml::DeError),
     #[error("can't serialize {COMICINFO}: {0:?}")]
-    ComicInfoSerialize(quick_xml::DeError),
+    ComicInfoSerialize(quick_xml::errors::serialize::SeError),
     #[error("can't write {COMICINFO} to archive: {0:?}")]
     ComicInfoWriteArchive(ArchiveFileError),
     #[error("can't write {COMICINFO} to directory: {0:?}")]
