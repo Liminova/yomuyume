@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    io::Cursor,
+    path::{Path, PathBuf},
+};
 
 use image::{imageops::FilterType::Gaussian, DynamicImage, GenericImageView};
 use jxl_oxide::integration::JxlDecoder;
@@ -15,29 +18,35 @@ pub struct ToBlurhashOk {
     pub height: i32,
 }
 
-/// A [`blurhash::encode`] wrapper that handles
-/// the image resizing and dimension calculations.
-fn encode(decoded_img: &DynamicImage) -> Result<ToBlurhashOk, blurhash::Error> {
-    let (width, height) = decoded_img.dimensions();
-    let decoded_img = decoded_img.resize_to_fill(32, 32, Gaussian);
-    // TODO: somehow these dimensions are always 32x32
-    let (smaller_width, smaller_height) = decoded_img.dimensions();
-    let (components_x, components_y) = {
-        let scale = smaller_width.min(smaller_height) / 3;
-        (smaller_width / scale, smaller_height / scale)
-    };
+trait ToBlurhash {
+    fn to_blurhash(&self) -> Result<ToBlurhashOk, blurhash::Error>;
+}
 
-    Ok(ToBlurhashOk {
-        blurhash: blurhash::encode(
-            components_x,
-            components_y,
-            smaller_width,
-            smaller_height,
-            &decoded_img.to_rgba8().into_vec(),
-        )?,
-        width: width as i32,
-        height: height as i32,
-    })
+impl ToBlurhash for DynamicImage {
+    /// A [`blurhash::encode`] wrapper that handles
+    /// the image resizing and dimension calculations.
+    fn to_blurhash(&self) -> Result<ToBlurhashOk, blurhash::Error> {
+        let (width, height) = self.dimensions();
+        let decoded_img = self.resize_to_fill(32, 32, Gaussian);
+        // TODO: somehow these dimensions are always 32x32
+        let (smaller_width, smaller_height) = decoded_img.dimensions();
+        let (components_x, components_y) = {
+            let scale = smaller_width.min(smaller_height) / 3;
+            (smaller_width / scale, smaller_height / scale)
+        };
+
+        Ok(ToBlurhashOk {
+            blurhash: blurhash::encode(
+                components_x,
+                components_y,
+                smaller_width,
+                smaller_height,
+                &decoded_img.to_rgba8().into_vec(),
+            )?,
+            width: width as i32,
+            height: height as i32,
+        })
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -59,17 +68,16 @@ impl ToBlurhashFromFile for PathBuf {
     fn to_blurhash_from_file(&self) -> Result<ToBlurhashOk, ToBlurhashFromFileErr> {
         let buf = std::fs::read(self)?;
 
-        let img = if self
+        if self
             .extension()
             .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
         {
-            let decoder = JxlDecoder::new(std::io::Cursor::new(buf))?;
-            DynamicImage::from_decoder(decoder)?
+            DynamicImage::from_decoder(JxlDecoder::new(Cursor::new(buf))?)?
         } else {
             image::load_from_memory(&buf)?
-        };
-
-        encode(&img).map_err(ToBlurhashFromFileErr::EncodeBlurhash)
+        }
+        .to_blurhash()
+        .map_err(ToBlurhashFromFileErr::EncodeBlurhash)
     }
 }
 
@@ -102,16 +110,15 @@ impl ToBlurhashFromArchive for PathBuf {
         let buf = self.read_file_from_archive(filename)?;
         bail_if_empty!(buf, Err(ToBlurhashFromArchiveErr::FileNotFound));
 
-        let img = if Path::new(filename)
+        if Path::new(filename)
             .extension()
             .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
         {
-            let decoder = JxlDecoder::new(std::io::Cursor::new(buf))?;
-            DynamicImage::from_decoder(decoder)?
+            DynamicImage::from_decoder(JxlDecoder::new(Cursor::new(buf))?)?
         } else {
             image::load_from_memory(&buf)?
-        };
-
-        encode(&img).map_err(ToBlurhashFromArchiveErr::EncodeBlurhash)
+        }
+        .to_blurhash()
+        .map_err(ToBlurhashFromArchiveErr::EncodeBlurhash)
     }
 }
