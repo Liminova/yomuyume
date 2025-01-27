@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     body::Body,
@@ -62,16 +62,31 @@ pub async fn get_cover(
     )];
 
     let content = if record.title_is_dir {
-        let file_path = PathBuf::from(record.title_path).join(cover_path);
-        let file = File::open(file_path)
-            .await
-            .context("can't open page file")?;
+        let file_path = app_state
+            .config
+            .library_path
+            .as_ref()
+            .join(record.title_path)
+            .join(cover_path);
+        let file = File::open(file_path).await.map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::IO(e)
+        })?;
         let stream = ReaderStream::new(file);
 
         Body::from_stream(stream)
     } else {
-        let archive_file = PathBuf::from(record.title_path);
-        let stream = archive_file.stream_file_from_archive(cover_path, record.cover_filesize)?;
+        let archive_file = app_state
+            .config
+            .library_path
+            .as_ref()
+            .join(record.title_path);
+        let stream = archive_file
+            .stream_file_from_archive(cover_path, record.cover_filesize)
+            .map_err(|e| {
+                tracing::error!("{:?}", e);
+                AppError::Archive(e)
+            })?;
 
         Body::from_stream(stream)
     };
