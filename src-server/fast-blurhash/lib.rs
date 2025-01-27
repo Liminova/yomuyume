@@ -8,5 +8,5 @@ extern "C" {
 #[wasm_bindgen]
 pub fn greet() {
     console_error_panic_hook::set_once();
-    alert("Hello, blurhash-decode!");
+    alert("Hello, fast-blurhash!");
 }

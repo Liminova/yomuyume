@@ -9,8 +9,9 @@ crate-type = ["cdylib", "rlib"]
 path = "lib.rs"
 
 [dependencies]
-wasm-bindgen = "0.2.84"
 console_error_panic_hook = "0.1.7"
+image = { version = "0.25.2", features = ["webp"], default-features = false }
+wasm-bindgen = "0.2.84"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"

@@ -424,13 +424,10 @@ name = "blurhash-decode"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "image",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
-
-[[package]]
-name = "blurhash-encode"
-version = "0.1.0"
 
 [[package]]
 name = "brotli-decompressor"

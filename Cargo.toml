@@ -1,9 +1,5 @@
 [workspace]
-members = [
-    "src-server/server",
-    "src-server/blurhash-encode",
-    "src-server/blurhash-decode",
-]
+members = ["src-server/server", "src-server/fast-blurhash"]
 resolver = "2"
 
 [profile.dev.package.sqlx]
