@@ -1,36 +1,38 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 import { NuxtLink } from "#components";
-import type { MyImage } from "~/lib/types";
+import type { GetTitleResponseBody } from "~/composables/api/content";
+import { toCoverApiEndpoint } from "~/composables/api/file";
 
-import ImagePoly from "./ImagePoly.vue";
+import Image from "./Image.vue";
 
-const props = withDefaults(defineProps<{
-	author?: string;
-	cover: MyImage;
-	progress?: number;
-	title?: string;
-	titleId: string;
-}>(), {
-	author: "Unknown",
-	progress: 0,
-	title: "Untitled",
+const props = defineProps<{ title: GetTitleResponseBody }>();
+
+const progress = computed(() => {
+	return props.title.page_read;
 });
 </script>
 
 <template>
 	<NuxtLink
 		class="flex flex-col items-start justify-center"
-		:to="`/title/${props.titleId}`">
+		:to="`/title/${title.id}`">
 		<div class="img-cover group relative w-full overflow-hidden rounded-xl">
-			<ImagePoly
-				:image="props.cover"
+			<Image
+				emit-when-in-view
+				:src="toCoverApiEndpoint(title.id)"
+				:blurhash="title.cover_blurhash"
+				:width="title.cover_width"
+				:height="title.cover_height"
+				:is-jxl="title.cover_jxl"
 				class="aspect-[3/4]"
 				image-class="rounded-xl h-full object-cover" />
 			<div
 				class="absolute left-0 top-0 size-full bg-[rgba(255_255_255/0.08)] opacity-0 transition-opacity group-[.img-cover]:hover:opacity-100" />
 			<md-linear-progress
-				v-show="progress"
-				:value="progress"
+				v-show="progress !== 0"
+				:value="progress !== 0"
 				class="absolute bottom-0 w-full" />
 
 			<i
@@ -39,11 +41,11 @@ const props = withDefaults(defineProps<{
 		</div>
 		<div>
 			<div class="mt-2 truncate text-sm font-light text-[--md-sys-color-on-surface]">
-				{{ props.author }}
+				{{ title.author ?? "Unknown" }}
 			</div>
 			<div
 				class="truncate-2 text-balance text-lg font-bold text-[--md-sys-color-inverse-surface]">
-				{{ props.title }}
+				{{ title.title ?? "Untitled" }}
 			</div>
 		</div>
 	</NuxtLink>
