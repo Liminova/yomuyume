@@ -31,6 +31,8 @@ export default [
 					}
 				}
 			],
+			"class-methods-use-this": "off",
+			"@typescript-eslint/class-methods-use-this": "off",
 		}
 	},
 ]
