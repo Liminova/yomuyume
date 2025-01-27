@@ -37,10 +37,12 @@ export default defineNuxtConfig({
 			target: "esnext",
 		},
 	},
+	components: {
+		dirs: [],
+	},
 	imports: {
 		scan: false,
 		autoImport: false,
 	},
-	components: false,
 	compatibilityDate: "2024-08-15"
 });
