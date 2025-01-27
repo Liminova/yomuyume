@@ -79,7 +79,7 @@ fi
 curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 echo 'export PATH="/usr/local/cargo/bin:$PATH"' >> ~/.zshrc
 
-cargo binstall nrr
+cargo binstall nrr wasm-pack
 
 # install volta
 curl https://get.volta.sh | bash
