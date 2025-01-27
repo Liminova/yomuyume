@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -29,17 +28,19 @@ pub async fn put_favorite(
     sqlx::query!(
         "INSERT INTO favorites (id, title_id, user_id)
         VALUES ($1, $2, $3) ON CONFLICT (title_id, user_id) DO NOTHING",
-        app_state
-            .id_generator
-            .snowflake()
-            .await
-            .context("can't generate id")?,
+        app_state.id_generator.snowflake().await.map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::Snowflake(e)
+        })?,
         title_id,
         user_id.as_ref()
     )
     .execute(&app_state.pool)
     .await
-    .context("can't upsert favorite")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
 
     Ok(StatusCode::OK.into_response())
 }
@@ -60,17 +61,19 @@ pub async fn put_bookmark(
     sqlx::query!(
         "INSERT INTO bookmarks (id, title_id, user_id)
         VALUES ($1, $2, $3) ON CONFLICT (title_id, user_id) DO NOTHING",
-        app_state
-            .id_generator
-            .snowflake()
-            .await
-            .context("can't generate id")?,
+        app_state.id_generator.snowflake().await.map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::Snowflake(e)
+        })?,
         title_id,
         user_id.as_ref()
     )
     .execute(&app_state.pool)
     .await
-    .context("can't upsert bookmark")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
 
     Ok(StatusCode::OK.into_response())
 }
@@ -97,7 +100,10 @@ pub async fn delete_favorite(
     )
     .execute(&data.pool)
     .await
-    .context("can't delete favorite")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
 
     Ok(StatusCode::OK.into_response())
 }
@@ -124,7 +130,10 @@ pub async fn delete_bookmark(
     )
     .execute(&data.pool)
     .await
-    .context("can't delete bookmark")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
 
     Ok(StatusCode::OK.into_response())
 }

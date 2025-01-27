@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -36,13 +35,17 @@ pub async fn get_validate_email(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
-    let mailer = Mailer::from(&app_state.config)?;
+    let mailer = Mailer::from(&app_state.config).map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::Mailer(e)
+    })?;
 
     let (username, email) = {
-        let user = app_state
-            .user_cache
-            .get(&user_id)
-            .context("can't find user in cache, this should never happen")?;
+        let user = app_state.user_cache.get(&user_id).ok_or_else(|| {
+            let e = AppError::ReadCache("user".to_string());
+            tracing::error!("{e:?}");
+            e
+        })?;
 
         if let Some(verified_at) = user.verified_at {
             return Ok((
@@ -66,7 +69,10 @@ pub async fn get_validate_email(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query temp code")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .map(|record| record.created_at)
     {
         if created_at.inside(
@@ -91,7 +97,10 @@ pub async fn get_validate_email(
     )
     .fetch_one(&app_state.pool)
     .await
-    .context("can't upsert temp code")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .code;
 
     mailer
@@ -110,7 +119,11 @@ pub async fn get_validate_email(
                 &app_state.config.app_name,
             ),
         )
-        .map(|_| Ok(StatusCode::OK.into_response()))?
+        .map(|_| Ok(StatusCode::OK.into_response()))
+        .map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::Mailer(e)
+        })?
 }
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
@@ -132,10 +145,11 @@ pub async fn post_validate_email(
     Extension(user_id): Extension<UserID>,
     Json(query): Json<ValidateEmailRequestBody>,
 ) -> Result<Response, AppError> {
-    let user = app_state
-        .user_cache
-        .get(&user_id)
-        .context("can't find user in cache, this should never happen")?;
+    let user = app_state.user_cache.get(&user_id).ok_or_else(|| {
+        let e = AppError::ReadCache("user".to_string());
+        tracing::error!("{e:?}");
+        e
+    })?;
     if let Some(verified_at) = user.verified_at {
         return Ok((
             StatusCode::BAD_REQUEST,
@@ -160,7 +174,10 @@ pub async fn post_validate_email(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query temp code")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .map(|record| record.created_at)
     {
         if created_at.outside(&now, &chrono::Duration::seconds(TEMP_CODE_EXPIRED_AFTER)) {
@@ -179,11 +196,18 @@ pub async fn post_validate_email(
     )
     .execute(&app_state.pool)
     .await
-    .context("can't update user")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
     app_state
         .user_cache
         .get_mut(&user_id)
-        .context("can't find user in cache, this should never happen")?
+        .ok_or_else(|| {
+            let e = AppError::WriteCache("user".to_string());
+            tracing::error!("{e:?}");
+            e
+        })?
         .value_mut()
         .verified_at = Some(now);
 

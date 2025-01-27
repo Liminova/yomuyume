@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -40,7 +39,10 @@ pub async fn get_reset_password(
     if !EmailAddress::is_valid(&email) {
         return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
     }
-    let mailer = Mailer::from(&app_state.config)?;
+    let mailer = Mailer::from(&app_state.config).map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::Mailer(e)
+    })?;
 
     // valid user
     let Some((user_id, username, email, verified_at)) = sqlx::query!(
@@ -54,7 +56,10 @@ pub async fn get_reset_password(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query user")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .map(|r| (r.id, r.username, r.email, r.verified_at)) else {
         return Ok((StatusCode::BAD_REQUEST, "user not found").into_response());
     };
@@ -76,7 +81,10 @@ pub async fn get_reset_password(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query temp code")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .map(|r| r.created_at)
     {
         if created_at.inside(&now, &Duration::seconds(TEMP_CODE_REQUEST_RATE_LIMIT)) {
@@ -99,7 +107,10 @@ pub async fn get_reset_password(
     )
     .fetch_one(&app_state.pool)
     .await
-    .context("can't upsert temp code")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .code;
 
     mailer
@@ -119,7 +130,11 @@ pub async fn get_reset_password(
                 &app_state.config.app_name,
             ),
         )
-        .map(|_| Ok(StatusCode::OK.into_response()))?
+        .map(|_| Ok(StatusCode::OK.into_response()))
+        .map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::Mailer(e)
+        })?
 }
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
@@ -161,7 +176,10 @@ pub async fn post_reset_password(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query temp code")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .map(|record| (record.created_at, record.user_id)) else {
         return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
     };
@@ -186,7 +204,10 @@ pub async fn post_reset_password(
     )
     .execute(&app_state.pool)
     .await
-    .context("can't update user")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
 
     // update cache
     if let Some(mut user) = app_state.user_cache.get_mut(&user_id.into()) {

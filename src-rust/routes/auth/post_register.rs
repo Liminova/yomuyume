@@ -1,6 +1,5 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use anyhow::Context;
 use axum::{
     extract::{ConnectInfo, State},
     http::{HeaderMap, StatusCode},
@@ -49,7 +48,10 @@ pub async fn post_register(
     )
     .fetch_one(&app_state.pool)
     .await
-    .context("can't query to check if email exists")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .exists
     {
         return Ok((
@@ -84,11 +86,10 @@ pub async fn post_register(
     sqlx::query!(
         "INSERT INTO users (id, username, email, password_hash, ip_address)
         VALUES ($1, $2, $3, $4, $5)",
-        app_state
-            .id_generator
-            .snowflake()
-            .await
-            .context("can't generate ID for record")?,
+        app_state.id_generator.snowflake().await.map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::Snowflake(e)
+        })?,
         query.username.as_str(),
         query.email.to_string().to_ascii_lowercase(),
         hash_pass(p)?,
@@ -96,7 +97,10 @@ pub async fn post_register(
     )
     .execute(&app_state.pool)
     .await
-    .context("can't insert user")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
 
     Ok(StatusCode::OK.into_response())
 }

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -55,7 +54,10 @@ pub async fn post_modify(
             )
             .fetch_one(&app_state.pool)
             .await
-            .context("can't query user")?
+            .map_err(|e| {
+                tracing::error!("{:?}", e);
+                AppError::DB(e)
+            })?
             .password_hash;
             if !check_pass(&current_password_hash, &current_password) {
                 return Ok((StatusCode::BAD_REQUEST, "invalid current password").into_response());
@@ -93,12 +95,16 @@ pub async fn post_modify(
     )
     .execute(&app_state.pool)
     .await
-    .context("can't update user")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
 
-    let mut user = app_state
-        .user_cache
-        .get_mut(&user_id)
-        .context("can't find user in cache, this should never happen")?;
+    let mut user = app_state.user_cache.get_mut(&user_id).ok_or_else(|| {
+        let e = AppError::WriteCache("user".to_string());
+        tracing::error!("{e:?}");
+        e
+    })?;
     user.value_mut().username = username;
     user.value_mut().email = email;
     user.value_mut().updated_at = Some(now);

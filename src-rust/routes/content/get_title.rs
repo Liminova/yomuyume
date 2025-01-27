@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -85,7 +84,10 @@ pub async fn get_title(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query title")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .map(|r| TitleResponseBody {
         id: title_id.to_string(),
         title: r.title,

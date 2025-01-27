@@ -7,7 +7,6 @@ use crate::{
     utils::{app_error::AppError, app_state::AppState},
 };
 
-use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -202,7 +201,10 @@ pub async fn post_search(
     )
     .fetch_all(&app_state.pool)
     .await
-    .context("can't query titles")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .into_iter()
     .map(|r| TitleResponseBody {
         id: r.id.to_string(),

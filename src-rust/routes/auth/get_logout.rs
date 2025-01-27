@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     extract::State,
     http::{header, StatusCode},
@@ -50,7 +49,10 @@ pub async fn get_logout(
     )
     .execute(&app_state.pool)
     .await
-    .context("can't delete session token")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
 
     app_state.session_cache.remove(&session_id);
 

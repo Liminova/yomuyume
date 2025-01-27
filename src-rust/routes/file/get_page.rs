@@ -1,6 +1,5 @@
 use std::{path::PathBuf, sync::Arc};
 
-use anyhow::Context;
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -38,7 +37,10 @@ pub async fn get_page(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query page")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     else {
         return Ok((StatusCode::NOT_FOUND).into_response());
     };

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     body::Body,
     extract::State,
@@ -81,8 +80,10 @@ pub async fn auth(
         )
         .fetch_optional(&app_state.pool)
         .await
-        .context("can't find user")?
-        {
+        .map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::DB(e)
+        })? {
             let new_user_cache = UserCache {
                 username: r.username,
                 email: r.email,
@@ -123,7 +124,10 @@ pub async fn auth(
         )
         .execute(&app_state.pool)
         .await
-        .context("can't delete expired session token")?;
+        .map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::DB(e)
+        })?;
 
         return Ok((StatusCode::UNAUTHORIZED, "session token expired").into_response());
     }
@@ -142,12 +146,20 @@ pub async fn auth(
         )
         .execute(&app_state.pool)
         .await
-        .context("can't update session token's last used time")?;
+        // .context("can't update session token's last used time")?;
+        .map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::DB(e)
+        })?;
 
         app_state
             .user_cache
             .get_mut(&user_id)
-            .context("can't find user in cache, this should not happend")?
+            .ok_or_else(|| {
+                let e = AppError::WriteCache("user".to_string());
+                tracing::error!("{e:?}");
+                e
+            })?
             .value_mut()
             .ss_token_last_used_at = now;
     }

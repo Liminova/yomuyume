@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -35,7 +34,10 @@ pub async fn get_delete_account(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
-    let mailer = Mailer::from(&app_state.config)?;
+    let mailer = Mailer::from(&app_state.config).map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::Mailer(e)
+    })?;
     let now = Utc::now();
 
     // too many request
@@ -48,7 +50,10 @@ pub async fn get_delete_account(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query temp code")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .map(|r| r.created_at)
     {
         if created_at.inside(&now, &Duration::seconds(TEMP_CODE_REQUEST_RATE_LIMIT)) {
@@ -70,15 +75,19 @@ pub async fn get_delete_account(
     )
     .fetch_one(&app_state.pool)
     .await
-    .context("can't upsert temp code")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .code;
 
     // in4 for email
     let (username, email) = {
-        let user = app_state
-            .user_cache
-            .get(&user_id)
-            .context("can't get cached user, this should not happen")?;
+        let user = app_state.user_cache.get(&user_id).ok_or_else(|| {
+            let e = AppError::ReadCache("user".to_string());
+            tracing::error!("{e:?}");
+            e
+        })?;
         (user.username.clone(), user.email.clone())
     };
 
@@ -95,7 +104,11 @@ pub async fn get_delete_account(
             The {} team",
             &app_state.config.app_name,
         ),
-    ).map(|_| Ok(StatusCode::OK.into_response()))?
+    ).map(|_| Ok(StatusCode::OK.into_response()))
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::Mailer(e)
+    })?
 }
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
@@ -129,7 +142,10 @@ pub async fn post_delete_account(
         )
         .fetch_one(&app_state.pool)
         .await
-        .context("can't query user")?
+        .map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::DB(e)
+        })?
         .password_hash,
         &query.password,
     ) {
@@ -149,7 +165,10 @@ pub async fn post_delete_account(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query temp code")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .map(|record| record.created_at)
     {
         if created_at.outside(&Utc::now(), &Duration::seconds(TEMP_CODE_EXPIRED_AFTER)) {
@@ -163,7 +182,10 @@ pub async fn post_delete_account(
     sqlx::query!("DELETE FROM users WHERE id = $1", user_id.as_ref())
         .execute(&app_state.pool)
         .await
-        .context("can't delete user")?;
+        .map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::DB(e)
+        })?;
     app_state.session_cache.retain(|_, v| *v != user_id);
     app_state.user_cache.remove(&user_id);
 

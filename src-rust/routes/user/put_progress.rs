@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -37,7 +36,10 @@ pub async fn put_progress(
     )
     .execute(&app_state.pool)
     .await
-    .context("can't upsert progress")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
 
     Ok(StatusCode::OK.into_response())
 }

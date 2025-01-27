@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -40,10 +39,11 @@ pub async fn get_whoami(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
-    let user = app_state
-        .user_cache
-        .get(&user_id)
-        .context("can't find user in cache, this should never happen")?;
+    let user = app_state.user_cache.get(&user_id).ok_or_else(|| {
+        let e = AppError::ReadCache("user".to_string());
+        tracing::error!("{e:?}");
+        e
+    })?;
 
     Ok((
         StatusCode::OK,

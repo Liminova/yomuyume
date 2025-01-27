@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -48,7 +47,10 @@ pub async fn get_categories(State(app_state): State<Arc<AppState>>) -> Result<Re
     )
     .fetch_all(&app_state.pool)
     .await
-    .context("can't query categories")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .into_iter()
     .map(|record| CategoryResponseBody {
         id: record.id.to_string(),

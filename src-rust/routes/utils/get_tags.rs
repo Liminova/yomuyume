@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::utils::{app_error::AppError, app_state::AppState, macros::bail_if_empty};
 
-use anyhow::Context;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -29,7 +28,10 @@ pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response
     let data = sqlx::query!("SELECT id, name FROM tags")
         .fetch_all(&app_state.pool)
         .await
-        .context("can't query tags")?
+        .map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::DB(e)
+        })?
         .into_iter()
         .map(|record| TagResponseBody {
             id: record.id.to_string(),

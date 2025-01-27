@@ -1,6 +1,5 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use anyhow::Context;
 use axum::{
     extract::{ConnectInfo, State},
     http::{header, HeaderMap, StatusCode},
@@ -47,7 +46,10 @@ pub async fn post_login(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .context("can't query user")?
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?
     .map(|user| (user.id, user.password_hash)) else {
         return Ok((StatusCode::BAD_REQUEST, "invalid username or password").into_response());
     };
@@ -87,11 +89,10 @@ pub async fn post_login(
             )
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id",
-        app_state
-            .id_generator
-            .snowflake()
-            .await
-            .context("can't generate ID for record")?,
+        app_state.id_generator.snowflake().await.map_err(|e| {
+            tracing::error!("{:?}", e);
+            AppError::Snowflake(e)
+        })?,
         session_secret.as_str(),
         user_id,
         user_agent,
@@ -101,7 +102,10 @@ pub async fn post_login(
     .fetch_one(&app_state.pool)
     .await
     .map(|r| r.id)
-    .context("can't insert session token and get session id")?;
+    .map_err(|e| {
+        tracing::error!("{:?}", e);
+        AppError::DB(e)
+    })?;
 
     Ok((
         StatusCode::OK,

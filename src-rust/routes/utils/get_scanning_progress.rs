@@ -9,7 +9,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::utils::{app_error::AppError, app_state::AppState};
+use crate::utils::app_state::AppState;
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct ScanningProgressResponseBody {
@@ -23,15 +23,13 @@ pub struct ScanningProgressResponseBody {
     (status = 401, description = "unauthorized", body = String),
     (status = 500, description = "internal server error", body = String),
 ), security(("session-id" = [], "session-secret" = [])))]
-pub async fn get_scanning_progress(
-    State(app_state): State<Arc<AppState>>,
-) -> Result<Response, AppError> {
-    Ok((
+pub async fn get_scanning_progress(State(app_state): State<Arc<AppState>>) -> Response {
+    (
         StatusCode::OK,
         Json(ScanningProgressResponseBody {
             scanning_completed: *app_state.scanning_complete.lock().await,
             scanning_progress: *app_state.scanning_progress.lock().await,
         }),
     )
-        .into_response())
+        .into_response()
 }
