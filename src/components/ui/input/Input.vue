@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useVModel } from "@vueuse/core";
-import { X } from "lucide-vue-next";
 import { computed, type HTMLAttributes, ref } from "vue";
 
 import Toggle from "~/components/Toggle.vue";
@@ -80,13 +79,6 @@ const isLabelElevated = computed(() => {
 					'transition-timing-function': 'cubic-bezier(0.4, 0, 0.2, 1)'
 				}">
 				{{ props.label }}
-			</div>
-
-			<!-- right icon -->
-			<div
-				v-if="modelValue !== ''"
-				class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border-2 border-primary p-1">
-				<X :size="10" />
 			</div>
 		</div>
 
