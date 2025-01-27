@@ -2,7 +2,6 @@
 members = [
     "src-server/server",
     "src-server/blurhash-encode",
-    "src-server/clean-sqlx",
     "src-server/blurhash-decode",
 ]
 resolver = "2"
