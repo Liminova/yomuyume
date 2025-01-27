@@ -18,8 +18,5 @@ export const useScreenSize = defineStore("screen-size-store", () => {
 		observer.disconnect();
 	});
 
-	return {
-		width,
-		height,
-	};
+	return { width, height };
 });
