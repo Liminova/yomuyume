@@ -4,17 +4,15 @@ import { onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "#app";
 import { NuxtLink } from "#components";
 import ItemCard from "~/components/ItemCard.vue";
-import type { TitleResponseBody } from "~/composables/api/content";
-import { toCoverApiEndpoint } from "~/composables/api/file";
+import { useSearchTitle } from "~/composables/api/content";
 import NavDrawerWrapper from "~/layouts/nav-drawer.vue";
 import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
 
 const imagePerRow = ref(5);
 const spaceBetween = ref(16);
 
-const categoryId = useRoute().params.id as string;
-
-const titles = ref<TitleResponseBody[]>([]);
+const searchTitle = useSearchTitle();
+searchTitle.mutate({ category_ids: [useRoute().params.id as string] });
 
 const observer = new ResizeObserver(() => {
 	const breakPoint = getSwiperBreakpoint();
@@ -44,7 +42,7 @@ onUnmounted(() => {
 				gap: `${spaceBetween}px`,
 			}">
 			<NuxtLink
-				v-for="title in titles"
+				v-for="title in searchTitle.data?.value?.data"
 				:key="title.id"
 				:to="`/title/${title.id}`">
 				<ItemCard :title="title" />
