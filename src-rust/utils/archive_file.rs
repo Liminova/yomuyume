@@ -181,7 +181,7 @@ pub trait ArchiveFile {
         self,
         file_name: impl ToString,
         filesize: Option<i64>,
-    ) -> anyhow::Result<impl Stream<Item = Result<Bytes, ArchiveFileError>>>;
+    ) -> Result<impl Stream<Item = Result<Bytes, ArchiveFileError>>, ArchiveFileError>;
 }
 
 impl ArchiveFile for PathBuf {
@@ -488,7 +488,7 @@ impl ArchiveFile for PathBuf {
         self,
         file_name: impl ToString,
         filesize: Option<i64>,
-    ) -> anyhow::Result<impl Stream<Item = Result<Bytes, ArchiveFileError>>> {
+    ) -> Result<impl Stream<Item = Result<Bytes, ArchiveFileError>>, ArchiveFileError> {
         self.validate()?;
 
         let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
