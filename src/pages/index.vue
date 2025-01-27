@@ -9,9 +9,7 @@ import { homeStore } from "~/components/home/utils";
 import ItemCard from "~/components/ItemCard.vue";
 import { type GetTitleResponseBody, useSearchTitle } from "~/composables/api/content";
 
-definePageMeta({
-	layout: "nav-drawer",
-});
+definePageMeta({ layout: "nav-drawer" });
 
 register();
 

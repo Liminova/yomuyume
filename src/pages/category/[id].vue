@@ -3,10 +3,13 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 
 import { useRoute } from "#app";
 import { NuxtLink } from "#components";
+import { definePageMeta } from "#imports";
 import ItemCard from "~/components/ItemCard.vue";
 import { useSearchTitle } from "~/composables/api/content";
 import NavDrawerWrapper from "~/layouts/nav-drawer.vue";
 import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
+
+definePageMeta({ layout: "nav-drawer" });
 
 const imagePerRow = ref(5);
 const spaceBetween = ref(16);
@@ -36,7 +39,7 @@ const showNothing = computed(() => searchTitle.data.value?.data === undefined ||
 </script>
 
 <template>
-	<NavDrawerWrapper>
+	<div>
 		<div
 			v-if="showSomething"
 			ref="imageContainerRef"
@@ -57,5 +60,5 @@ const showNothing = computed(() => searchTitle.data.value?.data === undefined ||
 			class="w-full py-10 text-center">
 			This category is empty.
 		</div>
-	</NavDrawerWrapper>
+	</div>
 </template>

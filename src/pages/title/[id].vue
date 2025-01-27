@@ -8,9 +8,7 @@ import Button from "~/components/ui/button/Button.vue";
 import { useGetTitle } from "~/composables/api/content";
 import { useAddBookmark, useAddFavorite, useDeleteBookmark, useDeleteFavorite } from "~/composables/api/user";
 
-definePageMeta({
-	layout: "nav-drawer",
-});
+definePageMeta({ layout: "nav-drawer" });
 
 const title = useGetTitle((useRoute().params.id as string));
 

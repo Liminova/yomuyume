@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { definePageMeta } from "#imports";
 
-definePageMeta({
-	layout: "nav-drawer",
-});
+definePageMeta({ layout: "nav-drawer" });
 </script>
 
 <template>

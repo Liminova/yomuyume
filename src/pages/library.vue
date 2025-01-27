@@ -12,9 +12,7 @@ const spaceBetween = ref(16);
 
 const categories = useGetCategories();
 
-definePageMeta({
-	layout: "nav-drawer",
-});
+definePageMeta({ layout: "nav-drawer" });
 
 const observer = new ResizeObserver(() => {
 	const breakPoint = getSwiperBreakpoint();
