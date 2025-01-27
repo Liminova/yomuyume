@@ -5,4 +5,3 @@ export interface MyImage {
 	blurhash?: string;
 	format?: string;
 }
-
