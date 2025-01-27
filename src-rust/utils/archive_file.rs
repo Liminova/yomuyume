@@ -206,9 +206,7 @@ impl ArchiveFile for PathBuf {
     }
 
     fn _create_zip_file(&self, items: &[PathBuf]) -> Result<(), ArchiveFileError> {
-        if self.exists() {
-            return Err(anyhow!("target path \"{}\" already exists", self.display()).into());
-        }
+        assert!(!self.exists());
 
         items.iter().try_for_each(|path| {
             if !path.exists() {
@@ -258,12 +256,7 @@ impl ArchiveFile for PathBuf {
             .wait()
             .map_err(|e| ArchiveFileError::CantWaitToComplete(e.into()))?;
 
-        if !self.exists() {
-            return Err(ArchiveFileError::Other(anyhow!(
-                "process done without error, but target path \"{}\" not exists",
-                self.display()
-            )));
-        }
+        assert!(self.exists());
 
         Ok(())
     }
