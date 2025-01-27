@@ -1,11 +1,18 @@
 import { defineStore } from "pinia";
 import { computed, ref, watchEffect } from "vue";
 
-import { validateEmail } from "~/lib/validate-email";
-import validatePassword from "~/lib/validate-password";
-
 import { useLogin, useRegister } from "./api/auth";
 import { useConfirmResetPassword, useResetPassword } from "./api/user";
+
+function validatePassword(password: string): boolean {
+	const hasUppercase = (/[A-Z]/u).test(password);
+	const hasLowercase = (/[a-z]/u).test(password);
+	const nasNumeric = (/[0-9]/u).test(password);
+	const hasSpecial = (/[!@#$%^&*(),.?":{}|<>]/u).test(password);
+	const hasValidLength = password.length >= 8 && password.length <= 100;
+
+	return hasUppercase && hasLowercase && nasNumeric && hasSpecial && hasValidLength;
+}
 
 export const useAuthLoginStore = defineStore("auth-screen-store-login", () => {
 	const login = ref("");
@@ -31,7 +38,7 @@ export const useAuthRegisterStore = defineStore("auth-screen-store-register", ()
 
 	const isEmailValid = computed(() => {
 		if (email.value === "") { return true; }
-		return validateEmail(email.value);
+		return (/\S+@\S+\.\S+/u).test(email.value);
 	});
 	const isPasswordStrong = computed(() => validatePassword(password.value));
 	const isPasswordRetypeMatch = computed(() => {
