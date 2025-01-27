@@ -15,9 +15,9 @@ const navDrawerStore = useNavDrawerStore();
 	<div class="relative">
 		<TopBar />
 		<div
-			class="absolute left-0 top-[--topbar-height] z-10 grid h-full grid-cols-[320px] duration-300"
+			class="fixed left-0 top-[var(--topbar-height)] z-10 grid h-[calc(100dvh-var(--topbar-height))] grid-cols-[320px] duration-300"
 			:class="{
-				'lg:grid-cols-[320px]': navDrawerStore.isDrawerExpanded,
+				'max-lg:h-[calc(100dvh-var(--topbar-height))] lg:grid-cols-[320px]': navDrawerStore.isDrawerExpanded,
 				'max-lg:translate-x-[-320px] lg:grid-cols-[80px]': !navDrawerStore.isDrawerExpanded,
 			}"
 			:style="{
@@ -25,7 +25,7 @@ const navDrawerStore = useNavDrawerStore();
 				'transition-timing-function': 'cubic-bezier(0.4, 0, 0.2, 1)',
 			}">
 			<div
-				class="relative flex size-full flex-col justify-start rounded-br-3xl bg-background shadow-2xl transition-colors lg:rounded-none lg:shadow-none">
+				class="left-0 top-0 flex size-full flex-col justify-start rounded-br-3xl bg-background shadow-2xl transition-colors lg:rounded-none lg:shadow-none">
 				<div class="nav-entry-parent mx-3">
 					<Toggle
 						:show="navDrawerStore.isDrawerExpanded"
