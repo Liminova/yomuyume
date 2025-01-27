@@ -137,20 +137,6 @@ pub enum ArchiveFileError {
     CantReadStdout(std::io::Error),
     #[error("can't read from stderr pipe to buffer: {0:?}")]
     CantReadStderr(std::io::Error),
-    #[error("other error: {0:?}")]
-    Other(anyhow::Error),
-}
-
-impl From<anyhow::Error> for ArchiveFileError {
-    fn from(e: anyhow::Error) -> Self {
-        Self::Other(e)
-    }
-}
-
-impl From<std::io::Error> for ArchiveFileError {
-    fn from(e: std::io::Error) -> Self {
-        Self::Other(e.into())
-    }
 }
 
 pub trait ArchiveFile {
