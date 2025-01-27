@@ -75,17 +75,7 @@ const completedStoriesItems = ref<FilterTitleResponseBody>([]);
 				:key="title.id">
 				<ItemCard
 					:key="title.id"
-					:author="title.author ?? 'Unknown'"
-					:cover="{
-						src: toCoverApiEndpoint(title.id),
-						width: title.cover_width,
-						height: title.cover_height,
-						blurhash: title.cover_blurhash,
-						format: title.cover_format,
-					}"
-					:progress="title.page_read ? Number(title.page_read / title.page_count) : 0"
-					:title-id="title.id"
-					:title="title.title" />
+					:title="title" />
 			</swiper-slide>
 		</CarouselWrapper>
 
@@ -99,18 +89,7 @@ const completedStoriesItems = ref<FilterTitleResponseBody>([]);
 				:key="title.id">
 				<ItemCard
 					:key="title.id"
-					:author="title.author ?? 'Unknown'"
-					:cover="{
-						src: toCoverApiEndpoint(title.id),
-						width: title.cover_width,
-						height: title.cover_height,
-						blurhash: title.cover_blurhash,
-						format: title.cover_format,
-					}"
-					:cover-height="store.coverHeight"
-					:progress="title.page_read ? Number(title.page_read / title.page_count) : 0"
-					:title-id="title.id"
-					:title="title.title" />
+					:title="title" />
 			</swiper-slide>
 		</CarouselWrapper>
 
@@ -124,18 +103,7 @@ const completedStoriesItems = ref<FilterTitleResponseBody>([]);
 				:key="title.id">
 				<ItemCard
 					:key="title.id"
-					:author="title.author ?? 'Unknown'"
-					:cover="{
-						src: toCoverApiEndpoint(title.id),
-						width: title.cover_width,
-						height: title.cover_height,
-						blurhash: title.cover_blurhash,
-						format: title.cover_format,
-					}"
-					:cover-height="store.coverHeight"
-					:progress="title.page_read ? Number(title.page_read / title.page_count) : 0"
-					:title-id="title.id"
-					:title="title.title" />
+					:title="title" />
 			</swiper-slide>
 		</CarouselWrapper>
 	</div>
