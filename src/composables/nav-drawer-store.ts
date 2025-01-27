@@ -32,8 +32,5 @@ export const useNavDrawerStore = defineStore("nav-drawer-store", () => {
 		window.onresize = debounce(toggleTopBar, 100);
 	});
 
-	return {
-		isDrawerExpanded,
-		isTopBarVisible,
-	};
+	return { isDrawerExpanded, isTopBarVisible };
 });
