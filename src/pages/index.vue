@@ -7,8 +7,7 @@ import CardRecommend from "~/components/home/CardRecommend.vue";
 import CarouselWrapper from "~/components/home/CarouselWrapper.vue";
 import { homeStore } from "~/components/home/utils";
 import ItemCard from "~/components/ItemCard.vue";
-import type { FilterTitleResponseBody } from "~/composables/api/content";
-import { toCoverApiEndpoint } from "~/composables/api/file";
+import { type GetTitleResponseBody, useSearchTitle } from "~/composables/api/content";
 
 definePageMeta({
 	layout: "nav-drawer",
@@ -18,10 +17,10 @@ register();
 
 const store = homeStore();
 
-const recommendsItems = ref<FilterTitleResponseBody>([]);
-const recentlyUpdatedItems = ref<FilterTitleResponseBody>([]);
-const newlyAddedItems = ref<FilterTitleResponseBody>([]);
-const completedStoriesItems = ref<FilterTitleResponseBody>([]);
+const recommendsItems = ref<GetTitleResponseBody[]>([]);
+const recentlyUpdatedItems = ref<GetTitleResponseBody[]>([]);
+const newlyAddedItems = ref<GetTitleResponseBody[]>([]);
+const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 
 // void Promise.all([
 // 	indexApi.filter({ keywords: [""], limit: 10 }),
