@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 
 import { useRoute } from "#app";
 import { NuxtLink } from "#components";
@@ -30,11 +30,15 @@ onMounted(() => {
 onUnmounted(() => {
 	observer.disconnect();
 });
+
+const showSomething = computed(() => searchTitle.data.value?.data && searchTitle.data.value.data.length > 0);
+const showNothing = computed(() => searchTitle.data.value?.data === undefined || searchTitle.data.value.data.length === 0);
 </script>
 
 <template>
 	<NavDrawerWrapper>
 		<div
+			v-if="showSomething"
 			ref="imageContainerRef"
 			class="my-3 grid px-6 lg:mt-0 lg:pl-0 lg:pr-3"
 			:style="{
@@ -47,6 +51,11 @@ onUnmounted(() => {
 				:to="`/title/${title.id}`">
 				<ItemCard :title="title" />
 			</NuxtLink>
+		</div>
+		<div
+			v-if="showNothing"
+			class="w-full py-10 text-center">
+			This category is empty.
 		</div>
 	</NavDrawerWrapper>
 </template>
