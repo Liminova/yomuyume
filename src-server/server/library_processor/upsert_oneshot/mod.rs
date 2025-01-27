@@ -9,8 +9,6 @@ use chrono::{DateTime, Utc};
 use futures_util::future::join_all;
 use tokio::sync::RwLock;
 
-use crate::types::absolute_path::ToAbsolute;
-use crate::types::CategoryID;
 use crate::{
     app_state::AppState,
     library_processor::{
@@ -22,7 +20,11 @@ use crate::{
         upsert_tags::upsert_tags,
         PageInTitle, UpsertTitleErr,
     },
-    types::{absolute_path::AbsolutePath, comic_info::ComicInfo, TitleID},
+    types::{
+        absolute_path::{AbsolutePath, ToAbsolute},
+        comic_info::ComicInfo,
+        CategoryID, TitleID,
+    },
     utils::archive_file::ItemInArchive,
 };
 
