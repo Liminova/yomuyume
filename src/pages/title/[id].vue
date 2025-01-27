@@ -1,186 +1,93 @@
 <script setup lang="ts">
+import { Bookmark, Heart } from "lucide-vue-next";
 import { ref, watchEffect } from "vue";
 
 import { useRoute } from "#app";
+import { definePageMeta } from "#imports";
+import Button from "~/components/ui/button/Button.vue";
 import { useGetTitle } from "~/composables/api/content";
 import { useAddBookmark, useAddFavorite, useDeleteBookmark, useDeleteFavorite } from "~/composables/api/user";
-import NavDrawerWrapper from "~/layouts/nav-drawer.vue";
 
-const route = useRoute();
-const idRaw = route.params.id;
-const titleId = Array.isArray(idRaw) ? idRaw[0] : idRaw;
-const snackbarMessage = ref("");
-const snackbarTimeout = ref(5000);
+definePageMeta({
+	layout: "nav-drawer",
+});
 
-const title = useGetTitle(titleId);
-const addFavorite = useAddFavorite();
-const deleteFavorite = useDeleteFavorite();
-const addBookmark = useAddBookmark();
-const deleteBookmark = useDeleteBookmark();
+const title = useGetTitle((useRoute().params.id as string));
 
-const isFavorite = ref(false);
-const isBookmark = ref(false);
+const [addFavorite, deleteFavorite] = [useAddFavorite(), useDeleteFavorite()];
+const [addBookmark, deleteBookmark] = [useAddBookmark(), useDeleteBookmark()];
 
-const favorites = ref(0);
-const bookmarks = ref(0);
+const [favorites, bookmarks] = [ref<number>(0), ref<number>(0)];
+const [isFavorite, isBookmark] = [ref(false), ref(false)];
 
 watchEffect(() => {
-	if (!title.isSuccess.value || !title.data.value) { return; }
+	if (title.isPending.value || !title.data.value) { return; }
 
 	isFavorite.value = title.data.value.is_favorite;
 	isBookmark.value = title.data.value.is_bookmark;
-	favorites.value = title.data.value.favorites;
-	bookmarks.value = title.data.value.bookmarks;
+	favorites.value = title.data.value.favorites ?? 0;
+	bookmarks.value = title.data.value.bookmarks ?? 0;
 });
 
 function toggleBookmark(): void {
 	if (isBookmark.value) {
-		deleteBookmark.mutate(titleId);
+		deleteBookmark.mutate((useRoute().params.id as string));
+		bookmarks.value--;
+		isBookmark.value = false;
 	} else {
-		addBookmark.mutate(titleId);
+		addBookmark.mutate((useRoute().params.id as string));
+		bookmarks.value++;
+		isBookmark.value = true;
 	}
 }
 
 function toggleFavorite(): void {
 	if (isFavorite.value) {
-		deleteFavorite.mutate(titleId);
+		deleteFavorite.mutate((useRoute().params.id as string));
+		favorites.value--;
+		isFavorite.value = false;
 	} else {
-		addFavorite.mutate(titleId);
+		addFavorite.mutate((useRoute().params.id as string));
+		favorites.value++;
+		isFavorite.value = true;
 	}
 }
-
-// Fetching all infos
-// void (async () => {
-// 	const { data } = await indexApi.title(id);
-
-// 	if (data === undefined) {
-// 		await navigateTo("/404");
-// 		return;
-// 	}
-
-// 	title.value = data;
-// 	document.title = data.title;
-// 	isFavorite.value = data.is_favorite ?? false;
-// 	isBookmark.value = data.is_bookmark ?? false;
-// 	favorites.value = data.favorites ?? BigInt(0);
-// 	bookmarks.value = data.bookmarks ?? BigInt(0);
-// })();
-
-// async function toggleFavorite() {
-// 	const { message, ok } = await userApi.favorite(titleId, isFavorite.value ? "DELETE" : "PUT");
-
-// 	snackbarMessage.value = message ?? "";
-// 	if (ok !== true) {
-// 		return;
-// 	}
-
-// 	isFavorite.value = !isFavorite.value;
-// 	favorites.value = favorites.value + (isFavorite.value ? BigInt(-1) : BigInt(1));
-// }
-
-// async function toggleBookmark() {
-// 	const { message, ok } = await userApi.bookmark(titleId, isBookmark.value ? "DELETE" : "PUT");
-
-// 	snackbarMessage.value = message ?? "";
-// 	if (ok !== true) {
-// 		return;
-// 	}
-
-// 	bookmarks.value = bookmarks.value + (isBookmark.value ? BigInt(-1) : BigInt(1));
-// 	isBookmark.value = !isBookmark.value;
-// }
-
-const currPageIdx = ref(0);
-// const pageObserver = new IntersectionObserver(
-// 	(entries) => {
-// 		for (const entry of entries) {
-// 			if (!entry.isIntersecting) {
-// 				continue;
-// 			}
-
-// 			const element = entry.target;
-
-// 			currPageIdx.value = titleInfo.data.value.pages.findIndex((page) => page.id === element.id);
-// 		}
-// 	},
-// 	{
-// 		root: null,
-// 		rootMargin: "0px",
-// 		threshold: 0.5,
-// 	}
-// );
-
-// async function saveProgress(currentPageIndex: number) {
-// 	const { ok, message } = await userApi.progress(titleId, currentPageIndex);
-
-// 	if (ok !== true) {
-// 		snackbarMessage.value = message ?? "";
-// 	}
-// }
-
-// watchEffect(() => {
-// 	void debounce(saveProgress, 30000)(currPageIdx.value);
-// });
-
-// function handleImageLoad(pageId: string) {
-// 	const element = document.getElementById(pageId);
-
-// 	if (element === null) {
-// 		return;
-// 	}
-
-// 	pageObserver.observe(element);
-// }
 </script>
 
 <template>
-	<div>
-		<Snackbar
-			:message="snackbarMessage"
-			:timeout="snackbarTimeout"
-			@close="snackbarMessage = ''" />
-		<NavDrawerWrapper>
-			<div class="mt-3 px-0 lg:mt-0 lg:pl-0 lg:pr-3">
-				<!-- Basic infos -->
-				<div class="mb-7 px-7 lg:px-0">
-					<div class="text-6xl font-semibold">
-						{{ title.data.value?.title }}
-					</div>
-					<div
-						v-if="title.data.value?.description"
-						class="mt-7 text-justify">
-						{{ title.data.value?.description }}
-					</div>
-				</div>
+	<div class="mt-3 px-0 lg:mt-0 lg:pl-0 lg:pr-3">
+		<!-- Basic infos -->
+		<div class="mb-7 px-7 lg:px-0">
+			<div class="text-6xl font-semibold">
+				{{ title.data.value?.title ?? "Untitled" }}
+			</div>
+			<div
+				v-if="title.data.value?.description"
+				class="mt-7 text-justify">
+				{{ title.data.value?.description }}
+			</div>
+		</div>
 
-				<!-- Like and fav buttons -->
-				<div class="my-7 flex w-full grow-[100] flex-row items-center justify-center gap-7">
-					<Button
-						class="scale-125"
-						@click="toggleBookmark">
-						<i
-							class="fa-bookmark"
-							:class="{
-								'fa-solid': isBookmark,
-								'fa-light': !isBookmark,
-							}" />
-						{{ bookmarks > 0 ? bookmarks : "" }}
-					</Button>
-					<Button
-						class="scale-125"
-						@click="toggleFavorite">
-						<i
-							class="fa-heart"
-							:class="{
-								'fa-solid': isFavorite,
-								'fa-light': !isFavorite,
-							}" />
-						{{ favorites > 0 ? favorites : "" }}
-					</Button>
-				</div>
+		<!-- Like and fav buttons -->
+		<div class="my-7 flex w-full flex-row items-center justify-start gap-2">
+			<Button
+				:variant="isBookmark ? 'secondary' : 'outline'"
+				size="lg"
+				@click="toggleBookmark">
+				<Bookmark :fill="isBookmark ? 'white' : 'transparent'" />
+				{{ bookmarks === 0 ? "" : bookmarks }}
+			</Button>
+			<Button
+				:variant="isFavorite ? 'secondary' : 'outline'"
+				size="lg"
+				@click="toggleFavorite">
+				<Heart :fill="isFavorite ? 'white' : 'transparent'" />
+				{{ favorites === 0 ? "" : favorites }}
+			</Button>
+		</div>
 
-				<!-- Pages -->
-				<!-- <div
+		<!-- Pages -->
+		<!-- <div
 					v-for="page in title.data.value?.pages"
 					:id="page.id"
 					:key="page.id"
@@ -192,7 +99,5 @@ const currPageIdx = ref(0);
 						}"
 						@loaded="handleImageLoad(page.id)" />
 				</div> -->
-			</div>
-		</NavDrawerWrapper>
 	</div>
 </template>
