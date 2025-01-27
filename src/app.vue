@@ -2,6 +2,7 @@
 import { Toaster } from "~/components/ui/sonner";
 import { useTheme } from "~/composables/use-theme";
 useTheme();
+
 </script>
 
 <template>
