@@ -13,12 +13,12 @@ export interface CategoriesResponseBodyInner {
 	cover_jxl?: string;
 }
 
-export type GetCategoriesResponseBody = Array<{ id: string; name: string; description?: string }>;
+export type GetCategoriesResponseBody = Array<{ id: string; name?: string; description?: string }>;
 
 export function useGetCategories() {
 	return useQuery({
 		queryKey: ["categories"],
-		async queryFn(): Promise<Array<{ id: string; name: string; description?: string }>> {
+		async queryFn(): Promise<GetCategoriesResponseBody> {
 			const response = await fetch("/api/content/categories", {
 				method: "GET",
 				headers: { "Content-Type": "application/json" },
@@ -37,7 +37,7 @@ export type TitleTagName = string;
 export type TitleTagID = string;
 export type TitleTag = [TitleTagID, TitleTagName];
 
-export interface TitleResponseBody {
+export interface GetTitleResponseBody {
 	author?: string;
 	bookmarks?: number;
 	category_id?: string;
@@ -48,7 +48,7 @@ export interface TitleResponseBody {
 	date_updated?: string;
 	description?: string;
 	favorites?: number;
-	id: string,
+	id: string;
 	is_bookmark: boolean;
 	is_favorite: boolean;
 	is_series: boolean;
@@ -61,7 +61,7 @@ export interface TitleResponseBody {
 export function useGetTitle(id: string) {
 	return useQuery({
 		queryKey: ["title", id],
-		async queryFn(): Promise<TitleResponseBody> {
+		async queryFn(): Promise<GetTitleResponseBody> {
 			const response = await fetch(`/api/content/title/${id}`, {
 				method: "GET",
 				headers: { "Content-Type": "application/json" },
@@ -76,23 +76,29 @@ export function useGetTitle(id: string) {
 	});
 }
 
-export interface FilterTitleRequestBody {
+export interface SearchRequestBody {
+	term?: string;
+
 	category_ids?: string[];
-	is_bookmarked?: boolean;
-	is_favorite?: boolean;
-	is_finished?: boolean;
-	is_reading?: boolean;
-	keywords?: string[];
+	tag_ids?: string[];
+	release_year?: number;
+
+	offset?: number;
 	limit?: number;
 	order_by?: string;
-	sort_order?: string;
-	tag_ids?: string[];
+	is_ascending?: boolean;
 }
 
-export function useFilterTitle() {
+export interface SearchResponseBody {
+	data?: GetTitleResponseBody[];
+	offset: number;
+	limit: number;
+}
+
+export function useSearchTitle() {
 	return useMutation({
-		async mutationFn(body: FilterTitleRequestBody): Promise<TitleResponseBody[]> {
-			const response = await fetch("/api/content/filter", {
+		async mutationFn(body: SearchRequestBody): Promise<SearchResponseBody> {
+			const response = await fetch("/api/content/search", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
