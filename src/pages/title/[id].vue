@@ -4,7 +4,7 @@ import { ref, watchEffect } from "vue";
 
 import { useRoute } from "#app";
 import { definePageMeta } from "#imports";
-import Button from "~/components/ui/button/Button.vue";
+import Button from "~/components/ui/Button.vue";
 import { useGetTitle } from "~/composables/api/content";
 import { useAddBookmark, useAddFavorite, useDeleteBookmark, useDeleteFavorite } from "~/composables/api/user";
 
