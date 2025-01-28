@@ -1,0 +1,18 @@
+[package]
+name = "jxl-webp-wasm"
+version = "0.11.0"
+authors = ["Delnegend <kiennguyen19323@gmail.com>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "lib.rs"
+
+[dependencies]
+wasm-bindgen = "0.2.84"
+console_error_panic_hook = "0.1.7"
+jxl-oxide = { version = "0.11.1", features = ["image"] }
+image = { version = "0.25.5", features = ["webp"], default-features = false }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.34"
