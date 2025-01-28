@@ -20,6 +20,7 @@ const progress = computed(() => {
 		:to="`/title/${title.id}`">
 		<div class="img-cover group relative w-full overflow-hidden rounded-xl">
 			<Image
+				:id="title.id"
 				emit-when-in-view
 				:src="toCoverApiEndpoint(title.id)"
 				:blurhash="title.cover_blurhash"
