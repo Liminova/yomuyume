@@ -1,0 +1,18 @@
+{
+  "name": "jxl-webp-wasm",
+  "type": "module",
+  "collaborators": [
+    "Delnegend <kiennguyen19323@gmail.com>"
+  ],
+  "version": "0.11.0",
+  "files": [
+    "jxl_webp_wasm_bg.wasm",
+    "jxl_webp_wasm.js",
+    "jxl_webp_wasm.d.ts"
+  ],
+  "main": "jxl_webp_wasm.js",
+  "types": "jxl_webp_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

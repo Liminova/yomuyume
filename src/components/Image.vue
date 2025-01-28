@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { useIntersectionObserver } from "@vueuse/core";
-import { ref } from "vue";
+import { ref, watchEffect } from "vue";
 
 import { useBlurhashDecoder } from "~/composables/use-blurhash-decoder";
-import { useJxlDecoder } from "~/composables/use-jxl-decoder";
-import { isJxlNative } from "~/lib/is-jxl-native";
+import { useJpegXLDecoder } from "~/composables/use-jpegxl-decoder";
+import { isJxlNative } from "~/lib/image/is-jxl-native";
+import { cn } from "~/lib/utils";
 
 const emit = defineEmits(["in-view"]);
 const props = withDefaults(defineProps<{
+	id: string;
 	class?: string;
 	draggable?: boolean;
 	imageClass?: string;
@@ -31,33 +33,37 @@ const props = withDefaults(defineProps<{
 	isJxl: false,
 });
 
-const blurhashDecoder = useBlurhashDecoder();
+const imageFullyLoaded = ref(false);
+const showBlurhash = ref(true);
+
+const blurhashImgURL = ref<string | null>(null);
+const realImgURL = ref<string | null>(null);
+const error = ref<string | null>(null);
+
 if (props.blurhash
 	&& props.width !== undefined
 	&& props.height !== undefined
 	&& !Number.isNaN(props.width)
 	&& !Number.isNaN(props.height)) {
-	blurhashDecoder.setInput({
+	void useBlurhashDecoder({
+		id: props.id,
 		blurhash: props.blurhash,
 		width: props.width,
 		height: props.height,
-	});
-	void blurhashDecoder.decode();
+	}, blurhashImgURL, error);
 }
-
-const jxlDecoder = useJxlDecoder();
 if (props.src) {
 	if (props.isJxl && !isJxlNative) {
-		jxlDecoder.setInput(props.src);
-		void jxlDecoder.decode();
+		void useJpegXLDecoder({
+			id: props.id,
+			url: props.src,
+		}, realImgURL, error);
 	} else {
-		jxlDecoder.dataUrl.value = props.src;
+		realImgURL.value = props.src;
 	}
 }
 
 const container = ref<HTMLElement | null>(null);
-const imageFullyLoaded = ref(false);
-
 if (props.emitWhenInView) {
 	useIntersectionObserver(
 		container,
@@ -68,37 +74,41 @@ if (props.emitWhenInView) {
 		},
 	);
 }
+
+watchEffect(() => {
+	if (error.value) { return; }
+	console.error(error.value);
+});
 </script>
 
 <template>
 	<div
 		ref="container"
-		class="relative"
-		:class="props.class">
+		:class="cn('relative', props.class)">
 		<!-- Blurhash placeholder -->
 		<img
-			v-if="props.blurhash && blurhashDecoder.dataUrl.value && !imageFullyLoaded"
+			v-if="blurhashImgURL && showBlurhash"
 			loading="lazy"
 			class="left-0 top-0 -z-10"
 			:style="{
 				position: imageFullyLoaded ? 'absolute' : 'static',
 			}"
 			:class="props.imageClass"
-			:src="blurhashDecoder.dataUrl.value"
+			:src="blurhashImgURL"
 			:draggable="props.draggable">
 
 		<!-- Actual image -->
 		<img
-			v-if="jxlDecoder.dataUrl.value"
 			loading="lazy"
-			class="left-0 top-0"
+			:class="cn('left-0 top-0', props.imageClass)"
 			:style="{
+				opacity: imageFullyLoaded ? 1 : 0,
 				transition: 'opacity 0.5s ease',
 				position: imageFullyLoaded ? 'static' : 'absolute',
 			}"
-			:src="jxlDecoder.dataUrl.value"
-			:class="props.imageClass"
+			:src="realImgURL === null ? undefined : realImgURL"
 			:draggable="props.draggable"
-			@load="imageFullyLoaded = true">
+			@load="imageFullyLoaded = true"
+			@transitionend="showBlurhash = false">
 	</div>
 </template>

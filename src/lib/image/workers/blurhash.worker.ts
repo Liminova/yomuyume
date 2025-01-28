@@ -1,0 +1,50 @@
+import type { BlurhashWorkerInput } from "~/composables/use-blurhash-decoder";
+import init, { decode } from "~/lib/image/blurhash-webp-wasm";
+
+import { setPageInDB, StoreName } from "../db";
+import type { WorkerOutput } from "../worker-pool";
+
+declare const self: Worker;
+
+await init();
+
+self.onmessage = async (event: MessageEvent<BlurhashWorkerInput>): Promise<void> => {
+	if (event.data.type === "ping") {
+		self.postMessage({ type: "pong" } satisfies WorkerOutput);
+		return;
+	}
+	if (!event.data.payload) {
+		self.postMessage({
+			type: "done",
+			error: "No payload received",
+		} satisfies WorkerOutput);
+		return;
+	}
+	const { id, blurhash, height, width } = event.data.payload;
+
+	const smallWidth = 12;
+	const smallHeight = Math.floor(smallWidth * height / width);
+
+	try {
+		await setPageInDB({
+			id,
+			data: decode(blurhash, smallWidth, smallHeight),
+		}, StoreName.BLURHASH);
+
+		self.postMessage({ type: "done" } satisfies WorkerOutput);
+	} catch (error) {
+		self.postMessage({
+			type: "done",
+			error: `${error}`,
+		} satisfies WorkerOutput);
+	}
+};
+
+self.onerror = (event: ErrorEvent): boolean => {
+	self.postMessage({
+		type: "done",
+		error: event.message,
+	} satisfies WorkerOutput);
+
+	return true;
+};
