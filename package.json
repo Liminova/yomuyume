@@ -15,7 +15,8 @@
 		"dev": "concurrently \"pnpm dev-client\" \"pnpm dev-server\"",
 		"postinstall": "nuxt prepare",
 		"build:server": "cargo build -p yomuyume --release",
-		"build:client": "nuxt generate"
+		"build:client": "nuxt generate",
+		"build:wasm": "zsh /workspaces/yomuyume/src-server/blurhash-webp-wasm/build.sh && zsh /workspaces/yomuyume/src-server/jxl-webp-wasm/build.sh"
 	},
 	"devDependencies": {
 		"@nuxtjs/color-mode": "3.5.2",
