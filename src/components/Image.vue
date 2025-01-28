@@ -104,7 +104,7 @@ watchEffect(() => {
 			:class="cn('left-0 top-0', props.imageClass)"
 			:style="{
 				opacity: imageFullyLoaded ? 1 : 0,
-				transition: 'opacity 0.5s ease',
+				transition: 'opacity 150ms ease',
 				position: imageFullyLoaded ? 'static' : 'absolute',
 			}"
 			:src="realImgURL === null ? undefined : realImgURL"
