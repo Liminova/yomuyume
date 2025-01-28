@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useIntersectionObserver } from "@vueuse/core";
-import { onBeforeMount, onMounted, ref } from "vue";
+import { ref } from "vue";
 
 import { useBlurhashDecoder } from "~/composables/use-blurhash-decoder";
 import { useJxlDecoder } from "~/composables/use-jxl-decoder";
@@ -32,42 +32,42 @@ const props = withDefaults(defineProps<{
 });
 
 const blurhashDecoder = useBlurhashDecoder();
-const jxlDecoder = useJxlDecoder();
-onBeforeMount(() => {
-	if (props.blurhash
-		&& props.width !== undefined
-		&& props.height !== undefined
-		&& !Number.isNaN(props.width)
-		&& !Number.isNaN(props.height)) {
-		blurhashDecoder.setInput({
-			blurhash: props.blurhash,
-			width: props.width,
-			height: props.height,
-		});
-		void blurhashDecoder.decode();
-	}
+if (props.blurhash
+	&& props.width !== undefined
+	&& props.height !== undefined
+	&& !Number.isNaN(props.width)
+	&& !Number.isNaN(props.height)) {
+	blurhashDecoder.setInput({
+		blurhash: props.blurhash,
+		width: props.width,
+		height: props.height,
+	});
+	void blurhashDecoder.decode();
+}
 
-	if (props.src && props.isJxl && !isJxlNative) {
+const jxlDecoder = useJxlDecoder();
+if (props.src) {
+	if (props.isJxl && !isJxlNative) {
 		jxlDecoder.setInput(props.src);
 		void jxlDecoder.decode();
 	} else {
 		jxlDecoder.dataUrl.value = props.src;
 	}
-});
+}
 
 const container = ref<HTMLElement | null>(null);
 const imageFullyLoaded = ref(false);
-const { stop } = useIntersectionObserver(
-	container,
-	([entry]) => {
-		if (props.emitWhenInView && entry.isIntersecting && imageFullyLoaded.value) {
-			emit("in-view");
-		}
-	},
-);
-onMounted(() => {
-	if (!props.emitWhenInView) { stop(); }
-});
+
+if (props.emitWhenInView) {
+	useIntersectionObserver(
+		container,
+		([entry]) => {
+			if (entry.isIntersecting && imageFullyLoaded.value) {
+				emit("in-view");
+			}
+		},
+	);
+}
 </script>
 
 <template>
