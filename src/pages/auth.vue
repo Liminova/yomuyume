@@ -4,8 +4,8 @@
 import { ref } from "vue";
 
 import Toggle from "~/components/Toggle.vue";
-import Button from "~/components/ui/button/Button.vue";
-import Input from "~/components/ui/input/Input.vue";
+import Button from "~/components/ui/Button.vue";
+import Input from "~/components/ui/Input.vue";
 import { useAuthLoginStore, useAuthRegisterStore, useAuthResetPasswordStore } from "~/composables/auth-screen-stores";
 import { useTheme } from "~/composables/use-theme";
 

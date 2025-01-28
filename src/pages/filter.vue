@@ -13,7 +13,7 @@ import {
 } from "~/components/filter/FilterType";
 import ItemCard from "~/components/ItemCard.vue";
 import Toggle from "~/components/Toggle.vue";
-import Input from "~/components/ui/input/Input.vue";
+import Input from "~/components/ui/Input.vue";
 import { type FilterTitleResponseBody, useGetCategories } from "~/composables/api/content";
 import { toCoverApiEndpoint } from "~/composables/api/file";
 import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
