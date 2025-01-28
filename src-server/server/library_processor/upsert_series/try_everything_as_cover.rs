@@ -6,10 +6,14 @@ use crate::{
         do_something_and_ok::DoSomethingAndOk,
         to_blurhash::{ToBlurhashFromArchive, ToBlurhashFromFile},
     },
-    types::comic_info::{ComicInfo, ComicPageInfo},
+    types::{
+        absolute_path::AbsolutePath,
+        comic_info::{ComicInfo, ComicPageInfo},
+    },
 };
 
 pub fn try_everything_as_cover(
+    title_path: &AbsolutePath,
     comicinfo: &mut ComicInfo,
 
     handled_chapters: &[ChapterInfo],
@@ -28,7 +32,15 @@ pub fn try_everything_as_cover(
                     .to_blurhash_from_archive(&page.path)
                     .okay(|e| warn!("can't encode `{}` to blurhash: {e:?}", page.path))
                 {
-                    cover_path.clone_from(&Some(page.path.clone()));
+                    cover_path.clone_from(&Some(format!(
+                        "{}/{}",
+                        chapter
+                            .path
+                            .to_relative(Some(title_path))
+                            .okay(|e| { warn!("can't strip title path from chapter path: {e:?}") })?
+                            .to_string_lossy(),
+                        page.path
+                    )));
                     cover_blurhash.clone_from(&Some(bh_result.blurhash.clone()));
                     cover_width.clone_from(&Some(bh_result.width));
                     cover_height.clone_from(&Some(bh_result.height));
@@ -36,7 +48,7 @@ pub fn try_everything_as_cover(
                     comicinfo.pages_mut().insert(
                         0,
                         ComicPageInfo {
-                            image_path: Some(page.path.clone()),
+                            image_path: cover_path.clone(),
                             image_width: bh_result.width,
                             image_height: bh_result.height,
                             blurhash: Some(bh_result.blurhash),
@@ -58,7 +70,7 @@ pub fn try_everything_as_cover(
                 {
                     cover_path.clone_from(&match page
                         .path
-                        .to_relative(Some(&chapter.path))
+                        .to_relative(Some(title_path))
                         .map(|p| p.to_string_lossy().to_string())
                         .okay(|e| warn!("can't strip chapter path from page path: {e:?}"))
                     {
