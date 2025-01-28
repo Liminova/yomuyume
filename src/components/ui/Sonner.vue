@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import { Toaster as Sonner, type ToasterProps } from "vue-sonner";
+import { Toaster, type ToasterProps } from "vue-sonner";
 
 const props = defineProps<ToasterProps>();
 </script>
 
 <template>
-	<Sonner
+	<Toaster
 		class="toaster group"
 		v-bind="props"
 		:toast-options="{
