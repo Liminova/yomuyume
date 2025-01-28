@@ -158,6 +158,7 @@ pub async fn upsert_series(
         };
 
         if try_everything_as_cover(
+            &title_path,
             &mut comicinfo,
             &handled_chapters,
             &mut cover_path,
