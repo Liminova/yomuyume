@@ -6,7 +6,7 @@ import { useBlurhashDecoder } from "~/composables/use-blurhash-decoder";
 import { useJxlDecoder } from "~/composables/use-jxl-decoder";
 import { isJxlNative } from "~/lib/is-jxl-native";
 
-const emit = defineEmits(["loaded", "in-view"]);
+const emit = defineEmits(["in-view"]);
 const props = withDefaults(defineProps<{
 	class?: string;
 	draggable?: boolean;
