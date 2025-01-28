@@ -85,7 +85,7 @@ pub async fn get_title(
     .fetch_optional(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?
     .map(|r| TitleResponseBody {

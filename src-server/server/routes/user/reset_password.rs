@@ -40,7 +40,7 @@ pub async fn get_reset_password(
         return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
     }
     let mailer = Mailer::from(&app_state.config).map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::Mailer(e)
     })?;
 
@@ -57,7 +57,7 @@ pub async fn get_reset_password(
     .fetch_optional(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?
     .map(|r| (r.id, r.username, r.email, r.verified_at)) else {
@@ -82,7 +82,7 @@ pub async fn get_reset_password(
     .fetch_optional(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?
     .map(|r| r.created_at)
@@ -108,7 +108,7 @@ pub async fn get_reset_password(
     .fetch_one(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?
     .code;
@@ -132,7 +132,7 @@ pub async fn get_reset_password(
         )
         .map(|_| Ok(StatusCode::OK.into_response()))
         .map_err(|e| {
-            tracing::error!("{:?}", e);
+            tracing::error!("{e:?}");
             AppError::Mailer(e)
         })?
 }
@@ -177,7 +177,7 @@ pub async fn post_reset_password(
     .fetch_optional(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?
     .map(|record| (record.created_at, record.user_id)) else {
@@ -205,7 +205,7 @@ pub async fn post_reset_password(
     .execute(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?;
 

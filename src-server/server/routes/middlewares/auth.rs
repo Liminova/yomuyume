@@ -81,7 +81,7 @@ pub async fn auth(
         .fetch_optional(&app_state.pool)
         .await
         .map_err(|e| {
-            tracing::error!("{:?}", e);
+            tracing::error!("{e:?}");
             AppError::DB(e)
         })? {
             let new_user_cache = UserCache {
@@ -125,7 +125,7 @@ pub async fn auth(
         .execute(&app_state.pool)
         .await
         .map_err(|e| {
-            tracing::error!("{:?}", e);
+            tracing::error!("{e:?}");
             AppError::DB(e)
         })?;
 
@@ -148,7 +148,7 @@ pub async fn auth(
         .await
         // .context("can't update session token's last used time")?;
         .map_err(|e| {
-            tracing::error!("{:?}", e);
+            tracing::error!("{e:?}");
             AppError::DB(e)
         })?;
 

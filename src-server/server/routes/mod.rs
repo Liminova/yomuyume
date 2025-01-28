@@ -145,7 +145,7 @@ fn hash_pass(input: impl AsRef<str>) -> Result<String, AppError> {
         .hash_password(input, &SaltString::generate(&mut OsRng))
         .map(|hash| hash.to_string())
         .map_err(|e| {
-            tracing::error!("{:?}", e);
+            tracing::error!("{e:?}");
             AppError::PasswordHash(e)
         })
 }

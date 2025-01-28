@@ -29,7 +29,7 @@ pub async fn put_favorite(
         "INSERT INTO favorites (id, title_id, user_id)
         VALUES ($1, $2, $3) ON CONFLICT (title_id, user_id) DO NOTHING",
         app_state.id_generator.snowflake().await.map_err(|e| {
-            tracing::error!("{:?}", e);
+            tracing::error!("{e:?}");
             AppError::Snowflake(e)
         })?,
         title_id,
@@ -38,7 +38,7 @@ pub async fn put_favorite(
     .execute(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?;
 
@@ -62,7 +62,7 @@ pub async fn put_bookmark(
         "INSERT INTO bookmarks (id, title_id, user_id)
         VALUES ($1, $2, $3) ON CONFLICT (title_id, user_id) DO NOTHING",
         app_state.id_generator.snowflake().await.map_err(|e| {
-            tracing::error!("{:?}", e);
+            tracing::error!("{e:?}");
             AppError::Snowflake(e)
         })?,
         title_id,
@@ -71,7 +71,7 @@ pub async fn put_bookmark(
     .execute(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?;
 
@@ -101,7 +101,7 @@ pub async fn delete_favorite(
     .execute(&data.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?;
 
@@ -131,7 +131,7 @@ pub async fn delete_bookmark(
     .execute(&data.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?;
 

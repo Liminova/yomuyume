@@ -29,7 +29,7 @@ pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response
         .fetch_all(&app_state.pool)
         .await
         .map_err(|e| {
-            tracing::error!("{:?}", e);
+            tracing::error!("{e:?}");
             AppError::DB(e)
         })?
         .into_iter()

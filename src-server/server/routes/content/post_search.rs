@@ -202,7 +202,7 @@ pub async fn post_search(
     .fetch_all(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?
     .into_iter()

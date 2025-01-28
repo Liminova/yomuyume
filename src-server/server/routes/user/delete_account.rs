@@ -35,7 +35,7 @@ pub async fn get_delete_account(
     Extension(user_id): Extension<UserID>,
 ) -> Result<Response, AppError> {
     let mailer = Mailer::from(&app_state.config).map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::Mailer(e)
     })?;
     let now = Utc::now();
@@ -51,7 +51,7 @@ pub async fn get_delete_account(
     .fetch_optional(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?
     .map(|r| r.created_at)
@@ -76,7 +76,7 @@ pub async fn get_delete_account(
     .fetch_one(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?
     .code;
@@ -106,7 +106,7 @@ pub async fn get_delete_account(
         ),
     ).map(|_| Ok(StatusCode::OK.into_response()))
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::Mailer(e)
     })?
 }
@@ -143,7 +143,7 @@ pub async fn post_delete_account(
         .fetch_one(&app_state.pool)
         .await
         .map_err(|e| {
-            tracing::error!("{:?}", e);
+            tracing::error!("{e:?}");
             AppError::DB(e)
         })?
         .password_hash,
@@ -166,7 +166,7 @@ pub async fn post_delete_account(
     .fetch_optional(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?
     .map(|record| record.created_at)
@@ -183,7 +183,7 @@ pub async fn post_delete_account(
         .execute(&app_state.pool)
         .await
         .map_err(|e| {
-            tracing::error!("{:?}", e);
+            tracing::error!("{e:?}");
             AppError::DB(e)
         })?;
     app_state.session_cache.retain(|_, v| *v != user_id);

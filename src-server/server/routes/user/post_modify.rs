@@ -55,7 +55,7 @@ pub async fn post_modify(
             .fetch_one(&app_state.pool)
             .await
             .map_err(|e| {
-                tracing::error!("{:?}", e);
+                tracing::error!("{e:?}");
                 AppError::DB(e)
             })?
             .password_hash;
@@ -96,7 +96,7 @@ pub async fn post_modify(
     .execute(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{:?}", e);
+        tracing::error!("{e:?}");
         AppError::DB(e)
     })?;
 
