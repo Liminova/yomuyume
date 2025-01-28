@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Toaster } from "~/components/ui/sonner";
+import Sonner from "~/components/ui/Sonner.vue";
 import { useTheme } from "~/composables/use-theme";
 useTheme();
 
@@ -7,7 +7,7 @@ useTheme();
 
 <template>
 	<NuxtLayout>
-		<Toaster />
+		<Sonner />
 		<NuxtPage />
 	</NuxtLayout>
 </template>
