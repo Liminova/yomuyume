@@ -25,16 +25,13 @@ pub async fn get_cover(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,
 ) -> Result<Response, AppError> {
-    let Some(record) = sqlx::query!(
-        "SELECT
-            titles.path AS title_path,
+    let Some(title) = sqlx::query!(
+        "SELECT path,
             cover_path,
-            oneshots_pages.filesize AS cover_filesize,
-            titles.is_dir AS title_is_dir
+            is_dir,
+            is_series
         FROM titles
-            LEFT JOIN oneshots_pages ON oneshots_pages.title_id = titles.id
-            AND oneshots_pages.path = cover_path
-        WHERE titles.id = $1",
+        WHERE id = $1",
         title_id
     )
     .fetch_optional(&app_state.pool)
@@ -47,48 +44,105 @@ pub async fn get_cover(
         return Ok((StatusCode::NOT_FOUND).into_response());
     };
 
-    let Some(cover_path) = record.cover_path else {
+    let Some(cover_path) = title.cover_path else {
         return Ok((StatusCode::NO_CONTENT).into_response());
     };
 
     let headers = [(
         header::CONTENT_TYPE,
-        // TODO: works but too janky
-        match cover_path.split('.').last().unwrap_or_default() {
+        match cover_path
+            .split('.')
+            .last()
+            .unwrap_or_default()
+            .to_lowercase()
+            .as_str()
+        {
             "" => "image".to_string(),
             "jpg" => "image/jpeg".to_string(),
             v => format!("image/{v}"),
         },
     )];
 
-    let content = if record.title_is_dir {
-        let file_path = app_state
-            .config
-            .library_path
-            .as_ref()
-            .join(record.title_path)
-            .join(cover_path);
-        let file = File::open(file_path).await.map_err(|e| {
-            tracing::error!("{:?}", e);
+    let content = match (title.is_series, title.is_dir) {
+        (false, true) => File::open(
+            app_state
+                .config
+                .library_path
+                .as_ref()
+                .join(title.path)
+                .join(cover_path),
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("1SHOT DIR {title_id}: {e:?}");
             AppError::IO(e)
-        })?;
-        let stream = ReaderStream::new(file);
+        })
+        .map(ReaderStream::new)
+        .map(Body::from_stream)?,
 
-        Body::from_stream(stream)
-    } else {
-        let archive_file = app_state
+        (false, false) => app_state
             .config
             .library_path
             .as_ref()
-            .join(record.title_path);
-        let stream = archive_file
-            .stream_file_from_archive(cover_path, record.cover_filesize)
+            .join(title.path)
+            .stream_file_from_archive(cover_path, None)
             .map_err(|e| {
-                tracing::error!("{:?}", e);
+                tracing::error!("1SHOT ARCHIVE {title_id}: {e:?}");
                 AppError::Archive(e)
-            })?;
+            })
+            .map(Body::from_stream)?,
 
-        Body::from_stream(stream)
+        (true, true) => match cover_path
+            .split_once('/')
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+        {
+            Some((chapter_part, page_part)) => {
+                let chapter_path = app_state
+                    .config
+                    .library_path
+                    .as_ref()
+                    .join(title.path)
+                    .join(chapter_part);
+
+                if chapter_path.is_dir() {
+                    File::open(chapter_path.join(page_part))
+                        .await
+                        .map_err(|e| {
+                            tracing::error!("SERIES CHAPTER ARCHIVE {title_id}: {e:?}");
+                            AppError::IO(e)
+                        })
+                        .map(ReaderStream::new)
+                        .map(Body::from_stream)?
+                } else {
+                    chapter_path
+                        .stream_file_from_archive(page_part, None)
+                        .map_err(|e| {
+                            tracing::error!("SERIES CHAPTER ARCHIVE {title_id}: {e:?}");
+                            AppError::Archive(e)
+                        })
+                        .map(Body::from_stream)?
+                }
+            }
+            None => File::open(
+                app_state
+                    .config
+                    .library_path
+                    .as_ref()
+                    .join(title.path)
+                    .join(&cover_path),
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("SERIES ROOT {title_id}: {e:?}");
+                AppError::IO(e)
+            })
+            .map(ReaderStream::new)
+            .map(Body::from_stream)?,
+        },
+
+        (true, false) => {
+            unreachable!()
+        }
     };
 
     Ok((StatusCode::OK, headers, content).into_response())
