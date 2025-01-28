@@ -77,7 +77,7 @@ if (props.emitWhenInView) {
 		:class="props.class">
 		<!-- Blurhash placeholder -->
 		<img
-			v-if="props.blurhash && blurhashDecoder.dataUrl && !imageFullyLoaded"
+			v-if="props.blurhash && blurhashDecoder.dataUrl.value && !imageFullyLoaded"
 			loading="lazy"
 			class="left-0 top-0 -z-10"
 			:style="{
