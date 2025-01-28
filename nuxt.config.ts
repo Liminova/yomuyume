@@ -1,3 +1,5 @@
+import wasm from "vite-plugin-wasm";
+
 export default defineNuxtConfig({
 	ssr: false,
 	srcDir: "src",
@@ -36,6 +38,7 @@ export default defineNuxtConfig({
 		build: {
 			target: "esnext",
 		},
+		plugins: [wasm()],
 	},
 	components: {
 		dirs: [],
