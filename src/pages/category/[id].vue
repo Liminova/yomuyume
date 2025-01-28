@@ -6,7 +6,6 @@ import { NuxtLink } from "#components";
 import { definePageMeta } from "#imports";
 import ItemCard from "~/components/ItemCard.vue";
 import { useSearchTitle } from "~/composables/api/content";
-import NavDrawerWrapper from "~/layouts/nav-drawer.vue";
 import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
 
 definePageMeta({ layout: "nav-drawer" });
