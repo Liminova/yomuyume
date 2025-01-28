@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { ref } from "vue";
 
 import { NuxtLink } from "#components";
-import ImagePoly from "~/components/ImagePoly.vue";
-import { type TitleFromFilter, useGetTags } from "~/composables/api/content";
+import Image from "~/components/Image.vue";
+import type { GetTitleResponseBody } from "~/composables/api/content";
 import { toCoverApiEndpoint } from "~/composables/api/file";
 import type { MyImage } from "~/lib/types";
 
 import { homeStore } from "./utils";
 
 const props = withDefaults(defineProps<{
-	title: TitleFromFilter;
+	title: GetTitleResponseBody;
 	isFirstTitle?: boolean;
 	isLastTitle?: boolean;
 }>(), {
@@ -18,17 +17,7 @@ const props = withDefaults(defineProps<{
 	isLastTitle: false,
 });
 
-const cover: MyImage = {
-	src: toCoverApiEndpoint(props.title.id),
-	width: props.title.cover_width,
-	height: props.title.cover_height,
-	format: props.title.cover_format ?? "",
-	blurhash: props.title.cover_blurhash,
-};
-
 const store = homeStore();
-const titleTagNames = ref<string[]>([]);
-const tags = useGetTags();
 </script>
 
 <template>
@@ -47,21 +36,30 @@ const tags = useGetTags();
 				'rounded-r-3xl': props.isLastTitle,
 			}"
 			:style="{ height: `${store.recommendsContainerHeight}px` }">
-			<ImagePoly
+			<Image
+				:id="props.title.id"
 				class="w-full scale-110 overflow-hidden object-cover blur-sm"
 				:draggable="false"
-				:image="cover"
 				image-class="overflow-hidden"
-				:lazy="false" />
+				:src="toCoverApiEndpoint(props.title.id)"
+				:blurhash="props.title.cover_blurhash"
+				:width="props.title.cover_width"
+				:height="props.title.cover_height"
+				:is-jxl="props.title.cover_jxl" />
 		</div>
 
 		<!-- Cover -->
 		<div class="size-full sm:min-w-[350px] sm:max-w-xs lg:py-10 lg:pl-10">
-			<ImagePoly
+			<Image
+				:id="props.title.id"
 				:draggable="false"
-				:image="cover"
 				class="h-full overflow-hidden lg:rounded-2xl"
-				image-class="h-full object-cover" />
+				image-class="h-full object-cover"
+				:src="toCoverApiEndpoint(props.title.id)"
+				:blurhash="props.title.cover_blurhash"
+				:width="props.title.cover_width"
+				:height="props.title.cover_height"
+				:is-jxl="props.title.cover_jxl" />
 		</div>
 
 		<div
@@ -78,32 +76,32 @@ const tags = useGetTags();
 			<div
 				class="truncate-2 mb-1 text-balance text-3xl font-bold"
 				data-theme="dark">
-				{{ props.title.title }}
-			</div>
-
-			<div class="truncate">
-				{{ props.title.release }}
+				{{ props.title.title ?? "Untitled" }}
 			</div>
 
 			<div
+				v-if="props.title.release"
+				class="truncate">
+				{{ props.title.release }}
+			</div>
+
+			<!-- <div
 				v-if="titleTagNames.includes(`completed`)"
 				class="mb-2"
 				data-theme="dark">
 				<i class="fa-solid fa-circle-check mr-2" />
 				<span>Completed</span>
-			</div>
+			</div> -->
 
 			<div
-				v-if="titleTagNames.length !== 0"
+				v-if="title.tags?.length !== 0"
 				class="mb-2 hidden flex-row flex-wrap gap-2 sm:flex">
 				<span
-					v-for="tag in titleTagNames"
-					:key="tag">
-					<!-- <md-assist-chip
-						:key="tag"
-						:label="tag"
-						class="elevation-3"
-					/> -->
+					v-for="[id, name] in title.tags"
+					:key="id">
+					<div>
+						{{ name }}
+					</div>
 				</span>
 			</div>
 
