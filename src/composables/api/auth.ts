@@ -32,7 +32,7 @@ export function useLogout() {
 			});
 
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw new Error("You're not even logged in!");
 			}
 		},
 		onError(error) {
