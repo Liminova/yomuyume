@@ -77,7 +77,7 @@ if (props.emitWhenInView) {
 }
 
 watchEffect(() => {
-	if (error.value) { return; }
+	if (!error.value) { return; }
 	toast.error(error.value);
 });
 </script>
