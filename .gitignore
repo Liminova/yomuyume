@@ -32,8 +32,7 @@ target
 .vscode
 docker-compose.yml
 .devcontainer/dav1d*
-.devcontainer/mold*
 .devcontainer/7zz
 *.zip
 /library
-sqlite*
+*.jxl
