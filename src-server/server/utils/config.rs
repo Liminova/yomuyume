@@ -4,7 +4,7 @@ use crate::types::absolute_path::AbsolutePath;
 
 pub const SUPPORTED_ARCHIVE_FORMATS: &[&str] = &["zip", "cbz", "rar", "cbr", "7z"];
 pub const SUPPORTED_IMAGE_FORMATS: &[&str] = &[
-    "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
+    "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp", "jxl",
 ];
 
 pub const COMICINFO_SCHEMA: &str =
