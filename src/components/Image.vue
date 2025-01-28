@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useIntersectionObserver } from "@vueuse/core";
 import { ref, watchEffect } from "vue";
+import { toast } from "vue-sonner";
 
 import { useBlurhashDecoder } from "~/composables/use-blurhash-decoder";
 import { useJpegXLDecoder } from "~/composables/use-jpegxl-decoder";
@@ -77,7 +78,7 @@ if (props.emitWhenInView) {
 
 watchEffect(() => {
 	if (error.value) { return; }
-	console.error(error.value);
+	toast.error(error.value);
 });
 </script>
 
