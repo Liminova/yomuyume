@@ -78,7 +78,7 @@ async fn main() -> Result<()> {
             Router::new()
                 .route("/search", post(post_search))
                 .route("/categories", get(get_categories))
-                .route("/title/:title_id", get(get_title))
+                .route("/title/{title_id}", get(get_title))
                 .route("/tags", get(get_tags))
                 .layer(apply(app_state.clone(), auth)),
         )
@@ -90,14 +90,14 @@ async fn main() -> Result<()> {
                 .route("/verify", get(get_validate_email).post(post_validate_email))
                 .route("/modify", post(post_modify))
                 .route(
-                    "/bookmark/:title_id",
+                    "/bookmark/{title_id}",
                     put(put_bookmark).delete(delete_bookmark),
                 )
                 .route(
-                    "/favorite/:title_id",
+                    "/favorite/{title_id}",
                     put(put_favorite).delete(delete_favorite),
                 )
-                .route("/progress/:title_id/:page", put(put_progress))
+                .route("/progress/{title_id}/{page}", put(put_progress))
                 .layer(apply(app_state.clone(), auth)),
         )
         .nest(
@@ -109,14 +109,14 @@ async fn main() -> Result<()> {
         .nest(
             "/api/file",
             Router::new()
-                .route("/page/:page_id", get(get_page))
-                .route("/cover/:title_id", get(get_cover))
+                .route("/page/{page_id}", get(get_page))
+                .route("/cover/{title_id}", get(get_cover))
                 .layer(apply(app_state.clone(), auth)),
         )
         .nest(
             "/api",
             Router::new()
-                .route("/user/reset/:email", get(get_reset_password))
+                .route("/user/reset/{email}", get(get_reset_password))
                 .route("/user/reset", post(post_reset_password))
                 .route("/utils/status", get(get_status).post(post_status)),
         )
