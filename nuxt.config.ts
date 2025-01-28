@@ -30,7 +30,12 @@ export default defineNuxtConfig({
 		},
 	},
 	css: ["~/assets/scss/index.scss"],
-	modules: ["@nuxtjs/tailwindcss", "@nuxtjs/color-mode", "@pinia/nuxt"],
+	modules: [
+		"@nuxtjs/tailwindcss",
+		"@nuxtjs/color-mode",
+		"@pinia/nuxt",
+		"@vite-pwa/nuxt"
+	],
 	experimental: {
 		viewTransition: true,
 	},
