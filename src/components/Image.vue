@@ -99,9 +99,6 @@ if (props.emitWhenInView) {
 			:src="jxlDecoder.dataUrl.value"
 			:class="props.imageClass"
 			:draggable="props.draggable"
-			@load="() => {
-				imageFullyLoaded = true;
-				emit('loaded');
-			}">
+			@load="imageFullyLoaded = true">
 	</div>
 </template>
