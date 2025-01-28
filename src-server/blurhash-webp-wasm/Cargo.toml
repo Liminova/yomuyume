@@ -1,5 +1,5 @@
 [package]
-name = "blurhash-decode"
+name = "blurhash-webp-wasm"
 version = "0.1.0"
 authors = ["Delnegend <kiennguyen19323@gmail.com>"]
 edition = "2021"
@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 console_error_panic_hook = "0.1.7"
-image = { version = "0.25.2", features = ["webp"], default-features = false }
+image = { version = "0.25.5", features = ["webp"], default-features = false }
 wasm-bindgen = "0.2.84"
 
 [dev-dependencies]
