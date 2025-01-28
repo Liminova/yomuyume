@@ -26,12 +26,6 @@ importers:
       debounce:
         specifier: ^2.2.0
         version: 2.2.0
-      fast-blurhash:
-        specifier: 1.1.4
-        version: 1.1.4
-      jxl-webp-wasm:
-        specifier: ^0.11.0
-        version: 0.11.0
       lucide-vue-next:
         specifier: ^0.473.0
         version: 0.473.0(vue@3.5.13(typescript@5.7.3))
@@ -2055,9 +2049,6 @@ packages:
   externality@1.0.2:
     resolution: {integrity: sha512-LyExtJWKxtgVzmgtEHyQtLFpw1KFhQphF9nTG8TpAIVkiI/xQ3FJh75tRFLYl4hkn7BNIIdLJInuDAavX35pMw==}
 
-  fast-blurhash@1.1.4:
-    resolution: {integrity: sha512-xeH121M027hgWHHhHWYYjUmMKl8vCH3PPkXk439ixsP8Bvb/r3UFqg12oMSToD/aSAw8EE6XiTdfZ6M5jaLfzg==}
-
   fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
 
@@ -2506,9 +2497,6 @@ packages:
 
   jsonfile@6.1.0:
     resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==}
-
-  jxl-webp-wasm@0.11.0:
-    resolution: {integrity: sha512-M5JZD7fcaZm+668G/g7MuYcqttcUGqZ3oYc0vgEswLONczEjvuaSMvS9TQ8e9D2sXoZJok7icgCwxpsh0Q8x4Q==}
 
   keygrip@1.1.0:
     resolution: {integrity: sha512-iYSchDJ+liQ8iwbSI2QqsQOvqv58eJCEanyJPJi+Khyu8smkcKSFUCbPwzFcL7YVtZ6eONjqRX/38caJ7QjRAQ==}
@@ -6366,8 +6354,6 @@ snapshots:
       pathe: 1.1.2
       ufo: 1.5.4
 
-  fast-blurhash@1.1.4: {}
-
   fast-deep-equal@3.1.3: {}
 
   fast-diff@1.3.0: {}
@@ -6812,8 +6798,6 @@ snapshots:
       universalify: 2.0.1
     optionalDependencies:
       graceful-fs: 4.2.11
-
-  jxl-webp-wasm@0.11.0: {}
 
   keygrip@1.1.0:
     dependencies:
