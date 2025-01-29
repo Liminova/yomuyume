@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Book, Bookmark, Filter, Heart, House, Library, Settings } from "lucide-vue-next";
 
-import Entry from "~/components/NavDrawer/NavDrawerEntry.vue";
-import TopBar from "~/components/NavDrawer/NavDrawerTopBar.vue";
+import Entry from "~/components/nav-drawer/NavDrawerEntry.vue";
+import TopBar from "~/components/nav-drawer/NavDrawerTopBar.vue";
 import Toggle from "~/components/Toggle.vue";
 import { useNavDrawerStore } from "~/composables/nav-drawer-store";
 

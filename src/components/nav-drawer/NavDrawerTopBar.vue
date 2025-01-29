@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { navigateTo } from "#app";
-import Avatar from "~/components/NavDrawer/NavDrawerAvatar.vue";
-import Logo from "~/components/NavDrawer/NavDrawerLogo.vue";
-import QuickSearch from "~/components/NavDrawer/NavDrawerQuickSearch.vue";
-import ToggleIcon from "~/components/NavDrawer/NavDrawerToggleIcon.vue";
+import Avatar from "~/components/nav-drawer/NavDrawerAvatar.vue";
+import Logo from "~/components/nav-drawer/NavDrawerLogo.vue";
+import QuickSearch from "~/components/nav-drawer/NavDrawerQuickSearch.vue";
+import ToggleIcon from "~/components/nav-drawer/NavDrawerToggleIcon.vue";
 import { useNavDrawerStore } from "~/composables/nav-drawer-store";
 
 const navDrawerStore = useNavDrawerStore();
