@@ -1,8 +1,8 @@
-import type { BlurhashWorkerInput } from "~/composables/use-blurhash-decoder";
-import init, { decode } from "~/lib/image/blurhash-webp-wasm";
+import type { BlurhashWorkerInput } from "~/components/image/use-blurhash-decoder";
 
+import init, { decode } from "../blurhash-webp-wasm/blurhash_webp_wasm";
 import { setPageInDB, StoreName } from "../db";
-import type { WorkerOutput } from "../worker-pool";
+import type { WorkerOutput } from "./pool";
 
 declare const self: Worker;
 

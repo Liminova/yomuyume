@@ -1,37 +1,39 @@
 import { onUnmounted, type Ref } from "vue";
 
-import { getPageInDB, StoreName } from "~/lib/image/db";
-import { type WorkerInputWrapper, type WorkerOutput, WorkerPool } from "~/lib/image/worker-pool";
+import { getPageInDB, StoreName } from "./db";
+import { type WorkerInputWrapper, type WorkerOutput, WorkerPool } from "./worker/pool";
 
 type PageID = string;
 type DecodedImgURL = string;
-interface JpegXLInput {
+interface BlurhashInput {
 	id: PageID;
-	url: string;
+	blurhash: string;
+	width: number;
+	height: number;
 }
-export type JpegXLWorkerInput = WorkerInputWrapper<JpegXLInput>;
+export type BlurhashWorkerInput = WorkerInputWrapper<BlurhashInput>;
+
+const pool = new WorkerPool<BlurhashInput>(() => {
+	return new Worker(
+		new URL("./worker/blurhash.ts", import.meta.url),
+		{ type: "module", name: "blurhash-worker" },
+	);
+});
 
 const processing = new Set<PageID>();
 const waitlists = new Map<PageID, Array<Ref<DecodedImgURL | null>>>();
 
-const pool = new WorkerPool<JpegXLWorkerInput>(() => {
-	return new Worker(
-		new URL("~/lib/image/workers/jxl.worker.ts", import.meta.url),
-		{ type: "module", name: "jpegxl-worker" },
-	);
-});
-
-export async function useJpegXLDecoder(
-	payload: JpegXLInput,
-	outputWebpURL: Ref<DecodedImgURL | null>,
+export async function useBlurhashDecoder(
+	payload: BlurhashInput,
+	outputImgURL: Ref<DecodedImgURL | null>,
 	error: Ref<ErrorEvent | string | null>,
 ): Promise<void> {
 	// we won't tell you when it's done because you won't need it
 	onUnmounted(() => {
-		outputWebpURL.value = null;
+		outputImgURL.value = null;
 		const waitlist = waitlists.get(payload.id);
 		if (waitlist) {
-			const index = waitlist.indexOf(outputWebpURL);
+			const index = waitlist.indexOf(outputImgURL);
 			if (index !== -1) {
 				waitlist.splice(index, 1);
 			}
@@ -39,17 +41,17 @@ export async function useJpegXLDecoder(
 	});
 
 	// check in DB first
-	const record = await getPageInDB(payload.id, StoreName.JPEGXL);
-	if (record !== undefined) {
+	const record = await getPageInDB(payload.id, StoreName.BLURHASH);
+	if (record) {
 		const blob = new Blob([record.data], { type: "image/webp" });
-		outputWebpURL.value = URL.createObjectURL(blob);
+		outputImgURL.value = URL.createObjectURL(blob);
 		return;
 	}
 
 	// it's decoding and we'll tell you when it's done
 	const waitlist = waitlists.get(payload.id);
-	if (waitlist) { waitlist.push(outputWebpURL); }
-	waitlists.set(payload.id, [outputWebpURL]);
+	if (waitlist) { waitlist.push(outputImgURL); }
+	waitlists.set(payload.id, [outputImgURL]);
 
 	if (processing.has(payload.id)) { return; }
 	processing.add(payload.id);
@@ -71,7 +73,7 @@ export async function useJpegXLDecoder(
 		const waitlist = waitlists.get(payload.id);
 		if (waitlist === undefined) { return; } // no one wants me
 
-		const record = await getPageInDB(payload.id, StoreName.JPEGXL);
+		const record = await getPageInDB(payload.id, StoreName.BLURHASH);
 		if (!record) {
 			error.value = "Worker did not save the result to DB";
 			return;
@@ -84,7 +86,7 @@ export async function useJpegXLDecoder(
 	worker.inner.postMessage({
 		type: "work",
 		payload,
-	} satisfies JpegXLWorkerInput);
+	} satisfies BlurhashWorkerInput);
 
 	await doneSignal;
 	pool.returnWorker(worker);

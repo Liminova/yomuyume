@@ -1,8 +1,8 @@
-import type { JpegXLWorkerInput } from "~/composables/use-jpegxl-decoder";
-import init, { decode } from "~/lib/image/jxl-webp-wasm";
+import type { JpegXLWorkerInput } from "~/components/image/use-jpegxl-decoder";
 
 import { setPageInDB, StoreName } from "../db";
-import type { WorkerOutput } from "../worker-pool";
+import init, { decode } from "../jxl-webp-wasm";
+import type { WorkerOutput } from "./pool";
 
 declare const self: Worker;
 
