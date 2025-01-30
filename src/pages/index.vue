@@ -5,15 +5,12 @@ import { ref } from "vue";
 import { definePageMeta } from "#imports";
 import CardRecommend from "~/components/home/CardRecommend.vue";
 import CarouselWrapper from "~/components/home/CarouselWrapper.vue";
-import { homeStore } from "~/components/home/utils";
 import ItemCard from "~/components/ItemCard.vue";
 import { type GetTitleResponseBody, useSearchTitle } from "~/composables/api/content";
 
 definePageMeta({ layout: "nav-drawer" });
 
 register();
-
-const store = homeStore();
 
 const recommendsItems = ref<GetTitleResponseBody[]>([]);
 const recentlyUpdatedItems = ref<GetTitleResponseBody[]>([]);
