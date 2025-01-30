@@ -2,10 +2,9 @@
 import { computed } from "vue";
 
 import { NuxtLink } from "#components";
+import Image from "~/components/image";
 import type { GetTitleResponseBody } from "~/composables/api/content";
 import { toCoverApiEndpoint } from "~/composables/api/file";
-
-import Image from "./Image.vue";
 
 const props = defineProps<{ title: GetTitleResponseBody }>();
 
