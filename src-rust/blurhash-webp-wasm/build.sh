@@ -1,4 +1,4 @@
 cd /workspaces/yomuyume/src-server/blurhash-webp-wasm
-wasm-pack build --target web --out-dir ../../src/lib/blurhash-webp-wasm
+wasm-pack build --target web --out-dir /workspaces/yomuyume/src/components/image/blurhash-webp-wasm
 cd -
-rm /workspaces/yomuyume/src/lib/blurhash-webp-wasm/.gitignore
+rm /workspaces/yomuyume/src/components/image/blurhash-webp-wasm/.gitignore
