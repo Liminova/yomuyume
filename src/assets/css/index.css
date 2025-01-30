@@ -1,47 +1,114 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-@import url('./truncate.scss');
-@import url('./scrollbar.scss');
-@import url('./permanent-marker.scss');
-@import url('./roboto.scss');
+@import 'tailwindcss';
+@import url('./permanent-marker.css');
+@import url('./roboto.css');
 
-:root {
-	--topbar-height: 72px;
-}
 
-* {
-	font-family: Roboto, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-}
+@layer utilities {
 
-a {
-	-webkit-tap-highlight-color: transparent;
-}
+	.elevation-1 {
+		box-shadow: var(--elevation-1);
+	}
 
-.v-enter-active,
-.v-leave-active {
-	transition-property: opacity;
-	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-	transition-duration: 150ms;
-}
+	.elevation-2 {
+		box-shadow: var(--elevation-2);
+	}
 
-.v-enter-from,
-.v-leave-to {
-	opacity: 0;
-}
+	.elevation-3 {
+		box-shadow: var(--elevation-3);
+	}
 
-img {
-	width: 100%;
-	height: auto;
-	vertical-align: middle;
-	font-style: italic;
-	background-repeat: no-repeat;
-	background-size: cover;
-	shape-margin: 1rem;
-}
+	.elevation-4 {
+		box-shadow: var(--elevation-4);
+	}
 
-body {
-	overflow-y: scroll;
+	.elevation-5 {
+		box-shadow: var(--elevation-5);
+	}
+
+	.truncate-base {
+		overflow: hidden;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+	}
+
+	.truncate-2 {
+		@apply truncate-base;
+		line-clamp: 2;
+		-webkit-line-clamp: 2;
+	}
+
+	.truncate-3 {
+		@apply truncate-base;
+		line-clamp: 3;
+		-webkit-line-clamp: 3;
+	}
+
+	.truncate-4 {
+		@apply truncate-base;
+		line-clamp: 4;
+		-webkit-line-clamp: 4;
+	}
+
+	.truncate-5 {
+		@apply truncate-base;
+		line-clamp: 5;
+		-webkit-line-clamp: 5;
+	}
+
+	.truncate-8 {
+		@apply truncate-base;
+		line-clamp: 8;
+		-webkit-line-clamp: 8;
+	}
+
+	:root {
+		--topbar-height: 72px;
+	}
+
+	* {
+		font-family:
+			Roboto,
+			system-ui,
+			-apple-system,
+			BlinkMacSystemFont,
+			'Segoe UI',
+			Oxygen,
+			Ubuntu,
+			Cantarell,
+			'Open Sans',
+			'Helvetica Neue',
+			sans-serif;
+	}
+
+	a {
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.v-enter-active,
+	.v-leave-active {
+		transition-property: opacity;
+		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+		transition-duration: 150ms;
+	}
+
+	.v-enter-from,
+	.v-leave-to {
+		opacity: 0;
+	}
+
+	img {
+		width: 100%;
+		height: auto;
+		vertical-align: middle;
+		font-style: italic;
+		background-repeat: no-repeat;
+		background-size: cover;
+		shape-margin: 1rem;
+	}
+
+	body {
+		overflow-y: scroll;
+	}
 }
 
 @layer base {
@@ -120,9 +187,7 @@ body {
 		--elevation-4: 0px 6px 10px 4px rgba(0, 0, 0, 0.15), 0px 2px 3px rgba(0, 0, 0, 0.3);
 		--elevation-5: 0px 8px 12px 6px rgba(0, 0, 0, 0.15), 0px 4px 4px rgba(0, 0, 0, 0.3);
 	}
-}
 
-@layer base {
 	* {
 		@apply border-border;
 	}
@@ -132,24 +197,24 @@ body {
 	}
 }
 
-@layer utilities {
-	.elevation-1 {
-		box-shadow: var(--elevation-1);
-	}
+/* ===== Scrollbar CSS ===== */
+/* Firefox */
+* {
+	scrollbar-width: auto;
+	scrollbar-color: #b90062 transparent;
+}
 
-	.elevation-2 {
-		box-shadow: var(--elevation-2);
-	}
+/* Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+	width: 9px;
+}
 
-	.elevation-3 {
-		box-shadow: var(--elevation-3);
-	}
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
 
-	.elevation-4 {
-		box-shadow: var(--elevation-4);
-	}
-
-	.elevation-5 {
-		box-shadow: var(--elevation-5);
-	}
+*::-webkit-scrollbar-thumb {
+	background-color: #b90062;
+	border-radius: 9px;
+	border: 4px solid transparent;
 }

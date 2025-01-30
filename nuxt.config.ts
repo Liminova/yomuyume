@@ -29,7 +29,7 @@ export default defineNuxtConfig({
 			autoprefixer: {},
 		},
 	},
-	css: ["~/assets/scss/index.scss"],
+	css: ["~/assets/css/index.css"],
 	modules: [
 		"@nuxtjs/tailwindcss",
 		"@nuxtjs/color-mode",
