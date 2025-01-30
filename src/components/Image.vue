@@ -13,7 +13,6 @@ const props = withDefaults(defineProps<{
 	id: string;
 	class?: string;
 	draggable?: boolean;
-	imageClass?: string;
 	emitWhenInView?: boolean;
 
 	src?: string;
@@ -24,7 +23,6 @@ const props = withDefaults(defineProps<{
 }>(), {
 	class: undefined,
 	draggable: false,
-	imageClass: undefined,
 	emitWhenInView: false,
 
 	src: undefined,
@@ -85,28 +83,26 @@ watchEffect(() => {
 <template>
 	<div
 		ref="container"
-		:class="cn('relative', props.class)">
+		class="relative size-full">
 		<!-- Blurhash placeholder -->
 		<img
 			v-if="blurhashImgURL && showBlurhash"
 			loading="lazy"
-			class="left-0 top-0 -z-10"
-			:style="{
-				position: imageFullyLoaded ? 'absolute' : 'static',
-			}"
-			:class="props.imageClass"
+			:class="cn(
+				imageFullyLoaded ? 'absolute left-0 top-0' : 'static',
+				props.class
+			)"
 			:src="blurhashImgURL"
 			:draggable="props.draggable">
 
 		<!-- Actual image -->
 		<img
 			loading="lazy"
-			:class="cn('left-0 top-0', props.imageClass)"
-			:style="{
-				opacity: imageFullyLoaded ? 1 : 0,
-				transition: 'opacity 150ms ease',
-				position: imageFullyLoaded ? 'static' : 'absolute',
-			}"
+			:class="cn('transition-opacity',
+				!imageFullyLoaded ? 'absolute left-0 top-0 ' : 'static',
+				imageFullyLoaded ? 'opacity-100' : 'opacity-0',
+				props.class
+			)"
 			:src="realImgURL === null ? undefined : realImgURL"
 			:draggable="props.draggable"
 			@load="imageFullyLoaded = true"
