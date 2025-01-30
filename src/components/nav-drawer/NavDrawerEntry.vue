@@ -3,7 +3,7 @@ import { computed } from "vue";
 
 import { type NuxtLinkProps, useRoute } from "#app";
 import { NuxtLink } from "#components";
-import { useNavDrawerStore } from "~/composables/nav-drawer-store";
+import { useNavDrawerStore } from "~/composables/use-nav-drawer-store";
 
 const props = withDefaults(defineProps<{
 	name: string;

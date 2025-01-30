@@ -4,7 +4,7 @@ import Avatar from "~/components/nav-drawer/NavDrawerAvatar.vue";
 import Logo from "~/components/nav-drawer/NavDrawerLogo.vue";
 import QuickSearch from "~/components/nav-drawer/NavDrawerQuickSearch.vue";
 import ToggleIcon from "~/components/nav-drawer/NavDrawerToggleIcon.vue";
-import { useNavDrawerStore } from "~/composables/nav-drawer-store";
+import { useNavDrawerStore } from "~/composables/use-nav-drawer-store";
 
 const navDrawerStore = useNavDrawerStore();
 

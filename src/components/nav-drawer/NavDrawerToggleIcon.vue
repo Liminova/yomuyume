@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useNavDrawerStore } from "~/composables/nav-drawer-store";
+import { useNavDrawerStore } from "~/composables/use-nav-drawer-store";
 
 const navDrawerStore = useNavDrawerStore();
 </script>
