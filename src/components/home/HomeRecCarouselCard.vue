@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { NuxtLink } from "#components";
-import Image from "~/components/Image.vue";
+import Image from "~/components/image";
 import type { GetTitleResponseBody } from "~/composables/api/content";
 import { toCoverApiEndpoint } from "~/composables/api/file";
 

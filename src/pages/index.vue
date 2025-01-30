@@ -1,19 +1,16 @@
 <script setup lang="ts">
 import { register } from "swiper/element/bundle";
-import { ref } from "vue";
 
 import { definePageMeta } from "#imports";
-import CardRecommend from "~/components/home/CardRecommend.vue";
-import CarouselWrapper from "~/components/home/CarouselWrapper.vue";
+import CarouselWrapper from "~/components/home/HomeOldCarouselWrapper.vue";
+import HomeRec from "~/components/home/HomeRecCarousel.vue";
 import ItemCard from "~/components/ItemCard.vue";
-import { Carousel, CarouselContent, CarouselItem } from "~/components/ui/carousel";
 import { type GetTitleResponseBody, useSearchTitle } from "~/composables/api/content";
 
 definePageMeta({ layout: "nav-drawer" });
 
 register();
 
-const recommendsItems = ref<GetTitleResponseBody[]>([]);
 const recentlyUpdatedItems = ref<GetTitleResponseBody[]>([]);
 const newlyAddedItems = ref<GetTitleResponseBody[]>([]);
 const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
@@ -22,22 +19,10 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 
 <template>
 	<div class="mb-7 mt-3 flex w-full flex-col gap-7 px-6 lg:mt-0 lg:pl-0 lg:pr-3">
-		<Carousel
-			:opts="{
-				align: 'start',
-				loop: true,
-			}">
-			<CarouselContent>
-				<CarouselItem
-					v-for="(title) in recommendsItems"
-					:key="title.id">
-					<CardRecommend :title="title" />
-				</CarouselItem>
-			</CarouselContent>
-		</Carousel>
+		<HomeRec />
 
 		<div
-			class="w-fit origin-left text-3xl font-bold transition-transform hover:scale-[1.02]">
+			class="w-fit origin-left text-3xl font-bold transition-transform">
 			Recently updated
 		</div>
 		<CarouselWrapper>
@@ -51,7 +36,7 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		</CarouselWrapper>
 
 		<div
-			class="w-fit origin-left text-3xl font-bold transition-transform hover:scale-[1.02]">
+			class="w-fit origin-left text-3xl font-bold transition-transform">
 			Newly added
 		</div>
 		<CarouselWrapper>
@@ -65,7 +50,7 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		</CarouselWrapper>
 
 		<div
-			class="w-fit origin-left text-3xl font-bold transition-transform hover:scale-[1.02]">
+			class="w-fit origin-left text-3xl font-bold transition-transform">
 			Completed stories
 		</div>
 		<CarouselWrapper>
