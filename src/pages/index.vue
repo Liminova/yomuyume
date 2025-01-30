@@ -63,7 +63,7 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		</swiper-container>
 
 		<div
-			class="w-fit origin-left text-4xl font-bold transition-transform hover:scale-[1.02]">
+			class="w-fit origin-left text-3xl font-bold transition-transform hover:scale-[1.02]">
 			Recently updated
 		</div>
 		<CarouselWrapper>
@@ -77,7 +77,7 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		</CarouselWrapper>
 
 		<div
-			class="w-fit origin-left text-4xl font-bold transition-transform hover:scale-[1.02]">
+			class="w-fit origin-left text-3xl font-bold transition-transform hover:scale-[1.02]">
 			Newly added
 		</div>
 		<CarouselWrapper>
@@ -91,7 +91,7 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		</CarouselWrapper>
 
 		<div
-			class="w-fit origin-left text-4xl font-bold transition-transform hover:scale-[1.02]">
+			class="w-fit origin-left text-3xl font-bold transition-transform hover:scale-[1.02]">
 			Completed stories
 		</div>
 		<CarouselWrapper>
