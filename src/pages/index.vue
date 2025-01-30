@@ -45,22 +45,19 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 
 <template>
 	<div class="mb-7 mt-3 flex w-full flex-col gap-7 px-6 lg:mt-0 lg:pl-0 lg:pr-3">
-		<div class="text-5xl font-bold">
-			You might want to read
-		</div>
-		<swiper-container
-			class="w-full overflow-hidden rounded-3xl"
-			:style="{ height: `${store.recommendsContainerHeight}px` }">
-			<!-- :autoplay-delay="5000" -->
-			<swiper-slide
-				v-for="(title, index) in recommendsItems"
-				:key="title.id">
-				<CardRecommend
-					:is-first-title="index === 0"
-					:is-last-title="index === recommendsItems.length - 1"
-					:title="title" />
-			</swiper-slide>
-		</swiper-container>
+		<Carousel
+			:opts="{
+				align: 'start',
+				loop: true,
+			}">
+			<CarouselContent>
+				<CarouselItem
+					v-for="(title) in recommendsItems"
+					:key="title.id">
+					<CardRecommend :title="title" />
+				</CarouselItem>
+			</CarouselContent>
+		</Carousel>
 
 		<div
 			class="w-fit origin-left text-3xl font-bold transition-transform hover:scale-[1.02]">
