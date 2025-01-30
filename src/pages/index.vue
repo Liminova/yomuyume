@@ -17,27 +17,6 @@ const recentlyUpdatedItems = ref<GetTitleResponseBody[]>([]);
 const newlyAddedItems = ref<GetTitleResponseBody[]>([]);
 const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 
-// void Promise.all([
-// 	indexApi.filter({ keywords: [""], limit: 10 }),
-// 	indexApi.filter({
-// 		keywords: [""],
-// 		limit: 10,
-// 		sort_by: "update date",
-// 		sort_order: "descending",
-// 	}),
-// 	indexApi.filter({
-// 		keywords: [""],
-// 		limit: 10,
-// 		sort_by: "add date",
-// 		sort_order: "descending",
-// 	}),
-// 	indexApi.filter({ keywords: [""], limit: 10, is_finished: true }),
-// ]).then(([recommends, recentlyUpdated, newlyAdded, completedStories]) => {
-// 	recommendsItems.value = recommends.data ?? [];
-// 	recentlyUpdatedItems.value = recentlyUpdated.data ?? [];
-// 	newlyAddedItems.value = newlyAdded.data ?? [];
-// 	completedStoriesItems.value = completedStories.data ?? [];
-// });
 </script>
 
 <template>
