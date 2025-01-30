@@ -6,6 +6,7 @@ import { definePageMeta } from "#imports";
 import CardRecommend from "~/components/home/CardRecommend.vue";
 import CarouselWrapper from "~/components/home/CarouselWrapper.vue";
 import ItemCard from "~/components/ItemCard.vue";
+import { Carousel, CarouselContent, CarouselItem } from "~/components/ui/carousel";
 import { type GetTitleResponseBody, useSearchTitle } from "~/composables/api/content";
 
 definePageMeta({ layout: "nav-drawer" });
