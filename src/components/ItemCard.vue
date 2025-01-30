@@ -27,8 +27,7 @@ const progress = computed(() => {
 				:width="title.cover_width"
 				:height="title.cover_height"
 				:is-jxl="title.cover_jxl"
-				class="aspect-[3/4]"
-				image-class="rounded-xl h-full object-cover" />
+				class="aspect-[3/4] h-full rounded-xl object-cover" />
 			<div
 				class="absolute left-0 top-0 size-full bg-[rgba(255_255_255/0.08)] opacity-0 transition-opacity group-[.img-cover]:hover:opacity-100" />
 			<!-- <md-linear-progress
