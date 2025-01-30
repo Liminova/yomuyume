@@ -32,6 +32,8 @@
 		"@vueuse/core": "^12.5.0",
 		"clsx": "^2.1.1",
 		"debounce": "^2.2.0",
+		"embla-carousel-autoplay": "^8.5.2",
+		"embla-carousel-vue": "^8.5.2",
 		"idb": "^8.0.1",
 		"lucide-vue-next": "^0.473.0",
 		"p-debounce": "4.0.0",
