@@ -4,7 +4,7 @@ import { Book, Bookmark, Filter, Heart, House, Library, Settings } from "lucide-
 import Entry from "~/components/nav-drawer/NavDrawerEntry.vue";
 import TopBar from "~/components/nav-drawer/NavDrawerTopBar.vue";
 import Toggle from "~/components/Toggle.vue";
-import { useNavDrawerStore } from "~/composables/nav-drawer-store";
+import { useNavDrawerStore } from "~/composables/use-nav-drawer-store";
 
 const props = defineProps<{ class?: string }>();
 const navDrawerStore = useNavDrawerStore();
