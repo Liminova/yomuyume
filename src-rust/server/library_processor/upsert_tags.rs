@@ -38,24 +38,27 @@ pub async fn upsert_tags<'e>(
         .collect::<Result<Vec<_>, _>>()?;
 
     sqlx::query!(
-        "WITH tag_upsert AS (
+        "WITH tags_upsert AS (
             INSERT INTO tags (id, name)
-            SELECT id,
-                name
+            SELECT t.id,
+                t.name
             FROM UNNEST($1::bigint [], $2::text []) AS t(id, name) ON CONFLICT (name) DO
             UPDATE
             SET name = EXCLUDED.name
             RETURNING id
-        ) -- clean up old tags
-        ,
-        cleanup AS (
+        ),
+        _ AS (
             DELETE FROM titles_tags
             WHERE title_id = $3
-        ) -- insert new relationships
+                AND tag_id NOT IN (
+                    SELECT id
+                    FROM tags_upsert
+                )
+        )
         INSERT INTO titles_tags (title_id, tag_id)
         SELECT $3,
-            id
-        FROM tag_upsert ON CONFLICT DO NOTHING",
+            tags_upsert.id
+        FROM tags_upsert ON CONFLICT DO NOTHING",
         &tag_ids,
         tags,
         title_id,
