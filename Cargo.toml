@@ -1,5 +1,5 @@
 [workspace]
-members = ["src-server/server", "src-server/blurhash-webp-wasm", "src-server/jxl-webp-wasm"]
+members = ["src-rust/server", "src-rust/blurhash-webp-wasm", "src-rust/jxl-webp-wasm"]
 resolver = "2"
 
 [profile.dev.package.sqlx]
