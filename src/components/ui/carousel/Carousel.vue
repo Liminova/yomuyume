@@ -1,23 +1,29 @@
 <script setup lang="ts">
 import { cn } from "~/lib/utils";
 
-import type { CarouselEmits, CarouselProps, WithClassAsProps } from "./interface";
-import { useProvideCarousel } from "./useCarousel";
+import type { CarouselProps, WithClassAsProps } from "./interface";
+import { createCarouselInject } from "./use-carousel";
 
 const props = withDefaults(defineProps<CarouselProps & WithClassAsProps>(), {
 	orientation: "horizontal",
 });
 
-const emits = defineEmits<CarouselEmits>();
-
-const { canScrollNext, canScrollPrev, carouselApi, carouselRef, orientation, scrollNext, scrollPrev } = useProvideCarousel(props, emits);
-
-defineExpose({
-	canScrollNext,
-	canScrollPrev,
+const {
 	carouselApi,
 	carouselRef,
 	orientation,
+	canScrollNext,
+	canScrollPrev,
+	scrollNext,
+	scrollPrev,
+} = createCarouselInject(props);
+
+defineExpose({
+	carouselApi,
+	carouselRef,
+	orientation,
+	canScrollNext,
+	canScrollPrev,
 	scrollNext,
 	scrollPrev,
 });
@@ -29,10 +35,8 @@ function onKeyDown(event: KeyboardEvent): void {
 	if (event.key === prevKey) {
 		event.preventDefault();
 		scrollPrev();
-
 		return;
 	}
-
 	if (event.key === nextKey) {
 		event.preventDefault();
 		scrollNext();

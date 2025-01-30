@@ -17,9 +17,6 @@ export interface CarouselProps {
 	orientation?: "horizontal" | "vertical";
 }
 
-// eslint-disable-next-line no-unused-vars
-export type CarouselEmits = (e: "init-api", payload: UnwrapRefCarouselApi)=> void;
-
 export interface WithClassAsProps {
 	class?: HTMLAttributes["class"];
 }
