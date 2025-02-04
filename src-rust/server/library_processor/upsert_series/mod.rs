@@ -26,7 +26,7 @@ use crate::{
     types::{
         absolute_path::{AbsolutePath, ToAbsolute},
         comic_info::{ComicInfo, ComicPageType},
-        CategoryID, TitleID,
+        id::{CategoryID, TitleID},
     },
     utils::{config::COMICINFO, macros::bail_if_empty},
 };
