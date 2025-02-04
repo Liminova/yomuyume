@@ -9,22 +9,23 @@ use axum::{
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
-use crate::utils::{app_error::AppError, app_state::AppState, archive_file::ArchiveFile};
+use crate::{
+    routes::errors::InternalError,
+    utils::{app_state::AppState, archive_file::ArchiveFile},
+};
 
-/// get cover
-///
-/// get the content of a cover file for a title
+/// Get cover file
 #[utoipa::path(get, path = "/api/file/cover/{title_id}", responses(
-    (status = 200, description = "fetch cover successful", body = Vec<u8>),
-    (status = 204, description = "title has no cover"),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 404, description = "title not found"),
-    (status = 500, description = "internal server error", body = String),
+    (status = 200, description = "Fetch cover successful", body = Vec<u8>),
+    (status = 204, description = "Title has no cover"),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 404, description = "Title not found"),
+    (status = 500, description = "Internal server error", body = String),
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_cover(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,
-) -> Result<Response, AppError> {
+) -> Result<Response, InternalError> {
     let Some(title) = sqlx::query!(
         "SELECT path,
             cover_path,
@@ -38,14 +39,14 @@ pub async fn get_cover(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?
     else {
-        return Ok((StatusCode::NOT_FOUND).into_response());
+        return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
     let Some(cover_path) = title.cover_path else {
-        return Ok((StatusCode::NO_CONTENT).into_response());
+        return Ok(StatusCode::NO_CONTENT.into_response());
     };
 
     let headers = [(
@@ -75,7 +76,7 @@ pub async fn get_cover(
         .await
         .map_err(|e| {
             tracing::error!("1SHOT DIR {title_id}: {e:?}");
-            AppError::IO(e)
+            InternalError::IO(e)
         })
         .map(ReaderStream::new)
         .map(Body::from_stream)?,
@@ -88,7 +89,7 @@ pub async fn get_cover(
             .stream_file_from_archive(cover_path, None)
             .map_err(|e| {
                 tracing::error!("1SHOT ARCHIVE {title_id}: {e:?}");
-                AppError::Archive(e)
+                InternalError::Archive(e)
             })
             .map(Body::from_stream)?,
 
@@ -109,7 +110,7 @@ pub async fn get_cover(
                         .await
                         .map_err(|e| {
                             tracing::error!("SERIES CHAPTER ARCHIVE {title_id}: {e:?}");
-                            AppError::IO(e)
+                            InternalError::IO(e)
                         })
                         .map(ReaderStream::new)
                         .map(Body::from_stream)?
@@ -118,7 +119,7 @@ pub async fn get_cover(
                         .stream_file_from_archive(page_part, None)
                         .map_err(|e| {
                             tracing::error!("SERIES CHAPTER ARCHIVE {title_id}: {e:?}");
-                            AppError::Archive(e)
+                            InternalError::Archive(e)
                         })
                         .map(Body::from_stream)?
                 }
@@ -134,7 +135,7 @@ pub async fn get_cover(
             .await
             .map_err(|e| {
                 tracing::error!("SERIES ROOT {title_id}: {e:?}");
-                AppError::IO(e)
+                InternalError::IO(e)
             })
             .map(ReaderStream::new)
             .map(Body::from_stream)?,

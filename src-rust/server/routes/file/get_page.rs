@@ -9,80 +9,111 @@ use axum::{
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
-use crate::utils::{app_error::AppError, app_state::AppState, archive_file::ArchiveFile};
+use crate::{
+    routes::errors::InternalError,
+    utils::{app_state::AppState, archive_file::ArchiveFile},
+};
 
-/// get page
-///
-/// get the content of a page file for a title
-#[utoipa::path(get, path = "/api/file/page/{page_id}", responses(
-    (status = 200, description = "fetch page successful", body = Vec<u8>),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 404, description = "page not found", body = String),
-    (status = 500, description = "internal server error", body = String),
+/// Get page file
+#[utoipa::path(get, path = "/api/file/page/{is_series}/{page_id}", responses(
+    (status = 200, description = "Fetch page successful", body = Vec<u8>),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 404, description = "Page not found", body = String),
+    (status = 500, description = "Internal server error", body = String),
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_page(
     State(app_state): State<Arc<AppState>>,
-    Path(page_id): Path<i64>,
-) -> Result<Response, AppError> {
-    let Some(record) = sqlx::query!(
-        r#"SELECT
-            p.path AS page_path,
-            t.path AS title_path,
-            p.filesize AS page_filesize,
-            t.is_dir AS "title_is_dir!"
-        FROM oneshots_pages p JOIN titles t
-            ON p.title_id = t.id
-        WHERE p.id = $1"#,
-        page_id
-    )
-    .fetch_optional(&app_state.pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("{e:?}");
-        AppError::DB(e)
-    })?
-    else {
-        return Ok((StatusCode::NOT_FOUND).into_response());
+    Path((is_series, page_id)): Path<(bool, i64)>,
+) -> Result<Response, InternalError> {
+    let Some((parent_path, page_path, page_filesize, title_is_dir)) = (if is_series {
+        sqlx::query!(
+            r#"SELECT p.path AS page_path,
+                c.path AS chapter_path,
+                t.path AS title_path,
+                p.filesize AS page_filesize,
+                t.is_dir AS "title_is_dir!"
+            FROM chapters_pages p
+                JOIN chapters c ON p.chapter_id = c.id
+                JOIN titles t ON c.title_id = t.id
+            WHERE p.id = $1"#,
+            page_id
+        )
+        .fetch_optional(&app_state.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("{e:?}");
+            InternalError::DB(e)
+        })?
+        .map(|r| {
+            (
+                app_state
+                    .config
+                    .library_path
+                    .as_ref()
+                    .join(r.title_path)
+                    .join(r.chapter_path),
+                r.page_path,
+                r.page_filesize,
+                r.title_is_dir,
+            )
+        })
+    } else {
+        sqlx::query!(
+            r#"SELECT p.path AS page_path,
+                t.path AS title_path,
+                p.filesize AS page_filesize,
+                t.is_dir AS "title_is_dir!"
+            FROM oneshots_pages p
+                JOIN titles t ON p.title_id = t.id
+            WHERE p.id = $1"#,
+            page_id
+        )
+        .fetch_optional(&app_state.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("{e:?}");
+            InternalError::DB(e)
+        })?
+        .map(|r| {
+            (
+                app_state.config.library_path.as_ref().join(r.title_path),
+                r.page_path,
+                r.page_filesize,
+                r.title_is_dir,
+            )
+        })
+    }) else {
+        return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    let headers = [(
+    let header = [(
         header::CONTENT_TYPE,
-        match record.page_path.split('.').last().unwrap_or_default() {
+        match page_path.split('.').last().unwrap_or_default() {
             "" => "image".to_string(),
             "jpg" => "image/jpeg".to_string(),
             v => format!("image/{v}"),
         },
     )];
 
-    let content = if record.title_is_dir {
-        let file_path = app_state
-            .config
-            .library_path
-            .as_ref()
-            .join(record.title_path)
-            .join(record.page_path);
+    let body = if title_is_dir {
+        let file_path = parent_path.join(page_path);
         let file = File::open(file_path).await.map_err(|e| {
             tracing::error!("{e:?}");
-            AppError::IO(e)
+            InternalError::IO(e)
         })?;
         let stream = ReaderStream::new(file);
 
         Body::from_stream(stream)
     } else {
-        let archive_file = app_state
-            .config
-            .library_path
-            .as_ref()
-            .join(record.title_path);
-        let stream = archive_file
-            .stream_file_from_archive(record.page_path, record.page_filesize)
+        let stream = parent_path
+            .stream_file_from_archive(page_path, page_filesize)
             .map_err(|e| {
                 tracing::error!("{e:?}");
-                AppError::Archive(e)
+                InternalError::Archive(e)
             })?;
 
         Body::from_stream(stream)
     };
 
-    Ok((StatusCode::OK, headers, content).into_response())
+    Ok((StatusCode::OK, header, body).into_response())
 }
