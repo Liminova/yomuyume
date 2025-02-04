@@ -4,9 +4,9 @@ import { computed } from "vue";
 import { NuxtLink } from "#components";
 import Image from "~/components/image";
 import { GET_COVER_PATH } from "~/composables/api/constants";
-import type { GetTitleResponseBody } from "~/composables/api/content";
+import type { InnerSearchResponseTitle } from "~/composables/api/content";
 
-const props = defineProps<{ title: GetTitleResponseBody }>();
+const props = defineProps<{ title: InnerSearchResponseTitle }>();
 
 const progress = computed(() => {
 	return props.title.page_read;
