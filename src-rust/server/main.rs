@@ -62,6 +62,8 @@ async fn main() -> Result<()> {
         .with_ansi(true)
         .with_max_level(tracing::Level::DEBUG)
         .with_env_filter("sqlx=info,axum=info,yomuyume=debug")
+        .with_file(true)
+        .with_line_number(true)
         .init();
 
     let app_state = AppState::new().await;
