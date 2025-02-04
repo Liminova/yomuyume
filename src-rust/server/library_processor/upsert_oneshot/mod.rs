@@ -23,7 +23,7 @@ use crate::{
     types::{
         absolute_path::{AbsolutePath, ToAbsolute},
         comic_info::ComicInfo,
-        CategoryID, TitleID,
+        id::{CategoryID, TitleID},
     },
     utils::archive_file::ItemInArchive,
 };
