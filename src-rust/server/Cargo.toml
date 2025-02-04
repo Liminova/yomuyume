@@ -50,7 +50,6 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "ansi"] }
 utoipa = { version = "5.3.1", features = ["axum_extras", "chrono"] }
 utoipa-redoc = { version = "6.0.0", features = ["axum"] }
-utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
 
 [dev-dependencies]
 axum-test = "17.1.0"
