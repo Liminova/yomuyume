@@ -1,6 +1,9 @@
-@import 'tailwindcss';
 @import url('./permanent-marker.css');
 @import url('./roboto.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 
 @layer utilities {
