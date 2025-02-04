@@ -10,7 +10,13 @@ use axum_extra::extract::cookie::{Cookie, SameSite};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{app_state::AppState, routes::check_pass, utils::app_error::AppError};
+use crate::{
+    app_state::AppState,
+    routes::{
+        check_pass,
+        errors::{InternalError, RequestError},
+    },
+};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct LoginRequestBody {
