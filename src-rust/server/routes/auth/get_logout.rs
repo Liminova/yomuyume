@@ -55,10 +55,28 @@ pub async fn get_logout(
 
     app_state.session_cache.remove(&session_id);
 
-    let cookie = Cookie::build(("token", ""))
-        .path("/")
-        .same_site(SameSite::Lax)
-        .http_only(true);
-
-    Ok((StatusCode::OK, [(header::SET_COOKIE, cookie.to_string())]).into_response())
+    Ok((
+        StatusCode::OK,
+        AppendHeaders([
+            (
+                header::SET_COOKIE,
+                Cookie::build(("session-id", ""))
+                    .path("/")
+                    .secure(true)
+                    .http_only(true)
+                    .same_site(SameSite::Strict)
+                    .to_string(),
+            ),
+            (
+                header::SET_COOKIE,
+                Cookie::build(("session-secret", ""))
+                    .path("/")
+                    .secure(true)
+                    .http_only(true)
+                    .same_site(SameSite::Strict)
+                    .to_string(),
+            ),
+        ]),
+    )
+        .into_response())
 }
