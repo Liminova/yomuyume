@@ -36,9 +36,6 @@ impl Default for IDGenerator {
                         if oneshot_sender.send(sfgen.generate_id() as i64).is_err() {
                             tracing::error!("can't send snowflake id to oneshot channel");
                         }
-                    } else {
-                        tracing::error!("snowflake generator channel closed");
-                        continue;
                     };
                 }
             });
