@@ -31,20 +31,25 @@ use axum::{
     routing::{get, post, put},
     Router,
 };
+use routes::user::post_sensitive;
 use tokio::{net::TcpListener, time::sleep};
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
-use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     routes::{
-        auth, delete_bookmark, delete_favorite, get_categories, get_cover, get_delete_account,
-        get_logout, get_page, get_reset_password, get_scanning_progress, get_status, get_tags,
-        get_title, get_validate_email, get_whoami, post_delete_account, post_login, post_modify,
-        post_register, post_reset_password, post_search, post_status, post_validate_email,
-        put_bookmark, put_favorite, put_progress, ApiDoc,
+        auth::{get_logout, post_login, post_register},
+        content::{get_categories, get_chapter, get_oneshot, get_series, get_tags, post_search},
+        file::{get_cover, get_page},
+        middlewares::auth::auth,
+        user::{
+            delete_bookmark, delete_favorite, get_whoami, post_modify, put_bookmark, put_favorite,
+            put_progress,
+        },
+        utils::{get_scanning_progress, get_status, post_status},
+        ApiDoc,
     },
     utils::app_state,
 };
