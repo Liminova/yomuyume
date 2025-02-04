@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
-pub struct LoginRequestBody {
+pub struct LoginRequest {
     /// username or email
     pub login: String,
     pub password: String,
