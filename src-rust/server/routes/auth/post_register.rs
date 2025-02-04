@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
-pub struct RegisterRequestBody {
+pub struct RegisterRequest {
     pub username: String,
     pub email: String,
     pub password: String,
