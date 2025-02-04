@@ -1,4 +1,3 @@
-pub mod app_error;
 pub mod app_state;
 pub mod archive_file;
 pub mod config;
