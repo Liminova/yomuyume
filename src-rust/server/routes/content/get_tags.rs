@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::utils::{app_error::AppError, app_state::AppState, macros::bail_if_empty};
+use crate::{
+    routes::errors::InternalError,
+    utils::{app_state::AppState, macros::bail_if_empty},
+};
 
 use axum::{
     extract::State,
@@ -12,28 +15,30 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-pub struct TagResponseBody {
+pub struct InnerTagResponse {
     pub id: String,
     pub name: String,
 }
 
-/// get all tags
+type TagsResponse = Vec<InnerTagResponse>;
+
+/// Get all tags
 #[utoipa::path(get, path = "/api/content/tags", responses(
-    (status = 200, description = "tags map", body = Vec<TagResponseBody>),
-    (status = 204, description = "no tags found"),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 500, description = "internal server error", body = String),
+    (status = 200, description = "Get tags success", body = TagsResponse),
+    (status = 204, description = "No tag found"),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String),
 ), security(("session-id" = [], "session-secret" = [])))]
-pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response, AppError> {
+pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response, InternalError> {
     let data = sqlx::query!("SELECT id, name FROM tags")
         .fetch_all(&app_state.pool)
         .await
         .map_err(|e| {
             tracing::error!("{e:?}");
-            AppError::DB(e)
+            InternalError::DB(e)
         })?
         .into_iter()
-        .map(|record| TagResponseBody {
+        .map(|record| InnerTagResponse {
             id: record.id.to_string(),
             name: record.name,
         })
