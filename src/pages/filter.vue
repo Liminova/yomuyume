@@ -14,8 +14,7 @@ import {
 import ItemCard from "~/components/ItemCard.vue";
 import Toggle from "~/components/Toggle.vue";
 import Input from "~/components/ui/Input.vue";
-import { type FilterTitleResponseBody, useGetCategories } from "~/composables/api/content";
-import { toCoverApiEndpoint } from "~/composables/api/file";
+import { type InnerSearchResponseTitle, useGetCategories } from "~/composables/api/content";
 import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
 
 definePageMeta({ layout: "nav-drawer" });
@@ -47,8 +46,8 @@ const spaceBetween = ref(16);
 
 // Results =====================================================================
 
-const filteredTitles = ref<FilterTitleResponseBody>([]); /** found titles */
-const filteredTitlesToDisplay = ref<FilterTitleResponseBody>([]);
+const filteredTitles = ref<InnerSearchResponseTitle[]>([]); /** found titles */
+const filteredTitlesToDisplay = ref<InnerSearchResponseTitle[]>([]);
 
 function renderMoreResult(): void {
 	const howFarFromBottom = document.body.getBoundingClientRect().bottom - window.innerHeight;
