@@ -40,7 +40,7 @@ impl Modify for SecurityAddon {
     ),
     tags(
         (
-            name = "Auth",
+            name = "auth",
             description = "Login, register, logout"
         ),
         (
@@ -48,15 +48,15 @@ impl Modify for SecurityAddon {
             description = "Categories, titles, chapters,..."
         ),
         (
-            name = "User",
+            name = "user",
             description = "Change info, password, verify email..."
         ),
         (
-            name = "Utils",
+            name = "utils",
             description = "Miscellaneous stuffs"
         ),
         (
-            name = "File",
+            name = "file",
             description = "File fetching"
         )
     ),

@@ -44,7 +44,7 @@ pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
         .into_response()
 }
 
-/// post server status
+/// Post server status
 #[utoipa::path(post, path = "/api/utils/status", responses(
     (status = 200, description = "Status check success", body = StatusResponse)
 ))]
