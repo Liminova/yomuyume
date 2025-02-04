@@ -3,8 +3,8 @@ use tracing::warn;
 
 use crate::{
     library_processor::upsert_series::{ChapterInfo, ChapterType, PageInArchive},
+    structs::{absolute_path::AbsolutePath, comic_info::ComicInfo},
     traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
-    types::{absolute_path::AbsolutePath, comic_info::ComicInfo},
     utils::{
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
         config::COMICINFO,

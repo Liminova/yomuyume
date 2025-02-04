@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{routes::errors::InternalError, types::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
 
 use axum::{
     extract::State,

@@ -5,12 +5,12 @@ use tracing::warn;
 
 use crate::{
     app_state::AppState,
-    traits::{do_something_and_ok::DoSomethingAndOk, to_blurhash::ToBlurhashFromFile},
-    types::{
+    structs::{
         absolute_path::{AbsolutePath, AbsolutePathErr},
         category_info::CategoryInfo,
         id::CategoryID,
     },
+    traits::{do_something_and_ok::DoSomethingAndOk, to_blurhash::ToBlurhashFromFile},
     utils::{config::CATEGORYINFO, id_generator::GenerateIDErr},
 };
 

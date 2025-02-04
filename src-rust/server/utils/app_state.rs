@@ -4,7 +4,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::{
-    types::{
+    structs::{
         id::{SessionID, UserID},
         user_cache::UserCache,
     },

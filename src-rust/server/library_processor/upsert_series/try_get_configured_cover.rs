@@ -2,13 +2,13 @@ use tracing::warn;
 
 use crate::{
     library_processor::upsert_series::{ChapterInfo, ChapterType, PageInArchive, PageInDirectory},
+    structs::{
+        absolute_path::{AbsolutePath, ToAbsolute},
+        comic_info::ComicPageInfo,
+    },
     traits::{
         do_something_and_ok::DoSomethingAndOk,
         to_blurhash::{ToBlurhashFromArchive, ToBlurhashFromFile},
-    },
-    types::{
-        absolute_path::{AbsolutePath, ToAbsolute},
-        comic_info::ComicPageInfo,
     },
 };
 

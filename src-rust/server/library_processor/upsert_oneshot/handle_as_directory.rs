@@ -6,13 +6,13 @@ use tracing::warn;
 
 use crate::{
     library_processor::{upsert_oneshot::TitleHandlerOk, PageInTitle, UpsertTitleErr},
+    structs::{
+        absolute_path::{AbsolutePath, ToAbsolute},
+        comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
+    },
     traits::{
         do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils,
         to_blurhash::ToBlurhashFromFile, try_find_map::IteratorExt,
-    },
-    types::{
-        absolute_path::{AbsolutePath, ToAbsolute},
-        comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
     },
     utils::{config::COMICINFO, macros::bail_if_empty},
 };

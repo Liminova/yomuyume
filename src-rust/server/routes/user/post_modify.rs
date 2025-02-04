@@ -10,7 +10,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{routes::errors::InternalError, types::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct ModifyRequest {

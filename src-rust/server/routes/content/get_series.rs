@@ -11,7 +11,7 @@ use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
 use super::structs::BaseTitleResponse;
-use crate::{routes::errors::InternalError, types::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
 
 #[skip_serializing_none]
 #[derive(Debug, ToSchema, Serialize, Deserialize)]

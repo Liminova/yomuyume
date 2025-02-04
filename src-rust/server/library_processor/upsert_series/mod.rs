@@ -22,12 +22,12 @@ use crate::{
         upsert_tags::upsert_tags,
         UpsertTitleErr,
     },
-    traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
-    types::{
+    structs::{
         absolute_path::{AbsolutePath, ToAbsolute},
         comic_info::{ComicInfo, ComicPageType},
         id::{CategoryID, TitleID},
     },
+    traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
     utils::{config::COMICINFO, macros::bail_if_empty},
 };
 

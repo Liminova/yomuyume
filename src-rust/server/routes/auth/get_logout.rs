@@ -12,7 +12,7 @@ use axum_extra::extract::{
 
 use crate::{
     routes::errors::{InternalError, RequestError},
-    types::id::SessionID,
+    structs::id::SessionID,
     utils::app_state::AppState,
 };
 

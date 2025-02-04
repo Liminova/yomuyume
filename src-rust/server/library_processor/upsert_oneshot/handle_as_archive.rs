@@ -5,13 +5,13 @@ use tracing::warn;
 
 use crate::{
     library_processor::{upsert_oneshot::TitleHandlerOk, UpsertTitleErr},
+    structs::{
+        absolute_path::AbsolutePath,
+        comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
+    },
     traits::{
         do_something_and_ok::DoSomethingAndOk, to_blurhash::ToBlurhashFromArchive,
         try_find_map::IteratorExt,
-    },
-    types::{
-        absolute_path::AbsolutePath,
-        comic_info::{ComicInfo, ComicPageInfo, ComicPageType},
     },
     utils::{
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},

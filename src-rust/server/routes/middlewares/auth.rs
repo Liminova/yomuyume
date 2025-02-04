@@ -12,8 +12,8 @@ use chrono::{Duration, Utc};
 
 use crate::{
     routes::errors::{InternalError, RequestError},
+    structs::user_cache::UserCache,
     traits::chrono_utils::ChronoUtils,
-    types::user_cache::UserCache,
     utils::{
         app_state::AppState,
         config::{SESSION_TOKEN_EXPIRED_AFTER, SESSION_TOKEN_UPDATE_LAST_USED_AT_INTERVAL},

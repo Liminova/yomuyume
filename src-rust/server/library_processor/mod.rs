@@ -26,11 +26,11 @@ use crate::{
         upsert_series::upsert_series,
         upsert_tags::UpsertTagsErr,
     },
-    traits::do_something_and_ok::DoSomethingAndOk,
-    types::{
+    structs::{
         absolute_path::{AbsolutePath, AbsolutePathErr},
         id::{CategoryID, TitleID},
     },
+    traits::do_something_and_ok::DoSomethingAndOk,
     utils::{
         app_state::AppState,
         archive_file::{ArchiveFileError, ItemInArchive},

@@ -4,11 +4,11 @@ use tracing::warn;
 
 use crate::{
     library_processor::upsert_series::{ChapterInfo, ChapterType, PageInDirectory},
-    traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
-    types::{
+    structs::{
         absolute_path::{AbsolutePath, ToAbsolute},
         comic_info::ComicInfo,
     },
+    traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
     utils::config::COMICINFO,
 };
 

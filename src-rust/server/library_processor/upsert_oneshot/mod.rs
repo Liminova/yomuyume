@@ -20,7 +20,7 @@ use crate::{
         upsert_tags::upsert_tags,
         PageInTitle, UpsertTitleErr,
     },
-    types::{
+    structs::{
         absolute_path::{AbsolutePath, ToAbsolute},
         comic_info::ComicInfo,
         id::{CategoryID, TitleID},

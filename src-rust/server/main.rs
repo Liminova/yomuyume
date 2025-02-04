@@ -18,8 +18,8 @@
 
 mod library_processor;
 mod routes;
+mod structs;
 mod traits;
-mod types;
 mod utils;
 
 use std::{net::SocketAddr, time::Duration};

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::types::absolute_path::AbsolutePath;
+use crate::structs::absolute_path::AbsolutePath;
 
 pub const SUPPORTED_ARCHIVE_FORMATS: &[&str] = &["zip", "cbz", "rar", "cbr", "7z"];
 pub const SUPPORTED_IMAGE_FORMATS: &[&str] = &[
