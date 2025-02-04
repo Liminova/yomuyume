@@ -9,7 +9,7 @@ use crate::{
         comic_info::ComicInfo,
     },
     traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
-    utils::config::COMICINFO,
+    utils::constants::COMICINFO,
 };
 
 use super::bail_if_empty;

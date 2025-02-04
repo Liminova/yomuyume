@@ -12,7 +12,7 @@ use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::option_blurhash_deserializer;
-use crate::utils::{config::COMICINFO_SCHEMA, macros::bail_if_empty};
+use crate::utils::{constants::COMICINFO_SCHEMA, macros::bail_if_empty};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ComicInfo {

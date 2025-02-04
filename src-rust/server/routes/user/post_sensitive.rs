@@ -21,7 +21,7 @@ use crate::{
     traits::chrono_utils::ChronoUtils,
     utils::{
         app_state::AppState,
-        config::{TEMP_CODE_EXPIRED_AFTER, TEMP_CODE_REQUEST_RATE_LIMIT},
+        constants::{TEMP_CODE_EXPIRED_AFTER, TEMP_CODE_REQUEST_RATE_LIMIT},
         macros::bail_if_empty,
     },
 };

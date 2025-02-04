@@ -11,7 +11,7 @@ use crate::{
         id::CategoryID,
     },
     traits::{do_something_and_ok::DoSomethingAndOk, to_blurhash::ToBlurhashFromFile},
-    utils::{config::CATEGORYINFO, id_generator::GenerateIDErr},
+    utils::{constants::CATEGORYINFO, id_generator::GenerateIDErr},
 };
 
 #[derive(Debug, thiserror::Error)]

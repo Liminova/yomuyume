@@ -15,7 +15,7 @@ use crate::{
     },
     utils::{
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
-        config::COMICINFO,
+        constants::COMICINFO,
         macros::bail_if_empty,
     },
 };

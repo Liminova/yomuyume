@@ -1,4 +1,4 @@
-use crate::utils::config::SUPPORTED_IMAGE_FORMATS;
+use crate::utils::constants::SUPPORTED_IMAGE_FORMATS;
 
 pub trait StringUtils {
     fn has_image_ext(&self) -> bool;

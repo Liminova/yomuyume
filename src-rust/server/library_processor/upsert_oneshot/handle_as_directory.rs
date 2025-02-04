@@ -14,7 +14,7 @@ use crate::{
         do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils,
         to_blurhash::ToBlurhashFromFile, try_find_map::IteratorExt,
     },
-    utils::{config::COMICINFO, macros::bail_if_empty},
+    utils::{constants::COMICINFO, macros::bail_if_empty},
 };
 
 #[derive(Debug, Clone)]

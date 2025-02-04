@@ -16,7 +16,7 @@ use crate::{
     traits::chrono_utils::ChronoUtils,
     utils::{
         app_state::AppState,
-        config::{SESSION_TOKEN_EXPIRED_AFTER, SESSION_TOKEN_UPDATE_LAST_USED_AT_INTERVAL},
+        constants::{SESSION_TOKEN_EXPIRED_AFTER, SESSION_TOKEN_UPDATE_LAST_USED_AT_INTERVAL},
     },
 };
 

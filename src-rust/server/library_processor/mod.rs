@@ -34,7 +34,7 @@ use crate::{
     utils::{
         app_state::AppState,
         archive_file::{ArchiveFileError, ItemInArchive},
-        config::COMICINFO,
+        constants::COMICINFO,
         id_generator::GenerateIDErr,
     },
 };

@@ -7,7 +7,7 @@ use crate::{
     traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
     utils::{
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
-        config::COMICINFO,
+        constants::COMICINFO,
         macros::bail_if_empty,
     },
 };

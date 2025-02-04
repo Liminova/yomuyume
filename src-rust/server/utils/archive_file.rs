@@ -21,7 +21,7 @@ use tracing::warn;
 
 use crate::{
     traits::{do_something_and_ok::DoSomethingAndOk, string_utils::StringUtils},
-    utils::config::SUPPORTED_ARCHIVE_FORMATS,
+    utils::constants::SUPPORTED_ARCHIVE_FORMATS,
 };
 
 const SEVEN_ZIP_BIN: &[u8] = include_bytes!("../../../.devcontainer/7zz");
