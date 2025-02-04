@@ -1,10 +1,13 @@
 use dashmap::DashMap;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 
 use crate::{
-    types::{user_cache::UserCache, SessionID, UserID},
+    types::{
+        id::{SessionID, UserID},
+        user_cache::UserCache,
+    },
     utils::{config::Config, id_generator::IDGenerator, live_config::LiveConfig},
 };
 
@@ -12,9 +15,9 @@ use crate::{
 pub struct AppState {
     pub pool: sqlx::PgPool,
     pub config: Config,
-    pub live_config: RwLock<LiveConfig>,
-    pub scanning_complete: Mutex<bool>,
-    pub scanning_progress: Mutex<f64>,
+    pub live_config: LiveConfig,
+    pub scanning_complete: RwLock<bool>,
+    pub scanning_progress: RwLock<f64>,
     pub id_generator: IDGenerator,
     pub user_cache: DashMap<UserID, UserCache>,
     pub session_cache: DashMap<SessionID, UserID>,
@@ -30,16 +33,16 @@ impl AppState {
             .await
             .expect("can't connect to database");
 
-        let live_config = LiveConfig::from_db(&pool)
+        let live_config = LiveConfig::load(&pool)
             .await
             .expect("can't initialize live config");
 
         Arc::new(Self {
             pool,
             config,
-            live_config: RwLock::new(live_config),
-            scanning_complete: Mutex::new(false),
-            scanning_progress: Mutex::new(0.0),
+            live_config,
+            scanning_complete: RwLock::new(false),
+            scanning_progress: RwLock::new(0.0),
             id_generator: IDGenerator::default(),
             user_cache: DashMap::new(),
             session_cache: DashMap::new(),
