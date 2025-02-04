@@ -13,13 +13,13 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize, IntoParams)]
-pub struct StatusRequestBody {
+pub struct StatusRequest {
     /// a test string to test your request body.
     pub echo: Option<String>,
 }
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-pub struct StatusResponseBody {
+pub struct StatusResponse {
     /// Current local server time.
     pub server_time: String,
     /// Current yomuyume version.
@@ -28,14 +28,14 @@ pub struct StatusResponseBody {
     pub echo: Option<String>,
 }
 
-/// get server status
+/// Get server status
 #[utoipa::path(get, path = "/api/utils/status", responses(
-    (status = 200, description = "status check successful", body = StatusResponseBody)
+    (status = 200, description = "Status check success", body = StatusResponse)
 ))]
 pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
     (
         StatusCode::OK,
-        Json(StatusResponseBody {
+        Json(StatusResponse {
             server_time: Local::now().to_string(),
             version: app_state.config.get_version(),
             echo: None,
@@ -46,15 +46,15 @@ pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
 
 /// post server status
 #[utoipa::path(post, path = "/api/utils/status", responses(
-    (status = 200, description = "status check successful", body = StatusResponseBody)
+    (status = 200, description = "Status check success", body = StatusResponse)
 ))]
 pub async fn post_status(
     State(app_state): State<Arc<AppState>>,
-    query: Json<StatusRequestBody>,
+    query: Json<StatusRequest>,
 ) -> Response {
     (
         StatusCode::OK,
-        Json(StatusResponseBody {
+        Json(StatusResponse {
             server_time: Local::now().to_string(),
             version: app_state.config.get_version(),
             echo: query.echo.clone(),
