@@ -5,16 +5,13 @@ import { definePageMeta } from "#imports";
 import CarouselWrapper from "~/components/home/HomeOldCarouselWrapper.vue";
 import HomeRec from "~/components/home/HomeRecCarousel.vue";
 import ItemCard from "~/components/ItemCard.vue";
-import { type GetTitleResponseBody, useSearchTitle } from "~/composables/api/content";
+import { useActiveSearchTitle } from "~/composables/api/content";
 
 definePageMeta({ layout: "nav-drawer" });
 
 register();
 
-const recentlyUpdatedItems = ref<GetTitleResponseBody[]>([]);
-const newlyAddedItems = ref<GetTitleResponseBody[]>([]);
-const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
-
+const titles = useActiveSearchTitle({});
 </script>
 
 <template>
@@ -27,7 +24,7 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		</div>
 		<CarouselWrapper>
 			<swiper-slide
-				v-for="title in recentlyUpdatedItems"
+				v-for="title in titles.data.value?.data"
 				:key="`up${title.id}`">
 				<ItemCard
 					:key="`up${title.id}`"
@@ -41,7 +38,7 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		</div>
 		<CarouselWrapper>
 			<swiper-slide
-				v-for="title in newlyAddedItems"
+				v-for="title in titles.data.value?.data"
 				:key="`new${title.id}`">
 				<ItemCard
 					:key="`new${title.id}`"
@@ -55,7 +52,7 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		</div>
 		<CarouselWrapper>
 			<swiper-slide
-				v-for="title in completedStoriesItems"
+				v-for="title in titles.data.value?.data"
 				:key="`done${title.id}`">
 				<ItemCard
 					:key="`done${title.id}`"
