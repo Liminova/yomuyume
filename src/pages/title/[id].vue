@@ -5,15 +5,15 @@ import { ref, watchEffect } from "vue";
 import { useRoute } from "#app";
 import { definePageMeta } from "#imports";
 import Button from "~/components/ui/Button.vue";
-import { useGetTitle } from "~/composables/api/content";
-import { useAddBookmark, useAddFavorite, useDeleteBookmark, useDeleteFavorite } from "~/composables/api/user";
+import { useGetOneshot } from "~/composables/api/content";
+import { useBookmark, useFavorite } from "~/composables/api/user";
 
 definePageMeta({ layout: "nav-drawer" });
 
-const title = useGetTitle((useRoute().params.id as string));
+const title = useGetOneshot((useRoute().params.id as string));
 
-const [addFavorite, deleteFavorite] = [useAddFavorite(), useDeleteFavorite()];
-const [addBookmark, deleteBookmark] = [useAddBookmark(), useDeleteBookmark()];
+const [addFavorite, deleteFavorite] = [useFavorite("PUT"), useFavorite("DELETE")];
+const [addBookmark, deleteBookmark] = [useBookmark("PUT"), useBookmark("DELETE")];
 
 const [favorites, bookmarks] = [ref<number>(0), ref<number>(0)];
 const [isFavorite, isBookmark] = [ref(false), ref(false)];

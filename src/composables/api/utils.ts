@@ -2,17 +2,16 @@
 
 import { useMutation, useQuery } from "@tanstack/vue-query";
 
+import { GET_SCANNING_PROGRESS_PATH, GET_STATUS_PATH, ResponseError } from "./constants";
+
 export function useGetLibraryScanningProgress() {
 	return useQuery({
 		queryKey: ["scanning_progress"],
 		async queryFn(): Promise<{ scanning_completed: boolean; scanning_progress: number }> {
-			const response = await fetch("/api/utils/scanning_progress", {
-				method: "GET",
-				headers: { "Content-Type": "application/json" },
-			});
+			const response = await fetch(GET_SCANNING_PROGRESS_PATH);
 
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 
 			return response.json();
@@ -24,13 +23,10 @@ export function useGetServerStatus() {
 	return useQuery({
 		queryKey: ["status"],
 		async queryFn(): Promise<{ server_time: string; version: string }> {
-			const response = await fetch("/api/utils/status", {
-				method: "GET",
-				headers: { "Content-Type": "application/json" },
-			});
+			const response = await fetch(GET_STATUS_PATH);
 
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 
 			return response.json();
@@ -41,14 +37,14 @@ export function useGetServerStatus() {
 export function usePostServerStatus() {
 	return useMutation({
 		async mutationFn(body: { echo: string }): Promise<{ server_time: string; version: string }> {
-			const response = await fetch("/api/utils/status", {
+			const response = await fetch(GET_STATUS_PATH, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
 
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 
 			return response.json();

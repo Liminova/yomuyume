@@ -2,53 +2,49 @@
 
 import { useMutation, useQuery } from "@tanstack/vue-query";
 
-export function useDeleteAccount() {
-	return useMutation({
-		async mutationFn(): Promise<void> {
-			const response = await fetch("/api/user/delete", {
-				method: "GET",
-			});
+import { BOOKMARK_PATH, FAVORITE_PATH, ResponseError, USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH } from "./constants";
 
-			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
-			}
-		},
-	});
+export interface SensitiveRequest {
+	password: string;
+	mode: "ask" | "confirm";
+	purpose: "delete_account" | "change_password" | "verify_email";
+	code?: string;
+	payload?: string;
 }
 
-export function useConfirmDeleteAccount() {
+export function useSensitiveAction() {
 	return useMutation({
-		async mutationFn(body: { code: string; password: string }): Promise<void> {
-			const response = await fetch("/api/user/delete", {
+		async mutationFn(body: SensitiveRequest): Promise<void> {
+			const response = await fetch(USER_SENSITIVE_PATH, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
 
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 		},
 	});
 }
 
-export function useAddFavorite() {
+export function useFavorite(method: "PUT" | "DELETE") {
 	return useMutation({
-		async mutationFn(titleId: string): Promise<void> {
-			const response = await fetch(`/api/user/favorite/${titleId}`, { method: "PUT" });
+		async mutationFn(titleID: string): Promise<void> {
+			const response = await fetch(FAVORITE_PATH(titleID), { method });
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 		},
 	});
 }
 
-export function useDeleteFavorite() {
+export function useBookmark(method: "PUT" | "DELETE") {
 	return useMutation({
-		async mutationFn(titleId: string): Promise<void> {
-			const response = await fetch(`/api/user/favorite/${titleId}`, { method: "DELETE" });
+		async mutationFn(titleID: string): Promise<void> {
+			const response = await fetch(BOOKMARK_PATH(titleID), { method });
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 		},
 	});
@@ -56,15 +52,15 @@ export function useDeleteFavorite() {
 
 export function useModifyUserInfo() {
 	return useMutation({
-		async mutationFn(body: { username?: string; email?: string; current_password?: string; new_password?: string }): Promise<void> {
-			const response = await fetch("/api/user/modify", {
+		async mutationFn(body: { username?: string; email?: string }): Promise<void> {
+			const response = await fetch(USER_MODIFY_PATH, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
 
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 		},
 	});
@@ -72,69 +68,13 @@ export function useModifyUserInfo() {
 
 export function useSetProgress() {
 	return useMutation({
-		async mutationFn(body: { titleId: string; page: number }): Promise<void> {
-			const response = await fetch(`/api/user/progress/${body.titleId}/${body.page}`, {
+		async mutationFn(query: { titleID: string; page: number }): Promise<void> {
+			const response = await fetch(USER_PROGRESS_PATH(query.titleID, query.page), {
 				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
 			});
 
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
-			}
-		},
-	});
-}
-
-export function useResetPassword() {
-	return useMutation({
-		async mutationFn(email: string): Promise<void> {
-			const response = await fetch(`/api/user/reset/${email}`, { method: "GET" });
-			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
-			}
-		},
-	});
-}
-
-export function useConfirmResetPassword() {
-	return useMutation({
-		async mutationFn(body: { code: string; new_password: string }): Promise<void> {
-			const response = await fetch("/api/user/reset", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
-
-			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
-			}
-		},
-	});
-}
-
-export function useValidateEmail() {
-	return useMutation({
-		async mutationFn(): Promise<void> {
-			const response = await fetch("/api/user/verify", { method: "GET" });
-			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
-			}
-		},
-	});
-}
-
-export function useConfirmValidateEmail() {
-	return useMutation({
-		async mutationFn(body: { code: string }): Promise<void> {
-			const response = await fetch("/api/user/verify", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
-
-			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 		},
 	});
@@ -154,39 +94,13 @@ export function useWhoAmI() {
 	return useQuery({
 		queryKey: ["whoami"],
 		async queryFn() {
-			const response = await fetch("/api/user/whoami", {
-				method: "GET",
-				headers: { "Content-Type": "application/json" },
-				credentials: import.meta.dev ? "include" : "same-origin",
-			});
+			const response = await fetch(WHOAMI_PATH);
 
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 
 			return response.json();
-		},
-	});
-}
-
-export function useAddBookmark() {
-	return useMutation({
-		async mutationFn(titleId: string): Promise<void> {
-			const response = await fetch(`/api/user/bookmark/${titleId}`, { method: "PUT" });
-			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
-			}
-		},
-	});
-}
-
-export function useDeleteBookmark() {
-	return useMutation({
-		async mutationFn(titleId: string): Promise<void> {
-			const response = await fetch(`/api/user/bookmark/${titleId}`, { method: "DELETE" });
-			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
-			}
 		},
 	});
 }

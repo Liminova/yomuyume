@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { NuxtLink } from "#components";
 import Image from "~/components/image";
+import { GET_COVER_PATH } from "~/composables/api/constants";
 import type { GetTitleResponseBody } from "~/composables/api/content";
-import { toCoverApiEndpoint } from "~/composables/api/file";
 
 const props = defineProps<{ title: GetTitleResponseBody }>();
 </script>
@@ -17,7 +17,7 @@ const props = defineProps<{ title: GetTitleResponseBody }>();
 				:id="props.title.id"
 				class="size-full rounded-3xl object-cover"
 				:draggable="false"
-				:src="toCoverApiEndpoint(props.title.id)"
+				:src="GET_COVER_PATH(props.title.id)"
 				:blurhash="props.title.cover_blurhash"
 				:width="props.title.cover_width"
 				:height="props.title.cover_height"
@@ -30,7 +30,7 @@ const props = defineProps<{ title: GetTitleResponseBody }>();
 				:id="props.title.id"
 				class="size-full overflow-hidden object-cover sm:aspect-[10/16] lg:rounded-2xl"
 				:draggable="false"
-				:src="toCoverApiEndpoint(props.title.id)"
+				:src="GET_COVER_PATH(props.title.id)"
 				:blurhash="props.title.cover_blurhash"
 				:width="props.title.cover_width"
 				:height="props.title.cover_height"

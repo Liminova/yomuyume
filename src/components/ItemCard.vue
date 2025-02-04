@@ -3,8 +3,8 @@ import { computed } from "vue";
 
 import { NuxtLink } from "#components";
 import Image from "~/components/image";
+import { GET_COVER_PATH } from "~/composables/api/constants";
 import type { GetTitleResponseBody } from "~/composables/api/content";
-import { toCoverApiEndpoint } from "~/composables/api/file";
 
 const props = defineProps<{ title: GetTitleResponseBody }>();
 
@@ -21,7 +21,7 @@ const progress = computed(() => {
 			<Image
 				:id="title.id"
 				emit-when-in-view
-				:src="toCoverApiEndpoint(title.id)"
+				:src="GET_COVER_PATH(title.id)"
 				:blurhash="title.cover_blurhash"
 				:width="title.cover_width"
 				:height="title.cover_height"

@@ -3,17 +3,19 @@
 import { useMutation } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 
+import { LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, ResponseError } from "./constants";
+
 export function useLogin() {
 	return useMutation({
 		async mutationFn(body: { login: string; password: string }) {
-			const response = await fetch("/api/auth/login", {
+			const response = await fetch(LOGIN_PATH, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
 
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 		},
 		onError(error) {
@@ -27,9 +29,7 @@ export function useLogin() {
 export function useLogout() {
 	return useMutation({
 		async mutationFn() {
-			const response = await fetch("/api/auth/logout", {
-				method: "POST",
-			});
+			const response = await fetch(LOGOUT_PATH);
 
 			if (!response.ok) {
 				throw new Error("You're not even logged in!");
@@ -46,14 +46,14 @@ export function useLogout() {
 export function useRegister() {
 	return useMutation({
 		async mutationFn(body: { username: string; email: string; password: string }) {
-			const response = await fetch("/api/auth/register", {
+			const response = await fetch(REGISTER_PATH, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
 
 			if (!response.ok) {
-				throw new Error(`[${response.statusText}] ${await response.text()}`);
+				throw await ResponseError(response);
 			}
 		},
 		onError(error) {
