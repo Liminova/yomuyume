@@ -44,7 +44,7 @@ impl IntoResponse for InternalErr {
         tracing::error!("In case I forgot to call tracing::error: {self:?}");
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("{}", anyhow::anyhow!("{self:?}")),
+            format!("{}", anyhow::anyhow!("{self}")),
         )
             .into_response()
     }
