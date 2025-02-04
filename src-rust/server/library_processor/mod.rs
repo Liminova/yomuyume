@@ -131,16 +131,6 @@ pub async fn full_scan(app_state: Arc<AppState>) {
         });
     }
 
-    // extract necessary values, avoid read lock
-    let (nomedia_support, komga_oneshot_support, komga_recycle_support) = {
-        let live_config = app_state.live_config.read().await;
-        (
-            live_config.nomedia_support,
-            live_config.komga_oneshot_support,
-            live_config.komga_recycle_support,
-        )
-    };
-
     // processing tasks waiting to be .await-ed
     let mut tasks: Vec<(
         BoxFuture<'static, anyhow::Result<TitleID, UpsertTitleErr>>,
@@ -153,9 +143,9 @@ pub async fn full_scan(app_state: Arc<AppState>) {
     while let Some(scanned) = queue.pop_back() {
         let entry_path = scanned.entry.path();
         match scanned.entry.guess(
-            nomedia_support,
-            komga_oneshot_support,
-            komga_recycle_support,
+            app_state.live_config.get_nomediasupport().await,
+            app_state.live_config.get_komga_oneshot_support().await,
+            app_state.live_config.get_komga_recycle_support().await,
         ) {
             Ok(entry_type) => match entry_type {
                 DirEntryType::CategoryDir(sub_entries) => {
@@ -174,7 +164,7 @@ pub async fn full_scan(app_state: Arc<AppState>) {
                             chapters,
                             scanned.parent,
                             category_path_to_id.clone(),
-                            nomedia_support,
+                            app_state.live_config.get_nomediasupport().await,
                         )),
                         entry_path,
                     ));
@@ -187,7 +177,7 @@ pub async fn full_scan(app_state: Arc<AppState>) {
                             OneshotType::Directory(pages),
                             scanned.parent,
                             category_path_to_id.clone(),
-                            nomedia_support,
+                            app_state.live_config.get_nomediasupport().await,
                         )),
                         entry_path,
                     ));
@@ -200,7 +190,7 @@ pub async fn full_scan(app_state: Arc<AppState>) {
                             OneshotType::Archive(files_in_archive),
                             scanned.parent,
                             category_path_to_id.clone(),
-                            nomedia_support,
+                            app_state.live_config.get_nomediasupport().await,
                         )),
                         entry_path,
                     ));
@@ -245,6 +235,7 @@ pub async fn full_scan(app_state: Arc<AppState>) {
                     e => error!("can't process `{title_path}`: {e:?}"),
                 },
             }
+
             drop(permit);
         }));
     }
