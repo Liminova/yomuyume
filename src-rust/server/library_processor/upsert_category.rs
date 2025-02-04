@@ -9,7 +9,7 @@ use crate::{
     types::{
         absolute_path::{AbsolutePath, AbsolutePathErr},
         category_info::CategoryInfo,
-        CategoryID,
+        id::CategoryID,
     },
     utils::{config::CATEGORYINFO, id_generator::GenerateIDErr},
 };
