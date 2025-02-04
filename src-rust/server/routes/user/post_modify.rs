@@ -10,63 +10,26 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{
-    routes::{check_pass, hash_pass},
-    types::UserID,
-    utils::{app_error::AppError, app_state::AppState},
-};
+use crate::{routes::errors::InternalError, types::id::UserID, utils::app_state::AppState};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-pub struct ModifyRequestBody {
+pub struct ModifyRequest {
     pub username: Option<String>,
     pub email: Option<String>,
-    pub current_password: Option<String>,
-    pub new_password: Option<String>,
 }
 
-/// modify user info
+/// Modify user information
 #[utoipa::path(post, path = "/api/user/modify", responses(
-    (status = 200, description = "modify user successful"),
-    (status = 400, description = "bad request", body = String),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 500, description = "internal server error", body = String)
+    (status = 200, description = "Modify user successful"),
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn post_modify(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
-    Json(body): Json<ModifyRequestBody>,
-) -> Result<Response, AppError> {
-    let mut new_password_hash = String::new();
-    match (body.current_password, body.new_password) {
-        (None, Some(_)) => {
-            return Ok((
-                StatusCode::BAD_REQUEST,
-                "current password is required to change password",
-            )
-                .into_response());
-        }
-        (Some(current_password), Some(new_password)) => {
-            let current_password_hash = sqlx::query!(
-                "SELECT password_hash
-                FROM users
-                WHERE id = $1",
-                user_id.as_ref()
-            )
-            .fetch_one(&app_state.pool)
-            .await
-            .map_err(|e| {
-                tracing::error!("{e:?}");
-                AppError::DB(e)
-            })?
-            .password_hash;
-            if !check_pass(&current_password_hash, &current_password) {
-                return Ok((StatusCode::BAD_REQUEST, "invalid current password").into_response());
-            }
-            new_password_hash = hash_pass(new_password)?;
-        }
-        _ => {}
-    }
-
+    Json(body): Json<ModifyRequest>,
+) -> Result<Response, InternalError> {
     let username = body.username.unwrap_or_default();
     let email = body.email.unwrap_or_default();
     let now = Utc::now();
@@ -81,15 +44,10 @@ pub async fn post_modify(
                 WHEN $2 = '' THEN email
                 ELSE $2
             END,
-            password_hash = CASE
-                WHEN $3 = '' THEN password_hash
-                ELSE $3
-            END,
-            updated_at = $4
-        WHERE id = $5",
+            updated_at = $3
+        WHERE id = $4",
         &username,
         &email,
-        new_password_hash,
         &now,
         user_id.as_ref()
     )
@@ -97,11 +55,11 @@ pub async fn post_modify(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?;
 
     let mut user = app_state.user_cache.get_mut(&user_id).ok_or_else(|| {
-        let e = AppError::WriteCache("user".to_string());
+        let e = InternalError::WriteCache("user".to_string());
         tracing::error!("{e:?}");
         e
     })?;
