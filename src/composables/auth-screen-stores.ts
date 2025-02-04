@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
-import { computed, ref, watchEffect } from "vue";
+import { computed, ref } from "vue";
 
 import { useLogin, useRegister } from "./api/auth";
-import { useConfirmResetPassword, useResetPassword } from "./api/user";
+// import { useConfirmResetPassword, useResetPassword } from "./api/user";
 
 function validatePassword(password: string): boolean {
 	const hasUppercase = (/[A-Z]/u).test(password);
@@ -92,17 +92,20 @@ export const useAuthResetPasswordStore = defineStore("auth-screen-store-reset-pa
 		return newPassword.value === newPasswordRetype.value;
 	});
 
-	const mutation = useResetPassword();
-	const mutation2 = useConfirmResetPassword();
+	// const mutation = useResetPassword();
+	// const mutation2 = useConfirmResetPassword();
 
-	const isRequestResetPasswordButtonEnabled = computed(() => !isPasswordRetypeMatch.value || !isPasswordStrong.value || mutation.isPending.value);
-	const isConfirmResetPasswordButtonEnabled = computed(() => !isPasswordRetypeMatch.value || !isPasswordStrong.value || mutation2.isPending.value || !codeSent.value);
+	// const isRequestResetPasswordButtonEnabled = computed(() => !isPasswordRetypeMatch.value || !isPasswordStrong.value || mutation.isPending.value);
+	// const isConfirmResetPasswordButtonEnabled = computed(() => !isPasswordRetypeMatch.value || !isPasswordStrong.value || mutation2.isPending.value || !codeSent.value);
 
-	watchEffect(() => {
-		if (mutation.isSuccess.value) {
-			codeSent.value = true;
-		}
-	});
+	const isRequestResetPasswordButtonEnabled = false;
+	const isConfirmResetPasswordButtonEnabled = false;
+
+	// watchEffect(() => {
+	// 	if (mutation.isSuccess.value) {
+	// 		codeSent.value = true;
+	// 	}
+	// });
 
 	return {
 		email,
@@ -116,14 +119,14 @@ export const useAuthResetPasswordStore = defineStore("auth-screen-store-reset-pa
 		isRequestResetPasswordButtonEnabled,
 		isConfirmResetPasswordButtonEnabled,
 
-		mutation,
-		mutation2,
+		// mutation,
+		// mutation2,
 
 		requestResetPasswordAction(): void {
-			mutation.mutate(email.value);
+			// mutation.mutate(email.value);
 		},
 		confirmResetPasswordAction(): void {
-			mutation2.mutate({ code: code.value, new_password: newPassword.value });
+			// mutation2.mutate({ code: code.value, new_password: newPassword.value });
 		},
 	};
 });
