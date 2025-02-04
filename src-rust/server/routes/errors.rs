@@ -49,3 +49,41 @@ impl IntoResponse for InternalError {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum RequestError {
+    #[error("Missing session-id cookie")]
+    MissingSessionID,
+    #[error("Can't parse session id: {0}")]
+    CantParseSessionID(ParseIntError),
+    #[error("Missing session secret cookie")]
+    MissingSessionSecret,
+    #[error("Invalid session")]
+    InvalidSession,
+    #[error("Session expired")]
+    SessionExpired,
+
+    #[error("You don't even logged in")]
+    YouDontEvenLoggedIn,
+    #[error("Invalid username or password")]
+    InvalidCredentials,
+    #[error("Invalid email")]
+    InvalidEmail,
+    #[error("Email is already used")]
+    SomeoneUseThisEmail,
+    #[error("Password must be between 8 and 100 characters long and contain at least one uppercase letter, one lowercase letter, one number and one special character")]
+    WeakPassword,
+
+    #[error("Invalid password and code")]
+    InvalidPasswordAndCode,
+    #[error("Invalid current password")]
+    InvalidCurrentPassword,
+
+    #[error("Your email is already verified")]
+    AlreadyVerified,
+}
+
+impl IntoResponse for RequestError {
+    fn into_response(self) -> Response {
+        format!("{}", anyhow::anyhow!("{self}")).into_response()
+    }
+}
