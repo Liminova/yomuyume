@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-import { useMutation, useQuery } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 
 import { GET_CATEGORIES_PATH, GET_CHAPTER_PATH, GET_ONESHOT_PATH, GET_SERIES_PATH, GET_TAGS_PATH, ResponseError, SEARCH_PATH } from "./constants";
 
@@ -169,8 +169,31 @@ export interface SearchResponse {
 }
 
 export function useSearchTitle() {
+	const queryClient = useQueryClient();
+
 	return useMutation({
 		async mutationFn(body: SearchRequest): Promise<SearchResponse> {
+			const response = await fetch(SEARCH_PATH, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
+
+			if (!response.ok) {
+				throw await ResponseError(response);
+			}
+
+			const data = await response.json();
+			queryClient.setQueryData(["search", body], data);
+			return data;
+		},
+	});
+}
+
+export function useActiveSearchTitle(body: SearchRequest) {
+	return useQuery({
+		queryKey: ["search", body],
+		async queryFn(): Promise<SearchResponse> {
 			const response = await fetch(SEARCH_PATH, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
