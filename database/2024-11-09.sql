@@ -57,8 +57,8 @@ DROP TABLE IF EXISTS chapters_pages CASCADE;
 CREATE TABLE IF NOT EXISTS chapters_pages (
     id BIGINT PRIMARY KEY,
     chapter_id BIGINT NOT NULL,
-    path TEXT NOT NULL,
     filesize BIGINT,
+    path TEXT NOT NULL,
     description TEXT,
     FOREIGN KEY (chapter_id) REFERENCES chapters (id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "uc-chapters_pages-chapter_id-path" UNIQUE (chapter_id, path)
