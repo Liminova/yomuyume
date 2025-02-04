@@ -10,7 +10,11 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
+use crate::{
+    routes::errors::InternalErr,
+    structs::id::UserID,
+    utils::{app_state::AppState, constants::USER_MODIFY_PATH},
+};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct ModifyRequest {
@@ -19,7 +23,7 @@ pub struct ModifyRequest {
 }
 
 /// Modify user information
-#[utoipa::path(post, path = "/api/user/modify", responses(
+#[utoipa::path(post, path = USER_MODIFY_PATH, responses(
     (status = 200, description = "Modify user successful"),
     (status = 400, description = "Bad request", body = String),
     (status = 401, description = "Unauthorized", body = String),

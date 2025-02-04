@@ -11,11 +11,11 @@ use tokio_util::io::ReaderStream;
 
 use crate::{
     routes::errors::InternalErr,
-    utils::{app_state::AppState, archive_file::ArchiveFile},
+    utils::{app_state::AppState, archive_file::ArchiveFile, constants::GET_PAGE_PATH},
 };
 
 /// Get page file
-#[utoipa::path(get, path = "/api/file/page/{is_series}/{page_id}", responses(
+#[utoipa::path(get, path = GET_PAGE_PATH, responses(
     (status = 200, description = "Fetch page successful", body = Vec<u8>),
     (status = 401, description = "Unauthorized", body = String),
     (status = 404, description = "Page not found", body = String),

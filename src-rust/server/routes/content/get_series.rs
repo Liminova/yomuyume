@@ -11,7 +11,11 @@ use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
 use super::structs::BaseTitleResponse;
-use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
+use crate::{
+    routes::errors::InternalErr,
+    structs::id::UserID,
+    utils::{app_state::AppState, constants::GET_SERIES_PATH},
+};
 
 #[skip_serializing_none]
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
@@ -31,7 +35,7 @@ pub struct SeriesResponse {
 }
 
 /// Series info & chapters
-#[utoipa::path(get, path = "/api/content/series/{title_id}", responses(
+#[utoipa::path(get, path = GET_SERIES_PATH, responses(
     (status = 200, description = "Fetch series success", body = SeriesResponse),
     (status = 303, description = "Title is an oneshot, redirect to the correct endpoint"),
     (status = 401, description = "Unauthorized", body = String),

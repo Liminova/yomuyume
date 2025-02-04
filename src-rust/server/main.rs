@@ -35,6 +35,12 @@ use routes::user::post_sensitive;
 use tokio::{net::TcpListener, time::sleep};
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
+use utils::constants::{
+    BOOKMARK_PATH, FAVORITE_PATH, GET_CATEGORIES_PATH, GET_CHAPTER_PATH, GET_COVER_PATH,
+    GET_ONESHOT_PATH, GET_PAGE_PATH, GET_SCANNING_PROGRESS_PATH, GET_SERIES_PATH, GET_STATUS_PATH,
+    GET_TAGS_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, SEARCH_PATH, USER_MODIFY_PATH,
+    USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH,
+};
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
 
@@ -73,58 +79,35 @@ async fn main() -> Result<()> {
     );
 
     let app = Router::new()
+        .route(REGISTER_PATH, post(post_register))
+        .route(LOGIN_PATH, post(post_login))
+        .route(LOGOUT_PATH, get(get_logout))
         .nest(
-            "/api/auth",
+            "/",
             Router::new()
-                .route("/register", post(post_register))
-                .route("/login", post(post_login))
-                .route("/logout", get(get_logout)),
-        )
-        .nest(
-            "/api/content",
-            Router::new()
-                .route("/search", post(post_search))
-                .route("/categories", get(get_categories))
-                .route("/series/{title_id}", get(get_series))
-                .route("/oneshot/{title_id}", get(get_oneshot))
-                .route("/chapter/{chapter_id}", get(get_chapter))
-                .route("/tags", get(get_tags))
+                // content
+                .route(SEARCH_PATH, post(post_search))
+                .route(GET_CATEGORIES_PATH, get(get_categories))
+                .route(GET_SERIES_PATH, get(get_series))
+                .route(GET_ONESHOT_PATH, get(get_oneshot))
+                .route(GET_CHAPTER_PATH, get(get_chapter))
+                .route(GET_TAGS_PATH, get(get_tags))
+                // user
+                .route(WHOAMI_PATH, get(get_whoami))
+                .route(USER_SENSITIVE_PATH, post(post_sensitive))
+                .route(USER_MODIFY_PATH, post(post_modify))
+                .route(BOOKMARK_PATH, put(put_bookmark).delete(delete_bookmark))
+                .route(FAVORITE_PATH, put(put_favorite).delete(delete_favorite))
+                .route(USER_PROGRESS_PATH, put(put_progress))
+                // file
+                .route(GET_PAGE_PATH, get(get_page))
+                .route(GET_COVER_PATH, get(get_cover))
+                // misc
+                .route(GET_SCANNING_PROGRESS_PATH, get(get_scanning_progress))
+                // middleware
                 .layer(apply(app_state.clone(), auth)),
         )
-        .nest(
-            "/api/user",
-            Router::new()
-                .route("/whoami", get(get_whoami))
-                .route("/sensitive", post(post_sensitive))
-                .route("/modify", post(post_modify))
-                .route(
-                    "/bookmark/{title_id}",
-                    put(put_bookmark).delete(delete_bookmark),
-                )
-                .route(
-                    "/favorite/{title_id}",
-                    put(put_favorite).delete(delete_favorite),
-                )
-                .route("/progress/{title_id}/{page}", put(put_progress))
-                .layer(apply(app_state.clone(), auth)),
-        )
-        .nest(
-            "/api/utils",
-            Router::new()
-                .route("/scanning_progress", get(get_scanning_progress))
-                .layer(apply(app_state.clone(), auth)),
-        )
-        .nest(
-            "/api/file",
-            Router::new()
-                .route("/page/{is_series}/{page_id}", get(get_page))
-                .route("/cover/{title_id}", get(get_cover))
-                .layer(apply(app_state.clone(), auth)),
-        )
-        .nest(
-            "/api",
-            Router::new().route("/utils/status", get(get_status).post(post_status)),
-        )
+        .route(GET_STATUS_PATH, get(get_status).post(post_status))
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .layer(TraceLayer::new_for_http())
         .with_state(app_state.clone());

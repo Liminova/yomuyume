@@ -21,7 +21,7 @@ use crate::{
     traits::chrono_utils::ChronoUtils,
     utils::{
         app_state::AppState,
-        constants::{TEMP_CODE_EXPIRED_AFTER, TEMP_CODE_REQUEST_RATE_LIMIT},
+        constants::{TEMP_CODE_EXPIRED_AFTER, TEMP_CODE_REQUEST_RATE_LIMIT, USER_SENSITIVE_PATH},
         macros::bail_if_empty,
     },
 };
@@ -53,7 +53,7 @@ pub struct SensitiveRequest {
 }
 
 /// Perform sensitive action
-#[utoipa::path(get, path = "/api/user/sensitive", responses(
+#[utoipa::path(get, path = USER_SENSITIVE_PATH, responses(
     (status = 200, description = "Code sent to user's email"),
     (status = 401, description = "Unauthorized", body = String),
     (status = 429, description = "Too many requests"),

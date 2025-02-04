@@ -7,10 +7,14 @@ use axum::{
     Extension,
 };
 
-use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
+use crate::{
+    routes::errors::InternalErr,
+    structs::id::UserID,
+    utils::{app_state::AppState, constants::USER_PROGRESS_PATH},
+};
 
 /// Set reading progress
-#[utoipa::path(put, path = "/api/user/progress/{title_id}/{page}", responses(
+#[utoipa::path(put, path = USER_PROGRESS_PATH, responses(
     (status = 200, description = "Set progress successfully"),
     (status = 400, description = "Bad request", body = String),
     (status = 401, description = "Unauthorized", body = String),

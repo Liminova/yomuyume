@@ -11,11 +11,11 @@ use tokio_util::io::ReaderStream;
 
 use crate::{
     routes::errors::InternalErr,
-    utils::{app_state::AppState, archive_file::ArchiveFile},
+    utils::{app_state::AppState, archive_file::ArchiveFile, constants::GET_COVER_PATH},
 };
 
 /// Get cover file
-#[utoipa::path(get, path = "/api/file/cover/{title_id}", responses(
+#[utoipa::path(get, path = GET_COVER_PATH, responses(
     (status = 200, description = "Fetch cover successful", body = Vec<u8>),
     (status = 204, description = "Title has no cover"),
     (status = 401, description = "Unauthorized", body = String),

@@ -13,11 +13,14 @@ use axum_extra::extract::{
 use crate::{
     routes::errors::{InternalErr, RequestErr},
     structs::id::SessionID,
-    utils::app_state::AppState,
+    utils::{
+        app_state::AppState,
+        constants::{LOGOUT_PATH, SESSION_ID_COOKIE_NAME, SESSION_SECRET_COOKIE_NAME},
+    },
 };
 
 /// Logout
-#[utoipa::path(get, path = "/api/auth/logout", responses(
+#[utoipa::path(get, path = LOGOUT_PATH, responses(
     (status = 200, description = "Logout successful"),
     (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Internal server error", body = String),
@@ -27,7 +30,7 @@ pub async fn get_logout(
     State(app_state): State<Arc<AppState>>,
 ) -> Result<Response, InternalErr> {
     let Some(session_id): Option<SessionID> = cookie_jar
-        .get("session-id")
+        .get(SESSION_ID_COOKIE_NAME)
         .and_then(|cookie| cookie.to_string().parse::<i64>().ok())
         .map(|id| id.into())
     else {
@@ -35,7 +38,7 @@ pub async fn get_logout(
     };
 
     let Some(session_secret) = cookie_jar
-        .get("session-secret")
+        .get(SESSION_SECRET_COOKIE_NAME)
         .map(|cookie| cookie.to_string())
     else {
         return Ok((StatusCode::UNAUTHORIZED, RequestErr::YouDontEvenLoggedIn).into_response());
@@ -60,7 +63,7 @@ pub async fn get_logout(
         AppendHeaders([
             (
                 header::SET_COOKIE,
-                Cookie::build(("session-id", ""))
+                Cookie::build((SESSION_ID_COOKIE_NAME, ""))
                     .path("/")
                     .secure(true)
                     .http_only(true)
@@ -69,7 +72,7 @@ pub async fn get_logout(
             ),
             (
                 header::SET_COOKIE,
-                Cookie::build(("session-secret", ""))
+                Cookie::build((SESSION_SECRET_COOKIE_NAME, ""))
                     .path("/")
                     .secure(true)
                     .http_only(true)

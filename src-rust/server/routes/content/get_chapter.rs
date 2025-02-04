@@ -10,7 +10,11 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::structs::BasePageResponse;
-use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
+use crate::{
+    routes::errors::InternalErr,
+    structs::id::UserID,
+    utils::{app_state::AppState, constants::GET_CHAPTER_PATH},
+};
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct ChapterResponse {
@@ -22,7 +26,7 @@ pub struct ChapterResponse {
 }
 
 /// Chapter info & pages
-#[utoipa::path(get, path = "/api/content/chapter/{chapter_id}", responses(
+#[utoipa::path(get, path = GET_CHAPTER_PATH, responses(
     (status = 200, description = "Fetch chapter success", body = ChapterResponse),
     (status = 401, description = "Unauthorized", body = String),
     (status = 404, description = "No chapter found for the given id"),

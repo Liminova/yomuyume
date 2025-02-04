@@ -16,7 +16,10 @@ use crate::{
     traits::chrono_utils::ChronoUtils,
     utils::{
         app_state::AppState,
-        constants::{SESSION_TOKEN_EXPIRED_AFTER, SESSION_TOKEN_UPDATE_LAST_USED_AT_INTERVAL},
+        constants::{
+            SESSION_ID_COOKIE_NAME, SESSION_SECRET_COOKIE_NAME, SESSION_TOKEN_EXPIRED_AFTER,
+            SESSION_TOKEN_UPDATE_LAST_USED_AT_INTERVAL,
+        },
     },
 };
 
@@ -33,7 +36,7 @@ pub async fn auth(
     next: Next,
 ) -> Result<Response, InternalErr> {
     let provided_session_id = match cookie_jar
-        .get("session-id")
+        .get(SESSION_ID_COOKIE_NAME)
         .ok_or(RequestErr::MissingSessionID)
         .map(|c| c.value_trimmed().to_string())
         .and_then(|s| s.parse::<i64>().map_err(RequestErr::CantParseSessionID))
@@ -42,7 +45,7 @@ pub async fn auth(
         Err(e) => return Ok((StatusCode::UNAUTHORIZED, e).into_response()),
     };
     let Some(provided_session_secret) = cookie_jar
-        .get("session-secret")
+        .get(SESSION_SECRET_COOKIE_NAME)
         .map(|c| c.value_trimmed().to_string())
     else {
         return Ok((StatusCode::UNAUTHORIZED, RequestErr::MissingSessionSecret).into_response());

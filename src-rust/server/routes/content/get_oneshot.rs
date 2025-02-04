@@ -10,7 +10,11 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::structs::{BasePageResponse, BaseTitleResponse};
-use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
+use crate::{
+    routes::errors::InternalErr,
+    structs::id::UserID,
+    utils::{app_state::AppState, constants::GET_ONESHOT_PATH},
+};
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct OneshotResponse {
@@ -20,7 +24,7 @@ pub struct OneshotResponse {
 }
 
 /// Oneshot info & pages
-#[utoipa::path(get, path = "/api/content/oneshot/{title_id}", responses(
+#[utoipa::path(get, path = GET_ONESHOT_PATH, responses(
     (status = 200, description = "Fetch oneshot success", body = OneshotResponse),
     (status = 303, description = "Title is a series, redirect to the correct endpoint"),
     (status = 401, description = "Unauthorized", body = String),

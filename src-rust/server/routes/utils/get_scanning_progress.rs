@@ -9,7 +9,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::utils::app_state::AppState;
+use crate::utils::{app_state::AppState, constants::GET_SCANNING_PROGRESS_PATH};
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct ScanningProgressResponse {
@@ -18,7 +18,7 @@ pub struct ScanningProgressResponse {
 }
 
 /// Get library scanning progress
-#[utoipa::path(get, path = "/api/utils/scanning_progress", responses(
+#[utoipa::path(get, path = GET_SCANNING_PROGRESS_PATH, responses(
     (status = 200, description = "Library scanning progress", body = ScanningProgressResponse),
     (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Internal server error", body = String),

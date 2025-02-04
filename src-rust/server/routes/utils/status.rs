@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::AppState;
+use crate::{utils::constants::GET_STATUS_PATH, AppState};
 
 use axum::{
     extract::State,
@@ -29,7 +29,7 @@ pub struct StatusResponse {
 }
 
 /// Get server status
-#[utoipa::path(get, path = "/api/utils/status", responses(
+#[utoipa::path(get, path = GET_STATUS_PATH, responses(
     (status = 200, description = "Status check success", body = StatusResponse)
 ))]
 pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
@@ -45,7 +45,7 @@ pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
 }
 
 /// Post server status
-#[utoipa::path(post, path = "/api/utils/status", responses(
+#[utoipa::path(post, path = GET_STATUS_PATH, responses(
     (status = 200, description = "Status check success", body = StatusResponse)
 ))]
 pub async fn post_status(

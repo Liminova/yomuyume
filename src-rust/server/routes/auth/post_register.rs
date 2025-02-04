@@ -15,7 +15,7 @@ use crate::{
         errors::{InternalErr, RequestErr},
         hash_pass, is_strong,
     },
-    utils::app_state::AppState,
+    utils::{app_state::AppState, constants::REGISTER_PATH},
 };
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -26,7 +26,7 @@ pub struct RegisterRequest {
 }
 
 /// Register
-#[utoipa::path(post, path = "api/auth/register", responses(
+#[utoipa::path(post, path = REGISTER_PATH, responses(
     (status = 200, description = "Registration successful"),
     (status = 400, description = "Bad request", body = String),
     (status = 409, description = "A conflict has occurred", body = String),

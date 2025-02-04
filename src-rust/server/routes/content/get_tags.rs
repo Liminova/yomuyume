@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     routes::errors::InternalErr,
-    utils::{app_state::AppState, macros::bail_if_empty},
+    utils::{app_state::AppState, constants::GET_TAGS_PATH, macros::bail_if_empty},
 };
 
 use axum::{
@@ -23,7 +23,7 @@ pub struct InnerTagResponse {
 type TagsResponse = Vec<InnerTagResponse>;
 
 /// Get all tags
-#[utoipa::path(get, path = "/api/content/tags", responses(
+#[utoipa::path(get, path = GET_TAGS_PATH, responses(
     (status = 200, description = "Get tags success", body = TagsResponse),
     (status = 204, description = "No tag found"),
     (status = 401, description = "Unauthorized", body = String),

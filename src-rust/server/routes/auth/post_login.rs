@@ -16,6 +16,7 @@ use crate::{
         check_pass,
         errors::{InternalErr, RequestErr},
     },
+    utils::constants::{LOGIN_PATH, SESSION_ID_COOKIE_NAME, SESSION_SECRET_COOKIE_NAME},
 };
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -26,7 +27,7 @@ pub struct LoginRequest {
 }
 
 /// Login
-#[utoipa::path(post, path = "/api/auth/login", responses(
+#[utoipa::path(post, path = LOGIN_PATH, responses(
     (status = 200, description = "Login successful"),
     (status = 400, description = "Bad request", body = String),
     (status = 500, description = "Internal server error", body = String),
@@ -113,7 +114,7 @@ pub async fn post_login(
         AppendHeaders([
             (
                 header::SET_COOKIE,
-                Cookie::build(("session-id", session_id.to_string()))
+                Cookie::build((SESSION_ID_COOKIE_NAME, session_id.to_string()))
                     .path("/")
                     .secure(true)
                     .http_only(true)
@@ -122,7 +123,7 @@ pub async fn post_login(
             ),
             (
                 header::SET_COOKIE,
-                Cookie::build(("session-secret", session_secret.to_string()))
+                Cookie::build((SESSION_SECRET_COOKIE_NAME, session_secret.to_string()))
                     .path("/")
                     .secure(true)
                     .http_only(true)

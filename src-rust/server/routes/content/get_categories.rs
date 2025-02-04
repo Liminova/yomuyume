@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 
 use crate::{
     routes::errors::InternalErr,
-    utils::{app_state::AppState, macros::bail_if_empty},
+    utils::{app_state::AppState, constants::GET_CATEGORIES_PATH, macros::bail_if_empty},
 };
 
 #[skip_serializing_none]
@@ -31,7 +31,7 @@ pub struct InnerCategoriesResponse {
 type CategoriesResponse = Vec<InnerCategoriesResponse>;
 
 /// Categories & infos
-#[utoipa::path(get, path = "/api/content/categories", responses(
+#[utoipa::path(get, path = GET_CATEGORIES_PATH, responses(
     (status = 200, description = "Fetch all categories success", body = CategoriesResponse),
     (status = 204, description = "No category found"),
     (status = 401, description = "Unauthorized", body = String),

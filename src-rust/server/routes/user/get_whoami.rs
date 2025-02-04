@@ -10,7 +10,11 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
-use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
+use crate::{
+    routes::errors::InternalErr,
+    structs::id::UserID,
+    utils::{app_state::AppState, constants::WHOAMI_PATH},
+};
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
@@ -25,7 +29,7 @@ pub struct WhoAmIResponse {
 }
 
 /// Get current logged in user
-#[utoipa::path(get, path = "/api/user/whoami", responses(
+#[utoipa::path(get, path = WHOAMI_PATH, responses(
     (status = 200, description = "Get whoami successful", body = WhoAmIResponse),
     (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Internal server error", body = String),

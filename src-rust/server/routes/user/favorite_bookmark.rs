@@ -7,10 +7,17 @@ use axum::{
     Extension,
 };
 
-use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
+use crate::{
+    routes::errors::InternalErr,
+    structs::id::UserID,
+    utils::{
+        app_state::AppState,
+        constants::{BOOKMARK_PATH, FAVORITE_PATH},
+    },
+};
 
 /// Favorite a title
-#[utoipa::path(put, path = "/api/user/favorite/{title_id}", responses(
+#[utoipa::path(put, path = FAVORITE_PATH, responses(
     (status = 200, description = "Add favorite successful"),
     (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Internal server error", body = String)
@@ -41,7 +48,7 @@ pub async fn put_favorite(
 }
 
 /// Bookmark a title
-#[utoipa::path(put, path = "/user/bookmark/{title_id}", responses(
+#[utoipa::path(put, path = BOOKMARK_PATH, responses(
     (status = 200, description = "Add bookmark successful"),
     (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Internal server error", body = String)
@@ -72,7 +79,7 @@ pub async fn put_bookmark(
 }
 
 /// Un-favorite a title
-#[utoipa::path(delete, path = "/api/user/favorite/{title_id}", responses(
+#[utoipa::path(delete, path = FAVORITE_PATH, responses(
     (status = 200, description = "Delete favorite successful"),
     (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Internal server error", body = String)
@@ -100,7 +107,7 @@ pub async fn delete_favorite(
 }
 
 /// Un-bookmark a title
-#[utoipa::path(delete, path = "/user/bookmark/{title_id}", responses(
+#[utoipa::path(delete, path = BOOKMARK_PATH, responses(
     (status = 200, description = "Delete bookmark successful"),
     (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Internal server error", body = String)

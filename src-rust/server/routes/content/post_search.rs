@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
+use crate::{
+    routes::errors::InternalErr,
+    structs::id::UserID,
+    utils::{app_state::AppState, constants::SEARCH_PATH},
+};
 
 use axum::{
     extract::State,
@@ -65,7 +69,7 @@ pub struct SearchResponse {
 }
 
 /// Search title
-#[utoipa::path(post, path = "api/content/search", responses(
+#[utoipa::path(post, path = SEARCH_PATH, responses(
     (status = 200, description = "Search success", body = SearchResponse),
     (status = 204, description = "Search success, but none were found", body = SearchResponse),
     (status = 401, description = "Unauthorized", body = String),
