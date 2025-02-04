@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-import { useMutation } from "@tanstack/vue-query";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 
 import { LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, ResponseError } from "./constants";
@@ -27,6 +27,8 @@ export function useLogin() {
 }
 
 export function useLogout() {
+	const queryClient = useQueryClient();
+
 	return useMutation({
 		async mutationFn() {
 			const response = await fetch(LOGOUT_PATH);
@@ -34,6 +36,8 @@ export function useLogout() {
 			if (!response.ok) {
 				throw new Error("You're not even logged in!");
 			}
+
+			queryClient.setQueryData(["whoami"], null);
 		},
 		onError(error) {
 			toast.error("Logout failed", {
