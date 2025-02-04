@@ -10,15 +10,6 @@ pub const CATEGORY_INFO_SCHEMA: &str =
     r#"<?xml-model href="https://delnegend.com/categoryinfo-1.0.xsd"?>"#;
 pub const CATEGORYINFO: &str = "CategoryInfo.xml";
 
-pub(super) const SECURE_ID_LENGTH: usize = 32;
-pub(super) const SECURE_ID_CHARSET: &[char; 64] = &[
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
-    't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
-    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4',
-    '5', '6', '7', '8', '9', '-', '_',
-];
-pub(super) const SECURE_ID_MASK: usize = SECURE_ID_CHARSET.len().next_power_of_two() - 1;
-
 pub const SESSION_TOKEN_UPDATE_LAST_USED_AT_INTERVAL: i64 = 5 * 60;
 pub const SESSION_TOKEN_EXPIRED_AFTER: i64 = 60 * 60 * 24 * 7; // 7 days
 

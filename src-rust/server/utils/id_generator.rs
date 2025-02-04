@@ -3,8 +3,6 @@ use rand_core::{OsRng, RngCore};
 use snowflake::Snowflake;
 use tokio::sync::oneshot;
 
-use super::constants::{SECURE_ID_CHARSET, SECURE_ID_LENGTH, SECURE_ID_MASK};
-
 #[derive(Debug)]
 pub struct IDGenerator {
     snowflake_id_generator_request: Sender<oneshot::Sender<i64>>,
@@ -58,6 +56,15 @@ pub enum GenerateIDErr {
 }
 
 impl IDGenerator {
+    const SECURE_ID_LENGTH: usize = 32;
+    const SECURE_ID_CHARSET: &[char; 64] = &[
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
+        's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+        'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1',
+        '2', '3', '4', '5', '6', '7', '8', '9', '-', '_',
+    ];
+    const SECURE_ID_MASK: usize = 63; // SECURE_ID_CHARSET.len().next_power_of_two() - 1
+
     pub async fn snowflake(&self) -> Result<i64, GenerateIDErr> {
         let (tx, rx) = oneshot::channel();
 
@@ -73,11 +80,11 @@ impl IDGenerator {
     }
 
     pub fn secure(&self) -> String {
-        let mut id = String::with_capacity(SECURE_ID_LENGTH);
-        let mut bytes = vec![0u8; SECURE_ID_LENGTH];
+        let mut id = String::with_capacity(Self::SECURE_ID_LENGTH);
+        let mut bytes = vec![0u8; Self::SECURE_ID_LENGTH];
         OsRng.fill_bytes(&mut bytes);
         for &byte in &bytes {
-            id.push(SECURE_ID_CHARSET[(byte as usize) & SECURE_ID_MASK]);
+            id.push(Self::SECURE_ID_CHARSET[(byte as usize) & Self::SECURE_ID_MASK]);
         }
         id
     }
