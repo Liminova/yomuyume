@@ -110,7 +110,7 @@ export interface SeriesResponse extends BaseTitleResponse {
 export function useGetSeries(id: string) {
 	return useQuery({
 		queryKey: ["title", id],
-		async queryFn(): Promise<OneshotResponse> {
+		async queryFn(): Promise<SeriesResponse> {
 			const response = await fetch(GET_SERIES_PATH(id));
 
 			if (!response.ok) {
