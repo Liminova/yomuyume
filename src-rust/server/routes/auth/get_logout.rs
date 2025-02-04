@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     extract::State,
     http::{header, StatusCode},
-    response::{IntoResponse, Response},
+    response::{AppendHeaders, IntoResponse, Response},
 };
 use axum_extra::extract::{
     cookie::{Cookie, SameSite},
@@ -11,8 +11,9 @@ use axum_extra::extract::{
 };
 
 use crate::{
-    types::SessionID,
-    utils::{app_error::AppError, app_state::AppState},
+    routes::errors::{InternalError, RequestError},
+    types::id::SessionID,
+    utils::app_state::AppState,
 };
 
 /// logout
