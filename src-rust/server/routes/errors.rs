@@ -41,6 +41,7 @@ pub enum InternalErr {
 
 impl IntoResponse for InternalErr {
     fn into_response(self) -> Response {
+        tracing::error!("In case I forgot to call tracing::error: {self:?}");
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("{}", anyhow::anyhow!("{self:?}")),
