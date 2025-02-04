@@ -25,12 +25,12 @@ pub struct RegisterRequest {
     pub password: String,
 }
 
-/// register
+/// Register
 #[utoipa::path(post, path = "api/auth/register", responses(
-    (status = 200, description = "registration successful"),
-    (status = 400, description = "bad request", body = String),
-    (status = 409, description = "a conflict has occurred", body = String),
-    (status = 500, description = "internal server error", body = String),
+    (status = 200, description = "Registration successful"),
+    (status = 400, description = "Bad request", body = String),
+    (status = 409, description = "A conflict has occurred", body = String),
+    (status = 500, description = "Internal server error", body = String),
 ))]
 pub async fn post_register(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
