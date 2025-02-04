@@ -50,7 +50,7 @@ const showNothing = computed(() => searchTitle.data.value?.data === undefined ||
 			<NuxtLink
 				v-for="title in searchTitle.data?.value?.data"
 				:key="title.id"
-				:to="`/title/${title.id}`">
+				:to="`${title.is_series ? 'series' : 'oneshot'}/${title.id}`">
 				<ItemCard :title="title" />
 			</NuxtLink>
 		</div>

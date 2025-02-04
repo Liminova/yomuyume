@@ -16,7 +16,7 @@ const progress = computed(() => {
 <template>
 	<NuxtLink
 		class="flex flex-col items-start justify-center"
-		:to="`/title/${title.id}`">
+		:to="`/${props.title.is_series ? 'series' : 'oneshot'}/${props.title.id}`">
 		<div class="img-cover group relative w-full overflow-hidden rounded-xl">
 			<Image
 				:id="title.id"

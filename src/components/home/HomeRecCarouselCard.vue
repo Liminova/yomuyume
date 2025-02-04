@@ -9,7 +9,7 @@ const props = defineProps<{ title: GetTitleResponseBody }>();
 
 <template>
 	<NuxtLink
-		:to="`/title/${props.title.id}`"
+		:to="`/${props.title.is_series ? 'series' : 'oneshot'}/${props.title.id}`"
 		class="relative flex flex-row justify-center overflow-hidden rounded-3xl bg-black/50 max-sm:aspect-[10/12] sm:static">
 		<!-- Background -->
 		<div class="absolute z-[-1] hidden size-full overflow-hidden object-cover px-2 sm:block">
