@@ -147,13 +147,18 @@ async fn main() -> Result<()> {
     let library_processor_handle = tokio::spawn(async move {
         library_processor::full_scan(app_state.clone()).await;
         loop {
-            let (enabled, interval) = {
-                let cfg = app_state.live_config.read().await;
-                let interval = cfg.rescan_interval_in_minutes.max(5);
-                (cfg.rescan_enabled, interval)
-            };
-            sleep(Duration::from_secs(interval as u64 * 60)).await;
-            if enabled {
+            sleep(Duration::from_secs(
+                u64::from(
+                    app_state
+                        .live_config
+                        .get_rescan_interval_in_minutes()
+                        .await
+                        .max(5),
+                ) * 60,
+            ))
+            .await;
+
+            if app_state.live_config.get_rescan_enabled().await {
                 library_processor::full_scan(app_state.clone()).await;
             }
         }
