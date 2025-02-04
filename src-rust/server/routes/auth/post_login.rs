@@ -35,8 +35,8 @@ pub async fn post_login(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     State(app_state): State<Arc<AppState>>,
-    query: Json<LoginRequestBody>,
 ) -> Result<Response, AppError> {
+    query: Json<LoginRequest>,
     let Some((user_id, password_hash)) = sqlx::query!(
         "SELECT id,
             password_hash
