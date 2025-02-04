@@ -82,8 +82,7 @@ async fn main() -> Result<()> {
         .route(REGISTER_PATH, post(post_register))
         .route(LOGIN_PATH, post(post_login))
         .route(LOGOUT_PATH, get(get_logout))
-        .nest(
-            "/",
+        .merge(
             Router::new()
                 // content
                 .route(SEARCH_PATH, post(post_search))
