@@ -16,13 +16,11 @@ use crate::{
     utils::app_state::AppState,
 };
 
-/// logout
-///
-/// reset all the cookies on the client side
+/// Logout
 #[utoipa::path(get, path = "/api/auth/logout", responses(
-    (status = 200, description = "logout successful"),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 500, description = "internal server error", body = String),
+    (status = 200, description = "Logout successful"),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String),
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_logout(
     cookie_jar: CookieJar,
