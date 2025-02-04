@@ -25,11 +25,6 @@ pub struct LoginRequest {
     pub password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct LoginResponseBody {
-    pub token: String,
-}
-
 /// login
 #[utoipa::path(post, path = "/api/auth/login", responses(
     (status = 200, description = "login successful"),
