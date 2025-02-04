@@ -1,26 +1,20 @@
-mod delete_account;
 mod favorite_bookmark;
 mod get_whoami;
 mod post_modify;
+mod post_sensitive;
 mod put_progress;
-mod reset_password;
-mod validate_email;
 
-pub use delete_account::*;
 pub use favorite_bookmark::*;
 pub use get_whoami::*;
 pub use post_modify::*;
+pub use post_sensitive::*;
 pub use put_progress::*;
-pub use reset_password::*;
-pub use validate_email::*;
 
 use anyhow::{anyhow, Result};
 use email_address::EmailAddress;
-use lettre::transport::smtp::response::Response as LetterResponse;
 use lettre::{
-    self,
-    message::{header::ContentType, Mailbox},
-    transport::smtp::authentication::Credentials,
+    message::{header::ContentType, IntoBody, Mailbox},
+    transport::smtp::{authentication::Credentials, response::Response as LetterResponse},
     Message, SmtpTransport, Transport,
 };
 
@@ -73,25 +67,25 @@ impl Mailer {
 
     pub fn send(
         &self,
-        receiver_name: impl AsRef<str>,
-        receiver_email: impl AsRef<str>,
-        subject: impl AsRef<str>,
-        content: impl AsRef<str>,
+        receiver_name: &str,
+        receiver_email: &str,
+        subject: impl Into<String>,
+        body: impl IntoBody,
     ) -> Result<LetterResponse> {
-        let to: Mailbox = format!("{} <{}>", receiver_name.as_ref(), receiver_email.as_ref())
+        let to: Mailbox = format!("{receiver_name} <{receiver_email}>")
             .parse()
-            .map_err(|_| anyhow!("invalid receiver info: {}", receiver_email.as_ref()))?;
+            .map_err(|_| anyhow!("invalid receiver info: {receiver_email}"))?;
 
         let email = Message::builder()
             .from(self.sender.clone())
             .to(to)
             .header(ContentType::TEXT_PLAIN)
-            .subject(subject.as_ref())
-            .body(content.as_ref().to_string())
-            .map_err(|e| anyhow!("can't build email: {}", e))?;
+            .subject(subject)
+            .body(body)
+            .map_err(|e| anyhow!("can't build email: {e}"))?;
 
         self.mailer
             .send(&email)
-            .map_err(|e| anyhow!("can't send email: {}", e))
+            .map_err(|e| anyhow!("can't send email: {e}"))
     }
 }
