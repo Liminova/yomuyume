@@ -191,19 +191,9 @@ function chipCategoryHandler(eventTarget: HTMLElement): void {
 			<NuxtLink
 				v-for="title in filteredTitlesToDisplay"
 				:key="title.id"
-				:to="`/title/${title.id}`">
-				<ItemCard
-					:author="title.author ?? 'Unknown'"
-					:cover="{
-						src: toCoverApiEndpoint(title.id),
-						width: title.cover_width,
-						height: title.cover_height,
-						blurhash: title.cover_blurhash,
-						format: title.cover_format,
-					}"
-					:progress="title.page_read ? title.page_read / title.page_count : 0"
-					:title="title.title"
-					:title-id="title.id" />
+				:to="`${title.is_series ? 'series' : 'oneshot'}/${title.id}`">
+				>
+				<ItemCard :title="title" />
 			</NuxtLink>
 		</div>
 	</div>
