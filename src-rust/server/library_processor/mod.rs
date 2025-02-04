@@ -29,7 +29,7 @@ use crate::{
     traits::do_something_and_ok::DoSomethingAndOk,
     types::{
         absolute_path::{AbsolutePath, AbsolutePathErr},
-        CategoryID, TitleID,
+        id::{CategoryID, TitleID},
     },
     utils::{
         app_state::AppState,
