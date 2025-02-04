@@ -7,30 +7,25 @@ use axum::{
     Extension,
 };
 
-use crate::{
-    types::UserID,
-    utils::{app_error::AppError, app_state::AppState},
-};
+use crate::{routes::errors::InternalError, types::id::UserID, utils::app_state::AppState};
 
-/// add favorite
-///
-/// add a title to the user's favorites
+/// Favorite a title
 #[utoipa::path(put, path = "/api/user/favorite/{title_id}", responses(
-    (status = 200, description = "add favorite successful"),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 500, description = "internal server error", body = String)
+    (status = 200, description = "Add favorite successful"),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn put_favorite(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
-) -> Result<Response, AppError> {
+) -> Result<Response, InternalError> {
     sqlx::query!(
         "INSERT INTO favorites (id, title_id, user_id)
         VALUES ($1, $2, $3) ON CONFLICT (title_id, user_id) DO NOTHING",
         app_state.id_generator.snowflake().await.map_err(|e| {
             tracing::error!("{e:?}");
-            AppError::Snowflake(e)
+            InternalError::Snowflake(e)
         })?,
         title_id,
         user_id.as_ref()
@@ -39,31 +34,29 @@ pub async fn put_favorite(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())
 }
 
-/// add bookmark
-///
-/// add a title to the user's bookmarks
+/// Bookmark a title
 #[utoipa::path(put, path = "/user/bookmark/{title_id}", responses(
-    (status = 200, description = "add bookmark successful"),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 500, description = "internal server error", body = String)
+    (status = 200, description = "Add bookmark successful"),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn put_bookmark(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
-) -> Result<Response, AppError> {
+) -> Result<Response, InternalError> {
     sqlx::query!(
         "INSERT INTO bookmarks (id, title_id, user_id)
         VALUES ($1, $2, $3) ON CONFLICT (title_id, user_id) DO NOTHING",
         app_state.id_generator.snowflake().await.map_err(|e| {
             tracing::error!("{e:?}");
-            AppError::Snowflake(e)
+            InternalError::Snowflake(e)
         })?,
         title_id,
         user_id.as_ref()
@@ -72,25 +65,23 @@ pub async fn put_bookmark(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())
 }
 
-/// delete favorite
-///
-/// delete a title from the user's favorites
+/// Un-favorite a title
 #[utoipa::path(delete, path = "/api/user/favorite/{title_id}", responses(
-    (status = 200, description = "delete favorite successful"),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 500, description = "internal server error", body = String)
+    (status = 200, description = "Delete favorite successful"),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn delete_favorite(
     State(data): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
-) -> Result<Response, AppError> {
+) -> Result<Response, InternalError> {
     sqlx::query!(
         "DELETE FROM favorites
         WHERE title_id = $1
@@ -102,25 +93,23 @@ pub async fn delete_favorite(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())
 }
 
-/// delete bookmark
-///
-/// delete a title from the user's bookmarks
+/// Un-bookmark a title
 #[utoipa::path(delete, path = "/user/bookmark/{title_id}", responses(
-    (status = 200, description = "delete bookmark successful"),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 500, description = "internal server error", body = String)
+    (status = 200, description = "Delete bookmark successful"),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String)
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn delete_bookmark(
     State(data): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
-) -> Result<Response, AppError> {
+) -> Result<Response, InternalError> {
     sqlx::query!(
         "DELETE FROM bookmarks
         WHERE title_id = $1
@@ -132,7 +121,7 @@ pub async fn delete_bookmark(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())
