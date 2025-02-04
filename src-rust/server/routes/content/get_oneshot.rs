@@ -182,8 +182,10 @@ pub async fn get_oneshot(
         }),
     };
 
-    if body.pages.as_ref().filter(|p| p.is_empty()).is_none() {
-        return Err(InternalErr::TitleNoPage(title_id));
+    if body.pages.as_ref().filter(|p| !p.is_empty()).is_none() {
+        let e = InternalErr::TitleNoPage(title_id);
+        tracing::error!("{e:?}");
+        return Err(e);
     }
 
     Ok((StatusCode::OK, Json(body)).into_response())

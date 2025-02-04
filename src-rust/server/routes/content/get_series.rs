@@ -186,8 +186,10 @@ pub async fn get_series(
         }),
     };
 
-    if body.chapters.as_ref().filter(|c| c.is_empty()).is_none() {
-        return Err(InternalErr::NoChapter(title_id));
+    if body.chapters.as_ref().filter(|c| !c.is_empty()).is_none() {
+        let e = InternalErr::NoChapter(title_id);
+        tracing::error!("{e:?}");
+        return Err(e);
     }
 
     Ok((StatusCode::OK, Json(body)).into_response())
