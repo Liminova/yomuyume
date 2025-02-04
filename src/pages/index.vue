@@ -28,9 +28,9 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		<CarouselWrapper>
 			<swiper-slide
 				v-for="title in recentlyUpdatedItems"
-				:key="title.id">
+				:key="`up${title.id}`">
 				<ItemCard
-					:key="title.id"
+					:key="`up${title.id}`"
 					:title="title" />
 			</swiper-slide>
 		</CarouselWrapper>
@@ -42,9 +42,9 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		<CarouselWrapper>
 			<swiper-slide
 				v-for="title in newlyAddedItems"
-				:key="title.id">
+				:key="`new${title.id}`">
 				<ItemCard
-					:key="title.id"
+					:key="`new${title.id}`"
 					:title="title" />
 			</swiper-slide>
 		</CarouselWrapper>
@@ -56,9 +56,9 @@ const completedStoriesItems = ref<GetTitleResponseBody[]>([]);
 		<CarouselWrapper>
 			<swiper-slide
 				v-for="title in completedStoriesItems"
-				:key="title.id">
+				:key="`done${title.id}`">
 				<ItemCard
-					:key="title.id"
+					:key="`done${title.id}`"
 					:title="title" />
 			</swiper-slide>
 		</CarouselWrapper>

@@ -77,7 +77,7 @@ onUnmounted(() => {
 		<CarouselContent>
 			<CarouselItem
 				v-for="(title) in titles.data.value?.data"
-				:key="title.id">
+				:key="`rec${title.id}`">
 				<HomeRecCard
 					:title="title" />
 			</CarouselItem>
