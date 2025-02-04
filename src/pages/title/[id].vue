@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { clamp } from "@vueuse/core";
 import { Bookmark, Heart } from "lucide-vue-next";
 import { ref, watchEffect } from "vue";
 
@@ -30,11 +31,11 @@ watchEffect(() => {
 function toggleBookmark(): void {
 	if (isBookmark.value) {
 		deleteBookmark.mutate((useRoute().params.id as string));
-		bookmarks.value--;
+		bookmarks.value = clamp(bookmarks.value - 1, 0, Infinity);
 		isBookmark.value = false;
 	} else {
 		addBookmark.mutate((useRoute().params.id as string));
-		bookmarks.value++;
+		bookmarks.value = clamp(bookmarks.value + 1, 0, Infinity);
 		isBookmark.value = true;
 	}
 }
