@@ -25,20 +25,20 @@ use crate::{
 pub async fn get_logout(
     cookie_jar: CookieJar,
     State(app_state): State<Arc<AppState>>,
-) -> Result<Response, AppError> {
+) -> Result<Response, InternalError> {
     let Some(session_id): Option<SessionID> = cookie_jar
         .get("session-id")
         .and_then(|cookie| cookie.to_string().parse::<i64>().ok())
         .map(|id| id.into())
     else {
-        return Ok((StatusCode::UNAUTHORIZED, "no valid session id provided").into_response());
+        return Ok((StatusCode::UNAUTHORIZED, RequestError::YouDontEvenLoggedIn).into_response());
     };
 
     let Some(session_secret) = cookie_jar
         .get("session-secret")
         .map(|cookie| cookie.to_string())
     else {
-        return Ok((StatusCode::UNAUTHORIZED, "no valid session secret provided").into_response());
+        return Ok((StatusCode::UNAUTHORIZED, RequestError::YouDontEvenLoggedIn).into_response());
     };
 
     sqlx::query!(
@@ -50,7 +50,7 @@ pub async fn get_logout(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?;
 
     app_state.session_cache.remove(&session_id);
