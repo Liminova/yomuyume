@@ -38,6 +38,7 @@ export default defineNuxtConfig({
 	],
 	experimental: {
 		viewTransition: true,
+		typedPages: true,
 	},
 	vite: {
 		build: {
