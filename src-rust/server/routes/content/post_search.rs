@@ -230,17 +230,9 @@ pub async fn post_search(
             cover_height: r.cover_height,
             cover_jxl: r.cover_path.map(is_jxl),
             date_updated: r.date_updated.map(|d| d.to_rfc3339()),
-            favorites: if r.favorites_count != 0 {
-                Some(r.favorites_count)
-            } else {
-                None
-            },
-            bookmarks: if r.bookmarks_count != 0 {
-                Some(r.favorites_count)
-            } else {
-                None
-            },
             tags: r.tags.and_then(parse_tags),
+            favorites: (r.favorites_count != 0).then_some(r.favorites_count),
+            bookmarks: (r.bookmarks_count != 0).then_some(r.bookmarks_count),
 
             is_favorite: r.is_favorite,
             is_bookmark: r.is_bookmark,
