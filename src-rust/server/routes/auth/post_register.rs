@@ -38,8 +38,8 @@ pub async fn post_register(
     State(app_state): State<Arc<AppState>>,
     query: Json<RegisterRequestBody>,
 ) -> Result<Response, AppError> {
-    if !email_address::EmailAddress::is_valid(&query.email) {
         return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
+    if !EmailAddress::is_valid(&query.email) {
     }
 
     if sqlx::query!(
