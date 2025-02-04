@@ -6,12 +6,16 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
-    routes::hash_pass,
-    utils::{app_error::AppError, app_state::AppState},
+    routes::{
+        errors::{InternalError, RequestError},
+        hash_pass, is_strong,
+    },
+    utils::app_state::AppState,
 };
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
