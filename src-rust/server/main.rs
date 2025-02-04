@@ -85,7 +85,9 @@ async fn main() -> Result<()> {
             Router::new()
                 .route("/search", post(post_search))
                 .route("/categories", get(get_categories))
-                .route("/title/{title_id}", get(get_title))
+                .route("/series/{title_id}", get(get_series))
+                .route("/oneshot/{title_id}", get(get_oneshot))
+                .route("/chapter/{chapter_id}", get(get_chapter))
                 .route("/tags", get(get_tags))
                 .layer(apply(app_state.clone(), auth)),
         )
@@ -93,8 +95,7 @@ async fn main() -> Result<()> {
             "/api/user",
             Router::new()
                 .route("/whoami", get(get_whoami))
-                .route("/delete", get(get_delete_account).post(post_delete_account))
-                .route("/verify", get(get_validate_email).post(post_validate_email))
+                .route("/sensitive", post(post_sensitive))
                 .route("/modify", post(post_modify))
                 .route(
                     "/bookmark/{title_id}",
@@ -116,18 +117,14 @@ async fn main() -> Result<()> {
         .nest(
             "/api/file",
             Router::new()
-                .route("/page/{page_id}", get(get_page))
+                .route("/page/{is_series}/{page_id}", get(get_page))
                 .route("/cover/{title_id}", get(get_cover))
                 .layer(apply(app_state.clone(), auth)),
         )
         .nest(
             "/api",
-            Router::new()
-                .route("/user/reset/{email}", get(get_reset_password))
-                .route("/user/reset", post(post_reset_password))
-                .route("/utils/status", get(get_status).post(post_status)),
+            Router::new().route("/utils/status", get(get_status).post(post_status)),
         )
-        .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
         .layer(TraceLayer::new_for_http())
         .with_state(app_state.clone());
