@@ -11,7 +11,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::types::BaseTitleResponse;
+use super::structs::BaseTitleResponse;
 
 #[derive(Debug, ToSchema, Serialize, Deserialize, Default)]
 pub enum InnerSearchRequestOrderBy {

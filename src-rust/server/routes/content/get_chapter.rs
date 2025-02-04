@@ -9,7 +9,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::types::BasePageResponse;
+use super::structs::BasePageResponse;
 use crate::{routes::errors::InternalError, types::id::UserID, utils::app_state::AppState};
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
