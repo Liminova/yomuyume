@@ -36,10 +36,10 @@ pub async fn post_register(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     State(app_state): State<Arc<AppState>>,
-    query: Json<RegisterRequestBody>,
-) -> Result<Response, AppError> {
-        return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
+    query: Json<RegisterRequest>,
+) -> Result<Response, InternalError> {
     if !EmailAddress::is_valid(&query.email) {
+        return Ok((StatusCode::BAD_REQUEST, RequestError::InvalidEmail).into_response());
     }
 
     if sqlx::query!(
@@ -54,18 +54,18 @@ pub async fn post_register(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?
     .exists
     {
-        return Ok((
-            StatusCode::CONFLICT,
-            "a user with this email already exists",
-        )
-            .into_response());
+        return Ok((StatusCode::CONFLICT, RequestError::SomeoneUseThisEmail).into_response());
     }
 
-    let ip_address = app_state
+    if !is_strong(&query.password) {
+        return Ok((StatusCode::BAD_REQUEST, RequestError::WeakPassword).into_response());
+    }
+
+    let ip_addr = app_state
         .config
         .reverse_proxy_ip_header
         .as_ref()
@@ -77,33 +77,23 @@ pub async fn post_register(
         .and_then(|value| value.to_str().ok())
         .map_or_else(|| addr.ip().to_string(), |ip_str| ip_str.to_string());
 
-    let p = &query.password;
-    let has_uppercase = p.chars().any(char::is_uppercase);
-    let has_lowercase = p.chars().any(char::is_lowercase);
-    let has_numeric = p.chars().any(char::is_numeric);
-    let has_special = p.chars().any(|c| c.is_ascii_punctuation());
-    let has_valid_length = p.len() >= 8 && p.len() <= 100;
-    if !(has_uppercase && has_lowercase && has_numeric && has_special && has_valid_length) {
-        return Ok((StatusCode::BAD_REQUEST, "password must be between 8 and 100 characters long and contain at least one uppercase letter, one lowercase letter, one number and one special character").into_response());
-    }
-
     sqlx::query!(
         "INSERT INTO users (id, username, email, password_hash, ip_address)
         VALUES ($1, $2, $3, $4, $5)",
         app_state.id_generator.snowflake().await.map_err(|e| {
             tracing::error!("{e:?}");
-            AppError::Snowflake(e)
+            InternalError::Snowflake(e)
         })?,
         query.username.as_str(),
         query.email.to_string().to_ascii_lowercase(),
-        hash_pass(p)?,
-        ip_address.as_str(),
+        hash_pass(query.password.as_bytes())?,
+        ip_addr,
     )
     .execute(&app_state.pool)
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())
