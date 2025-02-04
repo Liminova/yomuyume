@@ -158,8 +158,12 @@ export interface SearchRequest {
 	is_ascending?: boolean;
 }
 
+export interface InnerSearchResponseTitle extends BaseTitleResponse {
+	is_series: boolean;
+}
+
 export interface SearchResponse {
-	data?: Array<BaseTitleResponse & { is_series: boolean }>;
+	data?: InnerSearchResponseTitle[];
 	offset: number;
 	limit: number;
 }
