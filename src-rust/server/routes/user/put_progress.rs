@@ -7,22 +7,20 @@ use axum::{
     Extension,
 };
 
-use crate::{types::UserID, utils::app_error::AppError, utils::app_state::AppState};
+use crate::{routes::errors::InternalError, types::id::UserID, utils::app_state::AppState};
 
-/// set progress
-///
-/// set the user's progress for a title
+/// Set reading progress
 #[utoipa::path(put, path = "/api/user/progress/{title_id}/{page}", responses(
-    (status = 200, description = "set progress successfully"),
-    (status = 400, description = "bad request", body = String),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 500, description = "internal server error", body = String),
+    (status = 200, description = "Set progress successfully"),
+    (status = 400, description = "Bad request", body = String),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String),
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn put_progress(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Path((title_id, page)): Path<(i64, i32)>,
-) -> Result<Response, AppError> {
+) -> Result<Response, InternalError> {
     sqlx::query!(
         "INSERT INTO progresses (user_id, title_id, last_read_at, page)
         VALUES ($1, $2, $3, $4) ON CONFLICT (user_id, title_id) DO
@@ -38,7 +36,7 @@ pub async fn put_progress(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())
