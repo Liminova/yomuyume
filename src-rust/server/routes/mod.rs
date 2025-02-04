@@ -1,20 +1,17 @@
 pub mod auth;
 pub mod content;
+pub mod errors;
 pub mod file;
 pub mod middlewares;
 pub mod user;
 pub mod utils;
 
-pub use self::{auth::*, content::*, file::*, user::*, utils::*};
-pub use middlewares::auth::auth;
-
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use errors::InternalError;
 use rand_core::OsRng;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
-    Modify, OpenApi, ToSchema,
+    Modify, OpenApi,
 };
 
 struct SecurityAddon;
@@ -34,8 +31,6 @@ impl Modify for SecurityAddon {
     }
 }
 
-use crate::utils::app_error::AppError;
-
 #[derive(OpenApi)]
 #[openapi(
     modifiers(&SecurityAddon),
@@ -45,24 +40,24 @@ use crate::utils::app_error::AppError;
     ),
     tags(
         (
-            name = "auth",
-            description = "login, register, logout"
+            name = "Auth",
+            description = "Login, register, logout"
         ),
         (
             name = "content",
-            description = "all the routes related to fetching contents"
+            description = "Categories, titles, chapters,..."
         ),
         (
-            name = "user",
-            description = "all the routes related to user"
+            name = "User",
+            description = "Change info, password, verify email..."
         ),
         (
-            name = "utils",
-            description = "getting server status, item/category id-name map"
+            name = "Utils",
+            description = "Miscellaneous stuffs"
         ),
         (
-            name = "file",
-            description = "all the routes related to file fetching"
+            name = "File",
+            description = "File fetching"
         )
     ),
     paths(
@@ -73,24 +68,21 @@ use crate::utils::app_error::AppError;
         user::delete_bookmark,
         user::delete_favorite,
         user::get_whoami,
-        user::get_delete_account,
-        user::get_reset_password,
-        user::get_validate_email,
-        user::post_delete_account,
         user::post_modify,
-        user::post_reset_password,
-        user::post_validate_email,
+        user::post_sensitive,
         user::put_bookmark,
         user::put_favorite,
         user::put_progress,
 
         content::get_categories,
         content::post_search,
-        content::get_title,
+        content::get_chapter,
+        content::get_oneshot,
+        content::get_series,
+        content::get_tags,
 
         utils::get_status,
         utils::post_status,
-        utils::get_tags,
         utils::get_scanning_progress,
 
         file::get_page,
@@ -98,30 +90,33 @@ use crate::utils::app_error::AppError;
     ),
     components(schemas(
         // Auth
-        LoginRequestBody,
-        LoginResponseBody,
-        RegisterRequestBody,
+        auth::LoginRequest,
+        auth::RegisterRequest,
 
         // User
-        DeleteRequestBody,
-        ModifyRequestBody,
-        ResetRequestBody,
-        ValidateEmailRequestBody,
-        WhoAmIResponseBody,
+        user::ModifyRequest,
+        user::WhoAmIResponse,
+        user::SensitiveRequest,
+        user::SensitiveRequestMode,
+        user::SensitiveRequestPurpose,
 
         // Content
-        OrderBy,
-        TitleResponseBody,
-        TitleResponseBody,
-        CategoryResponseBody,
-        SearchRequestBody,
-        SearchResponseBody,
+        content::InnerCategoriesResponse,
+        content::ChapterResponse,
+        content::OneshotResponse,
+        content::SeriesResponse,
+        content::SearchRequest,
+        content::InnerTitleSearchResponse,
+        content::SearchResponse,
+        content::InnerSearchRequestOrderBy,
+        content::BaseTitleResponse,
+        content::BasePageResponse,
+        content::InnerTagResponse,
 
         // Utils
-        StatusRequestBody,
-        StatusResponseBody,
-        TagResponseBody,
-        ScanningProgressResponseBody,
+        utils::StatusRequest,
+        utils::StatusResponse,
+        utils::ScanningProgressResponse,
     ))
 )]
 pub struct ApiDoc;
@@ -138,49 +133,26 @@ fn check_pass(password_hash: impl AsRef<str>, password_input: impl AsRef<str>) -
     })
 }
 
-fn hash_pass(input: impl AsRef<str>) -> Result<String, AppError> {
-    let input = input.as_ref().as_bytes();
-
+fn hash_pass(input: &[u8]) -> Result<String, InternalError> {
     Argon2::default()
         .hash_password(input, &SaltString::generate(&mut OsRng))
         .map(|hash| hash.to_string())
         .map_err(|e| {
             tracing::error!("{e:?}");
-            AppError::PasswordHash(e)
+            InternalError::PasswordHash(e)
         })
 }
 
-#[skip_serializing_none]
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
-#[allow(clippy::struct_excessive_bools)]
-pub struct TitleResponseBody {
-    pub id: String,
-    pub title: Option<String>,
-    pub author: Option<String>,
+fn is_strong(input: &str) -> bool {
+    let upper = input.chars().any(char::is_uppercase);
+    let lower = input.chars().any(char::is_lowercase);
+    let numeric = input.chars().any(char::is_numeric);
+    let special = input.chars().any(|c| c.is_ascii_punctuation());
+    let length = input.len() >= 8 && input.len() <= 100;
 
-    pub category_id: Option<String>,
-    pub description: Option<String>,
-    pub release: Option<String>,
-    pub is_series: bool,
+    if upper && lower && numeric && special && length {
+        return true;
+    }
 
-    pub cover_blurhash: Option<String>,
-    /// full width, you might want to clamp this down to a much, much smaller
-    /// value (<32px) before decoding the blurhash
-    pub cover_width: Option<i32>,
-    /// same as `cover_width`
-    pub cover_height: Option<i32>,
-    pub cover_jxl: Option<bool>,
-
-    pub date_updated: Option<String>,
-
-    pub tags: Option<Vec<(String, String)>>,
-    /// null if the value is 0
-    pub favorites: Option<i64>,
-    /// null if the value is 0
-    pub bookmarks: Option<i64>,
-
-    pub is_favorite: bool,
-    pub is_bookmark: bool,
-    /// null if the value is 0 or haven't read
-    pub page_read: Option<i32>,
+    false
 }
