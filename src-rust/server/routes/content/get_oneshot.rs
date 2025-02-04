@@ -9,7 +9,10 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::structs::{BasePageResponse, BaseTitleResponse};
+use super::{
+    is_jxl, parse_pages, parse_tags,
+    structs::{BasePageResponse, BaseTitleResponse},
+};
 use crate::{
     routes::errors::InternalErr,
     structs::id::UserID,
@@ -132,22 +135,8 @@ pub async fn get_oneshot(
             cover_blurhash: r.cover_blurhash,
             cover_width: r.cover_width,
             cover_height: r.cover_height,
-            tags: r.tags.map(|mut tags| {
-                tags.iter_mut()
-                    .filter_map(|tag| {
-                        let mut pair = tag.as_array()?.iter();
-                        Some((
-                            pair.next()?.as_i64()?.to_string(),
-                            pair.next()?.as_str()?.to_string(),
-                        ))
-                    })
-                    .collect()
-            }),
-            cover_jxl: r.cover_path.map(|path| {
-                std::path::Path::new(&path)
-                    .extension()
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
-            }),
+            tags: r.tags.and_then(parse_tags),
+            cover_jxl: r.cover_path.map(is_jxl),
 
             date_updated: r.date_updated.map(|d| d.to_rfc3339()),
             favorites: (r.favorites_count != 0).then_some(r.favorites_count),
@@ -157,29 +146,7 @@ pub async fn get_oneshot(
             is_bookmark: r.is_bookmark,
             page_read: r.page_read.filter(|i| *i != 0),
         },
-        pages: r.pages.map(|rs| {
-            rs.into_iter()
-                .filter_map(|r| {
-                    let page = r.as_object()?;
-
-                    Some(BasePageResponse {
-                        id: page.get("id")?.as_i64()?.to_string(),
-                        blurhash: None,
-                        width: None,
-                        height: None,
-                        jxl: page.get("path").and_then(|p| p.as_str()).is_some_and(|p| {
-                            std::path::Path::new(&p)
-                                .extension()
-                                .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
-                        }),
-                        description: page
-                            .get("description")
-                            .and_then(|s| s.as_str())
-                            .map(|s| s.to_string()),
-                    })
-                })
-                .collect()
-        }),
+        pages: r.pages.map(parse_pages),
     };
 
     if body.pages.as_ref().filter(|p| !p.is_empty()).is_none() {

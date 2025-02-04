@@ -15,7 +15,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::structs::BaseTitleResponse;
+use super::{is_jxl, parse_tags, structs::BaseTitleResponse};
 
 #[derive(Debug, ToSchema, Serialize, Deserialize, Default)]
 pub enum InnerSearchRequestOrderBy {
@@ -228,23 +228,8 @@ pub async fn post_search(
             cover_blurhash: r.cover_blurhash,
             cover_width: r.cover_width,
             cover_height: r.cover_height,
-            cover_jxl: r.cover_path.map(|p| {
-                std::path::Path::new(&p)
-                    .extension()
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
-            }),
+            cover_jxl: r.cover_path.map(is_jxl),
             date_updated: r.date_updated.map(|d| d.to_rfc3339()),
-            tags: r.tags.map(|mut tags| {
-                tags.iter_mut()
-                    .filter_map(|tag| {
-                        let mut pair = tag.as_array()?.iter();
-                        Some((
-                            pair.next()?.as_i64()?.to_string(),
-                            pair.next()?.as_str()?.to_string(),
-                        ))
-                    })
-                    .collect()
-            }),
             favorites: if r.favorites_count != 0 {
                 Some(r.favorites_count)
             } else {
@@ -255,6 +240,7 @@ pub async fn post_search(
             } else {
                 None
             },
+            tags: r.tags.and_then(parse_tags),
 
             is_favorite: r.is_favorite,
             is_bookmark: r.is_bookmark,

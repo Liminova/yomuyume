@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
-use super::structs::BaseTitleResponse;
+use super::{is_jxl, parse_tags, structs::BaseTitleResponse};
 use crate::{
     routes::errors::InternalErr,
     structs::id::UserID,
@@ -143,22 +143,8 @@ pub async fn get_series(
             cover_blurhash: r.cover_blurhash,
             cover_width: r.cover_width,
             cover_height: r.cover_height,
-            tags: r.tags.map(|mut tags| {
-                tags.iter_mut()
-                    .filter_map(|tag| {
-                        let mut pair = tag.as_array()?.iter();
-                        Some((
-                            pair.next()?.as_i64()?.to_string(),
-                            pair.next()?.as_str()?.to_string(),
-                        ))
-                    })
-                    .collect()
-            }),
-            cover_jxl: r.cover_path.map(|path| {
-                std::path::Path::new(&path)
-                    .extension()
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
-            }),
+            tags: r.tags.and_then(parse_tags),
+            cover_jxl: r.cover_path.map(is_jxl),
 
             date_updated: r.date_updated.map(|d| d.to_rfc3339()),
             favorites: (r.favorites_count != 0).then_some(r.favorites_count),

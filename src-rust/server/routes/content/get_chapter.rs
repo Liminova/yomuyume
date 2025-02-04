@@ -9,7 +9,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::structs::BasePageResponse;
+use super::{parse_pages, structs::BasePageResponse};
 use crate::{
     routes::errors::InternalErr,
     structs::id::UserID,
@@ -65,25 +65,7 @@ pub async fn get_chapter(
         id: r.id.to_string(),
         number: r.number,
         description: r.description,
-        pages: r.pages.map(|rs| {
-            rs.into_iter()
-                .filter_map(|r| {
-                    let page = r.as_object()?;
-
-                    Some(BasePageResponse {
-                        id: page.get("id")?.as_str()?.to_string(),
-                        blurhash: None,
-                        width: None,
-                        height: None,
-                        jxl: false,
-                        description: page
-                            .get("description")
-                            .and_then(|d| d.as_str())
-                            .map(|d| d.to_string()),
-                    })
-                })
-                .collect()
-        }),
+        pages: r.pages.map(parse_pages),
     }) else {
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
