@@ -10,11 +10,14 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
-use crate::utils::{app_error::AppError, app_state::AppState, macros::bail_if_empty};
+use crate::{
+    routes::errors::InternalError,
+    utils::{app_state::AppState, macros::bail_if_empty},
+};
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
-pub struct CategoryResponseBody {
+pub struct InnerCategoriesResponse {
     pub id: String,
     pub name: Option<String>,
     pub description: Option<String>,
@@ -25,16 +28,18 @@ pub struct CategoryResponseBody {
     pub cover_jxl: Option<bool>,
 }
 
-/// get categories
-///
-/// with their information
+type CategoriesResponse = Vec<InnerCategoriesResponse>;
+
+/// Categories & infos
 #[utoipa::path(get, path = "/api/content/categories", responses(
-    (status = 200, description = "fetch all categories successful", body = Vec<CategoryResponseBody>),
-    (status = 204, description = "no category found"),
-    (status = 401, description = "unauthorized", body = String),
-    (status = 500, description = "internal server error", body = String),
+    (status = 200, description = "Fetch all categories success", body = CategoriesResponse),
+    (status = 204, description = "No category found"),
+    (status = 401, description = "Unauthorized", body = String),
+    (status = 500, description = "Internal server error", body = String),
 ), security(("session-id" = [], "session-secret" = [])))]
-pub async fn get_categories(State(app_state): State<Arc<AppState>>) -> Result<Response, AppError> {
+pub async fn get_categories(
+    State(app_state): State<Arc<AppState>>,
+) -> Result<Response, InternalError> {
     let data = sqlx::query!(
         "SELECT id,
             name,
@@ -49,10 +54,10 @@ pub async fn get_categories(State(app_state): State<Arc<AppState>>) -> Result<Re
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        AppError::DB(e)
+        InternalError::DB(e)
     })?
     .into_iter()
-    .map(|record| CategoryResponseBody {
+    .map(|record| InnerCategoriesResponse {
         id: record.id.to_string(),
         name: record.name,
         description: record.description,
