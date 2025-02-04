@@ -13,7 +13,7 @@ use utoipa::ToSchema;
 use crate::{
     routes::{
         check_pass,
-        errors::{InternalError, RequestError},
+        errors::{InternalErr, RequestErr},
         hash_pass, is_strong,
         user::Mailer,
     },
@@ -63,7 +63,7 @@ pub async fn post_sensitive(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Json(req): Json<SensitiveRequest>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let now = Utc::now();
     let purpose = match &req.purpose {
         SensitiveRequestPurpose::DeleteAccount => TempCodePurpose::DeleteAccount,
@@ -83,15 +83,16 @@ pub async fn post_sensitive(
                         .map(|u| u.verified_at)
                         .is_some()
                     {
-                        return Ok((StatusCode::BAD_REQUEST, RequestError::AlreadyVerified)
-                            .into_response());
+                        return Ok(
+                            (StatusCode::BAD_REQUEST, RequestErr::AlreadyVerified).into_response()
+                        );
                     }
                 }
             };
 
             let mailer = Mailer::from(&app_state.config).map_err(|e| {
                 tracing::error!("{e:?}");
-                InternalError::Mailer(e)
+                InternalErr::Mailer(e)
             })?;
 
             // too many request
@@ -106,7 +107,7 @@ pub async fn post_sensitive(
             .await
             .map_err(|e| {
                 tracing::error!("{e:?}");
-                InternalError::DB(e)
+                InternalErr::DB(e)
             })?
             .is_some_and(|r| {
                 r.created_at
@@ -131,7 +132,7 @@ pub async fn post_sensitive(
             .await
             .map_err(|e| {
                 tracing::error!("{e:?}");
-                InternalError::DB(e)
+                InternalErr::DB(e)
             })?
             .code;
 
@@ -139,7 +140,7 @@ pub async fn post_sensitive(
                 .user_cache
                 .get(&user_id)
                 .ok_or_else(|| {
-                    let e = InternalError::ReadCache("user".to_string());
+                    let e = InternalErr::ReadCache("user".to_string());
                     tracing::error!("{e:?}");
                     e
                 })
@@ -166,24 +167,18 @@ pub async fn post_sensitive(
                 )
                 .map_err(|e| {
                     tracing::error!("{e:?}");
-                    InternalError::Mailer(e)
+                    InternalErr::Mailer(e)
                 })?;
         }
         SensitiveRequestMode::Confirm => {
             bail_if_empty!(
                 req.password,
-                Ok((
-                    StatusCode::BAD_REQUEST,
-                    RequestError::InvalidCurrentPassword
-                )
-                    .into_response())
+                Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCurrentPassword).into_response())
             );
             let Some(code) = req.code.as_ref() else {
-                return Ok((
-                    StatusCode::BAD_REQUEST,
-                    RequestError::InvalidPasswordAndCode,
-                )
-                    .into_response());
+                return Ok(
+                    (StatusCode::BAD_REQUEST, RequestErr::InvalidPasswordAndCode).into_response(),
+                );
             };
 
             // invalid password
@@ -196,16 +191,14 @@ pub async fn post_sensitive(
                 .await
                 .map_err(|e| {
                     tracing::error!("{e:?}");
-                    InternalError::DB(e)
+                    InternalErr::DB(e)
                 })?
                 .password_hash,
                 &req.password,
             ) {
-                return Ok((
-                    StatusCode::BAD_REQUEST,
-                    RequestError::InvalidPasswordAndCode,
-                )
-                    .into_response());
+                return Ok(
+                    (StatusCode::BAD_REQUEST, RequestErr::InvalidPasswordAndCode).into_response(),
+                );
             }
 
             // invalid || expired code
@@ -223,18 +216,16 @@ pub async fn post_sensitive(
             .await
             .map_err(|e| {
                 tracing::error!("{e:?}");
-                InternalError::DB(e)
+                InternalErr::DB(e)
             })?
             .map_or(true, |record| {
                 record
                     .created_at
                     .outside(&Utc::now(), &Duration::seconds(TEMP_CODE_EXPIRED_AFTER))
             }) {
-                return Ok((
-                    StatusCode::BAD_REQUEST,
-                    RequestError::InvalidPasswordAndCode,
-                )
-                    .into_response());
+                return Ok(
+                    (StatusCode::BAD_REQUEST, RequestErr::InvalidPasswordAndCode).into_response(),
+                );
             };
 
             match purpose {
@@ -244,7 +235,7 @@ pub async fn post_sensitive(
                         .await
                         .map_err(|e| {
                             tracing::error!("{e:?}");
-                            InternalError::DB(e)
+                            InternalErr::DB(e)
                         })?;
                     app_state.session_cache.retain(|_, v| *v != user_id);
                     app_state.user_cache.remove(&user_id);
@@ -256,7 +247,7 @@ pub async fn post_sensitive(
                         .filter(|new_password| is_strong(new_password))
                     else {
                         return Ok(
-                            (StatusCode::BAD_REQUEST, RequestError::WeakPassword).into_response()
+                            (StatusCode::BAD_REQUEST, RequestErr::WeakPassword).into_response()
                         );
                     };
 
@@ -273,14 +264,14 @@ pub async fn post_sensitive(
                     .await
                     .map_err(|e| {
                         tracing::error!("{e:?}");
-                        InternalError::DB(e)
+                        InternalErr::DB(e)
                     })?;
 
                     app_state
                         .user_cache
                         .get_mut(&user_id)
                         .ok_or_else(|| {
-                            let e = InternalError::WriteCache("user".to_string());
+                            let e = InternalErr::WriteCache("user".to_string());
                             tracing::error!("{e:?}");
                             e
                         })?
@@ -299,14 +290,14 @@ pub async fn post_sensitive(
                     .await
                     .map_err(|e| {
                         tracing::error!("{e:?}");
-                        InternalError::DB(e)
+                        InternalErr::DB(e)
                     })?;
 
                     app_state
                         .user_cache
                         .get_mut(&user_id)
                         .ok_or_else(|| {
-                            let e = InternalError::WriteCache("user".to_string());
+                            let e = InternalErr::WriteCache("user".to_string());
                             tracing::error!("{e:?}");
                             e
                         })?

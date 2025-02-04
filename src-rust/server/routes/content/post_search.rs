@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
 
 use axum::{
     extract::State,
@@ -75,7 +75,7 @@ pub async fn post_search(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Json(request_body): Json<SearchRequest>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let limit = request_body.limit.unwrap_or(10);
     let offset = request_body.offset.unwrap_or(0);
     let order_by = request_body.order_by.unwrap_or_default();
@@ -208,7 +208,7 @@ pub async fn post_search(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?
     .into_iter()
     .map(|r| InnerTitleSearchResponse {

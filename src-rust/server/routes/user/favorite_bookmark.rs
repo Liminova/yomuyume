@@ -7,7 +7,7 @@ use axum::{
     Extension,
 };
 
-use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
 
 /// Favorite a title
 #[utoipa::path(put, path = "/api/user/favorite/{title_id}", responses(
@@ -19,13 +19,13 @@ pub async fn put_favorite(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     sqlx::query!(
         "INSERT INTO favorites (id, title_id, user_id)
         VALUES ($1, $2, $3) ON CONFLICT (title_id, user_id) DO NOTHING",
         app_state.id_generator.snowflake().await.map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::Snowflake(e)
+            InternalErr::Snowflake(e)
         })?,
         title_id,
         user_id.as_ref()
@@ -34,7 +34,7 @@ pub async fn put_favorite(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())
@@ -50,13 +50,13 @@ pub async fn put_bookmark(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     sqlx::query!(
         "INSERT INTO bookmarks (id, title_id, user_id)
         VALUES ($1, $2, $3) ON CONFLICT (title_id, user_id) DO NOTHING",
         app_state.id_generator.snowflake().await.map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::Snowflake(e)
+            InternalErr::Snowflake(e)
         })?,
         title_id,
         user_id.as_ref()
@@ -65,7 +65,7 @@ pub async fn put_bookmark(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())
@@ -81,7 +81,7 @@ pub async fn delete_favorite(
     State(data): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     sqlx::query!(
         "DELETE FROM favorites
         WHERE title_id = $1
@@ -93,7 +93,7 @@ pub async fn delete_favorite(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())
@@ -109,7 +109,7 @@ pub async fn delete_bookmark(
     State(data): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Path(title_id): Path<i64>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     sqlx::query!(
         "DELETE FROM bookmarks
         WHERE title_id = $1
@@ -121,7 +121,7 @@ pub async fn delete_bookmark(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())

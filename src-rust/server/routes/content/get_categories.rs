@@ -11,7 +11,7 @@ use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
 use crate::{
-    routes::errors::InternalError,
+    routes::errors::InternalErr,
     utils::{app_state::AppState, macros::bail_if_empty},
 };
 
@@ -39,7 +39,7 @@ type CategoriesResponse = Vec<InnerCategoriesResponse>;
 ), security(("session-id" = [], "session-secret" = [])))]
 pub async fn get_categories(
     State(app_state): State<Arc<AppState>>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let data = sqlx::query!(
         "SELECT id,
             name,
@@ -54,7 +54,7 @@ pub async fn get_categories(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?
     .into_iter()
     .map(|record| InnerCategoriesResponse {

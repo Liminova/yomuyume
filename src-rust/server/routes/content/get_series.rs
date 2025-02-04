@@ -11,7 +11,7 @@ use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
 use super::structs::BaseTitleResponse;
-use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
 
 #[skip_serializing_none]
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
@@ -42,7 +42,7 @@ pub async fn get_series(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,
     Extension(user_id): Extension<UserID>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let Some(r) = sqlx::query!(
         r#"SELECT t.title AS title,
             c.name AS "category?",
@@ -113,7 +113,7 @@ pub async fn get_series(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?
     else {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -183,7 +183,7 @@ pub async fn get_series(
     };
 
     if body.chapters.as_ref().filter(|c| c.is_empty()).is_none() {
-        return Err(InternalError::NoChapter(title_id));
+        return Err(InternalErr::NoChapter(title_id));
     }
 
     Ok((StatusCode::OK, Json(body)).into_response())

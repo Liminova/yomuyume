@@ -14,7 +14,7 @@ use crate::{
     app_state::AppState,
     routes::{
         check_pass,
-        errors::{InternalError, RequestError},
+        errors::{InternalErr, RequestErr},
     },
 };
 
@@ -36,7 +36,7 @@ pub async fn post_login(
     headers: HeaderMap,
     State(app_state): State<Arc<AppState>>,
     query: Json<LoginRequest>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let Some((user_id, password_hash)) = sqlx::query!(
         "SELECT id,
             password_hash
@@ -49,14 +49,14 @@ pub async fn post_login(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?
     .map(|user| (user.id, user.password_hash)) else {
-        return Ok((StatusCode::BAD_REQUEST, RequestError::InvalidCredentials).into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCredentials).into_response());
     };
 
     if !check_pass(&password_hash, &query.password) {
-        return Ok((StatusCode::BAD_REQUEST, RequestError::InvalidCredentials).into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCredentials).into_response());
     }
 
     let ip_address = app_state
@@ -92,7 +92,7 @@ pub async fn post_login(
         RETURNING id",
         app_state.id_generator.snowflake().await.map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::Snowflake(e)
+            InternalErr::Snowflake(e)
         })?,
         session_secret.as_str(),
         user_id,
@@ -105,7 +105,7 @@ pub async fn post_login(
     .map(|r| r.id)
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?;
 
     Ok((

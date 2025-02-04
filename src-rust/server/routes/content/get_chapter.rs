@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::structs::BasePageResponse;
-use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct ChapterResponse {
@@ -32,7 +32,7 @@ pub async fn get_chapter(
     State(app_state): State<Arc<AppState>>,
     Path(chapter_id): Path<i64>,
     Extension(_user_id): Extension<UserID>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let Some(body) = sqlx::query!(
         r#"SELECT c.id AS id,
             c.number AS number,
@@ -55,7 +55,7 @@ pub async fn get_chapter(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?
     .map(|r| ChapterResponse {
         id: r.id.to_string(),
@@ -85,7 +85,7 @@ pub async fn get_chapter(
     };
 
     if body.pages.as_ref().filter(|p| p.is_empty()).is_none() {
-        return Err(InternalError::ChapterNoPage(chapter_id));
+        return Err(InternalErr::ChapterNoPage(chapter_id));
     }
 
     Ok((StatusCode::OK, Json(body)).into_response())

@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 
 use crate::{
     routes::{
-        errors::{InternalError, RequestError},
+        errors::{InternalErr, RequestErr},
         hash_pass, is_strong,
     },
     utils::app_state::AppState,
@@ -37,9 +37,9 @@ pub async fn post_register(
     headers: HeaderMap,
     State(app_state): State<Arc<AppState>>,
     query: Json<RegisterRequest>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     if !EmailAddress::is_valid(&query.email) {
-        return Ok((StatusCode::BAD_REQUEST, RequestError::InvalidEmail).into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidEmail).into_response());
     }
 
     if sqlx::query!(
@@ -54,15 +54,15 @@ pub async fn post_register(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?
     .exists
     {
-        return Ok((StatusCode::CONFLICT, RequestError::SomeoneUseThisEmail).into_response());
+        return Ok((StatusCode::CONFLICT, RequestErr::SomeoneUseThisEmail).into_response());
     }
 
     if !is_strong(&query.password) {
-        return Ok((StatusCode::BAD_REQUEST, RequestError::WeakPassword).into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestErr::WeakPassword).into_response());
     }
 
     let ip_addr = app_state
@@ -82,7 +82,7 @@ pub async fn post_register(
         VALUES ($1, $2, $3, $4, $5)",
         app_state.id_generator.snowflake().await.map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::Snowflake(e)
+            InternalErr::Snowflake(e)
         })?,
         query.username.as_str(),
         query.email.to_string().to_ascii_lowercase(),
@@ -93,7 +93,7 @@ pub async fn post_register(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())

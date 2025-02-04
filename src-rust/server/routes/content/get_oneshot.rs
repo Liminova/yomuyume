@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::structs::{BasePageResponse, BaseTitleResponse};
-use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct OneshotResponse {
@@ -31,7 +31,7 @@ pub async fn get_oneshot(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,
     Extension(user_id): Extension<UserID>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let Some(r) = sqlx::query!(
         r#"SELECT t.title AS title,
             c.name AS "category?",
@@ -102,7 +102,7 @@ pub async fn get_oneshot(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?
     else {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -179,7 +179,7 @@ pub async fn get_oneshot(
     };
 
     if body.pages.as_ref().filter(|p| p.is_empty()).is_none() {
-        return Err(InternalError::TitleNoPage(title_id));
+        return Err(InternalErr::TitleNoPage(title_id));
     }
 
     Ok((StatusCode::OK, Json(body)).into_response())

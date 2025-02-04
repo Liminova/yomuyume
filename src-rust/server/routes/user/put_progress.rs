@@ -7,7 +7,7 @@ use axum::{
     Extension,
 };
 
-use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
 
 /// Set reading progress
 #[utoipa::path(put, path = "/api/user/progress/{title_id}/{page}", responses(
@@ -20,7 +20,7 @@ pub async fn put_progress(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Path((title_id, page)): Path<(i64, i32)>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     sqlx::query!(
         "INSERT INTO progresses (user_id, title_id, last_read_at, page)
         VALUES ($1, $2, $3, $4) ON CONFLICT (user_id, title_id) DO
@@ -36,7 +36,7 @@ pub async fn put_progress(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?;
 
     Ok(StatusCode::OK.into_response())

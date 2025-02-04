@@ -10,7 +10,7 @@ use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
 use crate::{
-    routes::errors::InternalError,
+    routes::errors::InternalErr,
     utils::{app_state::AppState, archive_file::ArchiveFile},
 };
 
@@ -25,7 +25,7 @@ use crate::{
 pub async fn get_cover(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let Some(title) = sqlx::query!(
         "SELECT path,
             cover_path,
@@ -39,7 +39,7 @@ pub async fn get_cover(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?
     else {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -76,7 +76,7 @@ pub async fn get_cover(
         .await
         .map_err(|e| {
             tracing::error!("1SHOT DIR {title_id}: {e:?}");
-            InternalError::IO(e)
+            InternalErr::IO(e)
         })
         .map(ReaderStream::new)
         .map(Body::from_stream)?,
@@ -89,7 +89,7 @@ pub async fn get_cover(
             .stream_file_from_archive(cover_path, None)
             .map_err(|e| {
                 tracing::error!("1SHOT ARCHIVE {title_id}: {e:?}");
-                InternalError::Archive(e)
+                InternalErr::Archive(e)
             })
             .map(Body::from_stream)?,
 
@@ -110,7 +110,7 @@ pub async fn get_cover(
                         .await
                         .map_err(|e| {
                             tracing::error!("SERIES CHAPTER ARCHIVE {title_id}: {e:?}");
-                            InternalError::IO(e)
+                            InternalErr::IO(e)
                         })
                         .map(ReaderStream::new)
                         .map(Body::from_stream)?
@@ -119,7 +119,7 @@ pub async fn get_cover(
                         .stream_file_from_archive(page_part, None)
                         .map_err(|e| {
                             tracing::error!("SERIES CHAPTER ARCHIVE {title_id}: {e:?}");
-                            InternalError::Archive(e)
+                            InternalErr::Archive(e)
                         })
                         .map(Body::from_stream)?
                 }
@@ -135,7 +135,7 @@ pub async fn get_cover(
             .await
             .map_err(|e| {
                 tracing::error!("SERIES ROOT {title_id}: {e:?}");
-                InternalError::IO(e)
+                InternalErr::IO(e)
             })
             .map(ReaderStream::new)
             .map(Body::from_stream)?,

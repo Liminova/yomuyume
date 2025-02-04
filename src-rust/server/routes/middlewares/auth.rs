@@ -11,7 +11,7 @@ use axum_extra::extract::CookieJar;
 use chrono::{Duration, Utc};
 
 use crate::{
-    routes::errors::{InternalError, RequestError},
+    routes::errors::{InternalErr, RequestErr},
     structs::user_cache::UserCache,
     traits::chrono_utils::ChronoUtils,
     utils::{
@@ -31,12 +31,12 @@ pub async fn auth(
     State(app_state): State<Arc<AppState>>,
     mut req: Request<Body>,
     next: Next,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let provided_session_id = match cookie_jar
         .get("session-id")
-        .ok_or(RequestError::MissingSessionID)
+        .ok_or(RequestErr::MissingSessionID)
         .map(|c| c.value_trimmed().to_string())
-        .and_then(|s| s.parse::<i64>().map_err(RequestError::CantParseSessionID))
+        .and_then(|s| s.parse::<i64>().map_err(RequestErr::CantParseSessionID))
     {
         Ok(i) => i.into(),
         Err(e) => return Ok((StatusCode::UNAUTHORIZED, e).into_response()),
@@ -45,7 +45,7 @@ pub async fn auth(
         .get("session-secret")
         .map(|c| c.value_trimmed().to_string())
     else {
-        return Ok((StatusCode::UNAUTHORIZED, RequestError::MissingSessionSecret).into_response());
+        return Ok((StatusCode::UNAUTHORIZED, RequestErr::MissingSessionSecret).into_response());
     };
 
     let now = Utc::now();
@@ -83,7 +83,7 @@ pub async fn auth(
         .await
         .map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::DB(e)
+            InternalErr::DB(e)
         })? {
             let new_user_cache = UserCache {
                 username: r.username,
@@ -106,12 +106,12 @@ pub async fn auth(
             break 'scoped (user_id, ss_token_last_used_at, session_secret);
         }
 
-        return Ok((StatusCode::UNAUTHORIZED, RequestError::InvalidSession).into_response());
+        return Ok((StatusCode::UNAUTHORIZED, RequestErr::InvalidSession).into_response());
     };
 
     // validate
     if provided_session_secret != session_secret {
-        return Ok((StatusCode::UNAUTHORIZED, RequestError::InvalidSession).into_response());
+        return Ok((StatusCode::UNAUTHORIZED, RequestErr::InvalidSession).into_response());
     }
 
     // expired
@@ -127,10 +127,10 @@ pub async fn auth(
         .await
         .map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::DB(e)
+            InternalErr::DB(e)
         })?;
 
-        return Ok((StatusCode::UNAUTHORIZED, RequestError::SessionExpired).into_response());
+        return Ok((StatusCode::UNAUTHORIZED, RequestErr::SessionExpired).into_response());
     }
 
     // update last used at if needed
@@ -149,14 +149,14 @@ pub async fn auth(
         .await
         .map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::DB(e)
+            InternalErr::DB(e)
         })?;
 
         app_state
             .user_cache
             .get_mut(&user_id)
             .ok_or_else(|| {
-                let e = InternalError::WriteCache("user".to_string());
+                let e = InternalErr::WriteCache("user".to_string());
                 tracing::error!("{e:?}");
                 e
             })?

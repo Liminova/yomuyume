@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    routes::errors::InternalError,
+    routes::errors::InternalErr,
     utils::{app_state::AppState, macros::bail_if_empty},
 };
 
@@ -29,13 +29,13 @@ type TagsResponse = Vec<InnerTagResponse>;
     (status = 401, description = "Unauthorized", body = String),
     (status = 500, description = "Internal server error", body = String),
 ), security(("session-id" = [], "session-secret" = [])))]
-pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response, InternalError> {
+pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response, InternalErr> {
     let data = sqlx::query!("SELECT id, name FROM tags")
         .fetch_all(&app_state.pool)
         .await
         .map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::DB(e)
+            InternalErr::DB(e)
         })?
         .into_iter()
         .map(|record| InnerTagResponse {

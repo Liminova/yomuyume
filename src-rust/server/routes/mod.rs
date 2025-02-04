@@ -7,7 +7,7 @@ pub mod user;
 pub mod utils;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use errors::InternalError;
+use errors::InternalErr;
 use rand_core::OsRng;
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
@@ -133,13 +133,13 @@ fn check_pass(password_hash: impl AsRef<str>, password_input: impl AsRef<str>) -
     })
 }
 
-fn hash_pass(input: &[u8]) -> Result<String, InternalError> {
+fn hash_pass(input: &[u8]) -> Result<String, InternalErr> {
     Argon2::default()
         .hash_password(input, &SaltString::generate(&mut OsRng))
         .map(|hash| hash.to_string())
         .map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::PasswordHash(e)
+            InternalErr::PasswordHash(e)
         })
 }
 

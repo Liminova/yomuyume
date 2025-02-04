@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use utoipa::ToSchema;
 
-use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
@@ -33,9 +33,9 @@ pub struct WhoAmIResponse {
 pub async fn get_whoami(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let user = app_state.user_cache.get(&user_id).ok_or_else(|| {
-        let e = InternalError::ReadCache("user".to_string());
+        let e = InternalErr::ReadCache("user".to_string());
         tracing::error!("{e:?}");
         e
     })?;

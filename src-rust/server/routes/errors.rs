@@ -8,7 +8,7 @@ use axum::{
 use crate::utils::{archive_file::ArchiveFileError, id_generator::GenerateIDErr};
 
 #[derive(Debug, thiserror::Error)]
-pub enum InternalError {
+pub enum InternalErr {
     #[error("DB error: {0}")]
     DB(sqlx::Error),
     #[error("IO error: {0}")]
@@ -39,7 +39,7 @@ pub enum InternalError {
     LiveConfig(String),
 }
 
-impl IntoResponse for InternalError {
+impl IntoResponse for InternalErr {
     fn into_response(self) -> Response {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -50,7 +50,7 @@ impl IntoResponse for InternalError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum RequestError {
+pub enum RequestErr {
     #[error("Missing session-id cookie")]
     MissingSessionID,
     #[error("Can't parse session id: {0}")]
@@ -82,7 +82,7 @@ pub enum RequestError {
     AlreadyVerified,
 }
 
-impl IntoResponse for RequestError {
+impl IntoResponse for RequestErr {
     fn into_response(self) -> Response {
         format!("{}", anyhow::anyhow!("{self}")).into_response()
     }

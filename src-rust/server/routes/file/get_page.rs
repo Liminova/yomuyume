@@ -10,7 +10,7 @@ use tokio::fs::File;
 use tokio_util::io::ReaderStream;
 
 use crate::{
-    routes::errors::InternalError,
+    routes::errors::InternalErr,
     utils::{app_state::AppState, archive_file::ArchiveFile},
 };
 
@@ -24,7 +24,7 @@ use crate::{
 pub async fn get_page(
     State(app_state): State<Arc<AppState>>,
     Path((is_series, page_id)): Path<(bool, i64)>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let Some((parent_path, page_path, page_filesize, title_is_dir)) = (if is_series {
         sqlx::query!(
             r#"SELECT p.path AS page_path,
@@ -42,7 +42,7 @@ pub async fn get_page(
         .await
         .map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::DB(e)
+            InternalErr::DB(e)
         })?
         .map(|r| {
             (
@@ -72,7 +72,7 @@ pub async fn get_page(
         .await
         .map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::DB(e)
+            InternalErr::DB(e)
         })?
         .map(|r| {
             (
@@ -99,7 +99,7 @@ pub async fn get_page(
         let file_path = parent_path.join(page_path);
         let file = File::open(file_path).await.map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::IO(e)
+            InternalErr::IO(e)
         })?;
         let stream = ReaderStream::new(file);
 
@@ -109,7 +109,7 @@ pub async fn get_page(
             .stream_file_from_archive(page_path, page_filesize)
             .map_err(|e| {
                 tracing::error!("{e:?}");
-                InternalError::Archive(e)
+                InternalErr::Archive(e)
             })?;
 
         Body::from_stream(stream)

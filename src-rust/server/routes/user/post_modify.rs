@@ -10,7 +10,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{routes::errors::InternalError, structs::id::UserID, utils::app_state::AppState};
+use crate::{routes::errors::InternalErr, structs::id::UserID, utils::app_state::AppState};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct ModifyRequest {
@@ -29,7 +29,7 @@ pub async fn post_modify(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
     Json(body): Json<ModifyRequest>,
-) -> Result<Response, InternalError> {
+) -> Result<Response, InternalErr> {
     let username = body.username.unwrap_or_default();
     let email = body.email.unwrap_or_default();
     let now = Utc::now();
@@ -55,11 +55,11 @@ pub async fn post_modify(
     .await
     .map_err(|e| {
         tracing::error!("{e:?}");
-        InternalError::DB(e)
+        InternalErr::DB(e)
     })?;
 
     let mut user = app_state.user_cache.get_mut(&user_id).ok_or_else(|| {
-        let e = InternalError::WriteCache("user".to_string());
+        let e = InternalErr::WriteCache("user".to_string());
         tracing::error!("{e:?}");
         e
     })?;

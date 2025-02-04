@@ -5,7 +5,7 @@ use std::fmt::Display;
 use chrono::Utc;
 use tokio::sync::RwLock;
 
-use crate::routes::errors::InternalError;
+use crate::routes::errors::InternalErr;
 
 /// Like [`Config`], but configurable from the frontend.
 #[derive(Debug)]
@@ -111,17 +111,17 @@ impl LiveConfig {
         db: &sqlx::PgPool,
         config: &Item,
         value: &str,
-    ) -> Result<(), InternalError> {
+    ) -> Result<(), InternalErr> {
         match (&config, value) {
             (Item::RescanIntervalInMinutes, value) => {
                 if value.parse::<u32>().is_err() {
-                    return Err(InternalError::LiveConfig(
+                    return Err(InternalErr::LiveConfig(
                         "value must be an integer".to_string(),
                     ));
                 };
             }
             (_, value) if value != "true" && value != "false" => {
-                return Err(InternalError::LiveConfig(
+                return Err(InternalErr::LiveConfig(
                     "value must be 'true' or 'false'".to_string(),
                 ));
             }
@@ -142,7 +142,7 @@ impl LiveConfig {
         .await
         .map_err(|e| {
             tracing::error!("{e:?}");
-            InternalError::DB(e)
+            InternalErr::DB(e)
         })?;
 
         match config {
