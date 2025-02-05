@@ -157,10 +157,10 @@ pub async fn post_sensitive(
             mailer.send(
                     &username,
                     &email,
-                    format!("{app_name} - Delete your password"),
+                    format!("{app_name} - {action}"),
                     format!(
                         "Hello, {username}!\n\n\
-                        // You have requested to {action}. Please copy the following code into the app to continue:\n\n\
+                        You have requested to {action}. Please copy the following code into the app to continue:\n\n\
                         {code}\n\n\
                         If you don't recognize this action or don't own this account, ignore this email.\n\n\
                         Best regards,\n\
