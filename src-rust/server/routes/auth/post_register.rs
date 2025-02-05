@@ -53,7 +53,7 @@ pub async fn post_register(
     .fetch_one(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         InternalErr::DB(e)
     })?
     .exists
@@ -81,7 +81,7 @@ pub async fn post_register(
         "INSERT INTO users (id, username, email, password_hash, ip_address)
         VALUES ($1, $2, $3, $4, $5)",
         app_state.id_generator.snowflake().await.map_err(|e| {
-            tracing::error!("{e:?}");
+            tracing::error!("{e}");
             InternalErr::Snowflake(e)
         })?,
         query.username.as_str(),
@@ -92,7 +92,7 @@ pub async fn post_register(
     .execute(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         InternalErr::DB(e)
     })?;
 

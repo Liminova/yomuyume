@@ -53,7 +53,7 @@ pub async fn get_categories(
     .fetch_all(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         InternalErr::DB(e)
     })?
     .into_iter()

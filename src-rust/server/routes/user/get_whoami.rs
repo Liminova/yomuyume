@@ -40,7 +40,7 @@ pub async fn get_whoami(
 ) -> Result<Response, InternalErr> {
     let user = app_state.user_cache.get(&user_id).ok_or_else(|| {
         let e = InternalErr::ReadCache("user".to_string());
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         e
     })?;
 

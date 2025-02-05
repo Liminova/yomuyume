@@ -38,7 +38,7 @@ pub async fn get_cover(
     .fetch_optional(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         InternalErr::DB(e)
     })?
     else {
@@ -75,7 +75,7 @@ pub async fn get_cover(
         )
         .await
         .map_err(|e| {
-            tracing::error!("1SHOT DIR {title_id}: {e:?}");
+            tracing::error!("{e}");
             InternalErr::IO(e)
         })
         .map(ReaderStream::new)
@@ -88,7 +88,7 @@ pub async fn get_cover(
             .join(title.path)
             .stream_file_from_archive(cover_path, None)
             .map_err(|e| {
-                tracing::error!("1SHOT ARCHIVE {title_id}: {e:?}");
+                tracing::error!("{e}");
                 InternalErr::Archive(e)
             })
             .map(Body::from_stream)?,
@@ -109,7 +109,7 @@ pub async fn get_cover(
                     File::open(chapter_path.join(page_part))
                         .await
                         .map_err(|e| {
-                            tracing::error!("SERIES CHAPTER ARCHIVE {title_id}: {e:?}");
+                            tracing::error!("{e}");
                             InternalErr::IO(e)
                         })
                         .map(ReaderStream::new)
@@ -118,7 +118,7 @@ pub async fn get_cover(
                     chapter_path
                         .stream_file_from_archive(page_part, None)
                         .map_err(|e| {
-                            tracing::error!("SERIES CHAPTER ARCHIVE {title_id}: {e:?}");
+                            tracing::error!("{e}");
                             InternalErr::Archive(e)
                         })
                         .map(Body::from_stream)?
@@ -134,7 +134,7 @@ pub async fn get_cover(
             )
             .await
             .map_err(|e| {
-                tracing::error!("SERIES ROOT {title_id}: {e:?}");
+                tracing::error!("{e}");
                 InternalErr::IO(e)
             })
             .map(ReaderStream::new)

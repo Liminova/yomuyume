@@ -41,7 +41,7 @@ pub async fn get_page(
         .fetch_optional(&app_state.pool)
         .await
         .map_err(|e| {
-            tracing::error!("{e:?}");
+            tracing::error!("{e}");
             InternalErr::DB(e)
         })?
         .map(|r| {
@@ -71,7 +71,7 @@ pub async fn get_page(
         .fetch_optional(&app_state.pool)
         .await
         .map_err(|e| {
-            tracing::error!("{e:?}");
+            tracing::error!("{e}");
             InternalErr::DB(e)
         })?
         .map(|r| {
@@ -98,7 +98,7 @@ pub async fn get_page(
     let body = if title_is_dir {
         let file_path = parent_path.join(page_path);
         let file = File::open(file_path).await.map_err(|e| {
-            tracing::error!("{e:?}");
+            tracing::error!("{e}");
             InternalErr::IO(e)
         })?;
         let stream = ReaderStream::new(file);
@@ -108,7 +108,7 @@ pub async fn get_page(
         let stream = parent_path
             .stream_file_from_archive(page_path, page_filesize)
             .map_err(|e| {
-                tracing::error!("{e:?}");
+                tracing::error!("{e}");
                 InternalErr::Archive(e)
             })?;
 

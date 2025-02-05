@@ -49,7 +49,7 @@ pub async fn post_login(
     .fetch_optional(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         InternalErr::DB(e)
     })?
     .map(|user| (user.id, user.password_hash)) else {
@@ -92,7 +92,7 @@ pub async fn post_login(
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id",
         app_state.id_generator.snowflake().await.map_err(|e| {
-            tracing::error!("{e:?}");
+            tracing::error!("{e}");
             InternalErr::Snowflake(e)
         })?,
         session_secret.as_str(),
@@ -105,7 +105,7 @@ pub async fn post_login(
     .await
     .map(|r| r.id)
     .map_err(|e| {
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         InternalErr::DB(e)
     })?;
 

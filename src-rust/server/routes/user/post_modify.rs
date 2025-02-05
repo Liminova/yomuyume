@@ -58,13 +58,13 @@ pub async fn post_modify(
     .execute(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         InternalErr::DB(e)
     })?;
 
     let mut user = app_state.user_cache.get_mut(&user_id).ok_or_else(|| {
         let e = InternalErr::WriteCache("user".to_string());
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         e
     })?;
     user.value_mut().username = username;

@@ -91,7 +91,7 @@ pub async fn post_sensitive(
             };
 
             let mailer = Mailer::from(&app_state.config).map_err(|e| {
-                tracing::error!("{e:?}");
+                tracing::error!("{e}");
                 InternalErr::Mailer(e)
             })?;
 
@@ -106,7 +106,7 @@ pub async fn post_sensitive(
             .fetch_optional(&app_state.pool)
             .await
             .map_err(|e| {
-                tracing::error!("{e:?}");
+                tracing::error!("{e}");
                 InternalErr::DB(e)
             })?
             .is_some_and(|r| {
@@ -131,7 +131,7 @@ pub async fn post_sensitive(
             .fetch_one(&app_state.pool)
             .await
             .map_err(|e| {
-                tracing::error!("{e:?}");
+                tracing::error!("{e}");
                 InternalErr::DB(e)
             })?
             .code;
@@ -141,7 +141,7 @@ pub async fn post_sensitive(
                 .get(&user_id)
                 .ok_or_else(|| {
                     let e = InternalErr::ReadCache("user".to_string());
-                    tracing::error!("{e:?}");
+                    tracing::error!("{e}");
                     e
                 })
                 .map(|u| (u.username.clone(), u.email.clone()))?;
@@ -166,7 +166,7 @@ pub async fn post_sensitive(
                     ),
                 )
                 .map_err(|e| {
-                    tracing::error!("{e:?}");
+                    tracing::error!("{e}");
                     InternalErr::Mailer(e)
                 })?;
         }
@@ -190,7 +190,7 @@ pub async fn post_sensitive(
                 .fetch_one(&app_state.pool)
                 .await
                 .map_err(|e| {
-                    tracing::error!("{e:?}");
+                    tracing::error!("{e}");
                     InternalErr::DB(e)
                 })?
                 .password_hash,
@@ -215,7 +215,7 @@ pub async fn post_sensitive(
             .fetch_optional(&app_state.pool)
             .await
             .map_err(|e| {
-                tracing::error!("{e:?}");
+                tracing::error!("{e}");
                 InternalErr::DB(e)
             })?
             .map_or(true, |record| {
@@ -234,7 +234,7 @@ pub async fn post_sensitive(
                         .execute(&app_state.pool)
                         .await
                         .map_err(|e| {
-                            tracing::error!("{e:?}");
+                            tracing::error!("{e}");
                             InternalErr::DB(e)
                         })?;
                     app_state.session_cache.retain(|_, v| *v != user_id);
@@ -263,7 +263,7 @@ pub async fn post_sensitive(
                     .execute(&app_state.pool)
                     .await
                     .map_err(|e| {
-                        tracing::error!("{e:?}");
+                        tracing::error!("{e}");
                         InternalErr::DB(e)
                     })?;
 
@@ -272,7 +272,7 @@ pub async fn post_sensitive(
                         .get_mut(&user_id)
                         .ok_or_else(|| {
                             let e = InternalErr::WriteCache("user".to_string());
-                            tracing::error!("{e:?}");
+                            tracing::error!("{e}");
                             e
                         })?
                         .value_mut()
@@ -289,7 +289,7 @@ pub async fn post_sensitive(
                     .execute(&app_state.pool)
                     .await
                     .map_err(|e| {
-                        tracing::error!("{e:?}");
+                        tracing::error!("{e}");
                         InternalErr::DB(e)
                     })?;
 
@@ -298,7 +298,7 @@ pub async fn post_sensitive(
                         .get_mut(&user_id)
                         .ok_or_else(|| {
                             let e = InternalErr::WriteCache("user".to_string());
-                            tracing::error!("{e:?}");
+                            tracing::error!("{e}");
                             e
                         })?
                         .value_mut()

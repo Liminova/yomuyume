@@ -116,7 +116,7 @@ pub async fn get_series(
     .fetch_optional(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         InternalErr::DB(e)
     })?
     else {
@@ -174,7 +174,7 @@ pub async fn get_series(
 
     if body.chapters.as_ref().filter(|c| !c.is_empty()).is_none() {
         let e = InternalErr::NoChapter(title_id);
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         return Err(e);
     }
 

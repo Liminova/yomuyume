@@ -144,7 +144,7 @@ fn hash_pass(input: &[u8]) -> Result<String, InternalErr> {
         .hash_password(input, &SaltString::generate(&mut OsRng))
         .map(|hash| hash.to_string())
         .map_err(|e| {
-            tracing::error!("{e:?}");
+            tracing::error!("{e}");
             InternalErr::PasswordHash(e)
         })
 }

@@ -85,7 +85,7 @@ pub async fn auth(
         .fetch_optional(&app_state.pool)
         .await
         .map_err(|e| {
-            tracing::error!("{e:?}");
+            tracing::error!("{e}");
             InternalErr::DB(e)
         })? {
             let new_user_cache = UserCache {
@@ -129,7 +129,7 @@ pub async fn auth(
         .execute(&app_state.pool)
         .await
         .map_err(|e| {
-            tracing::error!("{e:?}");
+            tracing::error!("{e}");
             InternalErr::DB(e)
         })?;
 
@@ -151,7 +151,7 @@ pub async fn auth(
         .execute(&app_state.pool)
         .await
         .map_err(|e| {
-            tracing::error!("{e:?}");
+            tracing::error!("{e}");
             InternalErr::DB(e)
         })?;
 
@@ -160,7 +160,7 @@ pub async fn auth(
             .get_mut(&user_id)
             .ok_or_else(|| {
                 let e = InternalErr::WriteCache("user".to_string());
-                tracing::error!("{e:?}");
+                tracing::error!("{e}");
                 e
             })?
             .value_mut()

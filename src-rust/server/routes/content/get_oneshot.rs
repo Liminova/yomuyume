@@ -108,7 +108,7 @@ pub async fn get_oneshot(
     .fetch_optional(&app_state.pool)
     .await
     .map_err(|e| {
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         InternalErr::DB(e)
     })?
     else {
@@ -151,7 +151,7 @@ pub async fn get_oneshot(
 
     if body.pages.as_ref().filter(|p| !p.is_empty()).is_none() {
         let e = InternalErr::TitleNoPage(title_id);
-        tracing::error!("{e:?}");
+        tracing::error!("{e}");
         return Err(e);
     }
 
