@@ -116,11 +116,15 @@ pub async fn post_sensitive(
 
             // get new? code
             let code = sqlx::query!(
-                "INSERT INTO temp_codes (purpose, user_id, code, created_at)
-                VALUES ($1, $2, $3, $4) ON CONFLICT (purpose, user_id) DO
+                "INSERT INTO temp_codes (id, purpose, user_id, code, created_at)
+                VALUES ($1, $2, $3, $4, $5) ON CONFLICT (purpose, user_id) DO
                 UPDATE
-                SET created_at = $4
+                SET created_at = $5
                 RETURNING code",
+                app_state.id_generator.snowflake().await.map_err(|e| {
+                    tracing::error!("{e}");
+                    InternalErr::Snowflake(e)
+                })?,
                 &purpose as &TempCodePurpose,
                 user_id.as_ref(),
                 app_state.id_generator.secure(),
