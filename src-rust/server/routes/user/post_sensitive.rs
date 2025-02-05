@@ -254,7 +254,10 @@ pub async fn post_sensitive(
                         SET password_hash = $1,
                             updated_at = $2
                         WHERE id = $3",
-                        hash_pass(new_password.as_bytes())?,
+                        hash_pass(new_password.as_bytes()).map_err(|e| {
+                            tracing::error!("{e}");
+                            e
+                        })?,
                         &now,
                         user_id.as_ref()
                     )
