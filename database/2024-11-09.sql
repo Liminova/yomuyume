@@ -86,7 +86,8 @@ CREATE TABLE IF NOT EXISTS users (
     profile_picture TEXT,
     ip_address TEXT NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE,
-    verified_at TIMESTAMP WITH TIME ZONE
+    verified_at TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT "uc-users-email" UNIQUE (email)
 );
 DROP TABLE IF EXISTS bookmarks CASCADE;
 CREATE TABLE IF NOT EXISTS bookmarks (
