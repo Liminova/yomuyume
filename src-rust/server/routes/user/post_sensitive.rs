@@ -178,9 +178,7 @@ pub async fn post_sensitive(
                 Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCurrentPassword).into_response())
             );
             let Some(code) = req.code.as_ref() else {
-                return Ok(
-                    (StatusCode::BAD_REQUEST, RequestErr::InvalidPasswordAndCode).into_response(),
-                );
+                return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCode).into_response());
             };
 
             // invalid password
@@ -199,7 +197,7 @@ pub async fn post_sensitive(
                 &req.password,
             ) {
                 return Ok(
-                    (StatusCode::BAD_REQUEST, RequestErr::InvalidPasswordAndCode).into_response(),
+                    (StatusCode::BAD_REQUEST, RequestErr::InvalidCurrentPassword).into_response(),
                 );
             }
 
@@ -225,9 +223,7 @@ pub async fn post_sensitive(
                     .created_at
                     .outside(&Utc::now(), &Duration::seconds(TEMP_CODE_EXPIRED_AFTER))
             }) {
-                return Ok(
-                    (StatusCode::BAD_REQUEST, RequestErr::InvalidPasswordAndCode).into_response(),
-                );
+                return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCode).into_response());
             };
 
             match purpose {
