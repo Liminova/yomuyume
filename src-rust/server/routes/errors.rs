@@ -74,10 +74,13 @@ pub enum RequestErr {
     #[error("password must be between 8 and 100 characters long and contain at least one uppercase letter, one lowercase letter, one number and one special character")]
     WeakPassword,
 
-    #[error("invalid password and code")]
-    InvalidPasswordAndCode,
     #[error("invalid current password")]
     InvalidCurrentPassword,
+
+    #[error("invalid code")]
+    InvalidCode,
+    #[error("expired code")]
+    ExpiredCode,
 
     #[error("your email is already verified")]
     AlreadyVerified,
