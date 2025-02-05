@@ -53,6 +53,7 @@ pub(super) const VERSION_NAMES: [&str; 31] = [
 pub const LOGOUT_PATH: &str = "/api/auth/logout";
 pub const LOGIN_PATH: &str = "/api/auth/login";
 pub const REGISTER_PATH: &str = "/api/auth/register";
+pub const FORGOT_PATH: &str = "/api/auth/forgot";
 
 pub const SESSION_ID_COOKIE_NAME: &str = "session-id";
 pub const SESSION_SECRET_COOKIE_NAME: &str = "session-secret";

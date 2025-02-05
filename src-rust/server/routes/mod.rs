@@ -68,6 +68,7 @@ impl Modify for SecurityAddon {
         auth::post_login,
         auth::post_register,
         auth::get_logout,
+        auth::post_forgot,
 
         user::delete_bookmark,
         user::delete_favorite,
@@ -96,6 +97,7 @@ impl Modify for SecurityAddon {
         // Auth
         auth::LoginRequest,
         auth::RegisterRequest,
+        auth::ForgotRequest,
 
         // User
         user::ModifyRequest,
