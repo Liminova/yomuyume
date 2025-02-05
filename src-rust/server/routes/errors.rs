@@ -9,7 +9,7 @@ use crate::utils::{archive_file::ArchiveFileError, id_generator::GenerateIDErr};
 
 #[derive(Debug, thiserror::Error)]
 pub enum InternalErr {
-    #[error("DB error: {0}")]
+    #[error("{0}")]
     DB(sqlx::Error),
     #[error("IO error: {0}")]
     IO(std::io::Error),
