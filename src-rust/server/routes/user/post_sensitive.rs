@@ -71,25 +71,23 @@ pub async fn post_sensitive(
         SensitiveRequestPurpose::VerifyEmail => TempCodePurpose::ValidateEmail,
     };
 
+    // case-specific preludes
+    match purpose {
+        TempCodePurpose::ValidateEmail => {
+            if app_state
+                .user_cache
+                .get(&user_id)
+                .map(|u| u.verified_at)
+                .is_some()
+            {
+                return Ok((StatusCode::BAD_REQUEST, RequestErr::AlreadyVerified).into_response());
+            }
+        }
+        TempCodePurpose::DeleteAccount | TempCodePurpose::ResetPassword => (),
+    };
+
     match req.mode {
         SensitiveRequestMode::Ask => {
-            // case-specific preludes
-            match purpose {
-                TempCodePurpose::DeleteAccount | TempCodePurpose::ResetPassword => (),
-                TempCodePurpose::ValidateEmail => {
-                    if app_state
-                        .user_cache
-                        .get(&user_id)
-                        .map(|u| u.verified_at)
-                        .is_some()
-                    {
-                        return Ok(
-                            (StatusCode::BAD_REQUEST, RequestErr::AlreadyVerified).into_response()
-                        );
-                    }
-                }
-            };
-
             let mailer = Mailer::from(&app_state.config).map_err(|e| {
                 tracing::error!("{e}");
                 InternalErr::Mailer(e)
