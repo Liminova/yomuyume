@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 
-import { LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, ResponseError } from "./constants";
+import { FORGOT_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, ResponseError } from "./constants";
 
 export function useLogin() {
 	return useMutation({
@@ -19,9 +19,12 @@ export function useLogin() {
 			}
 		},
 		onError(error) {
-			toast.error("Login failed", {
+			toast.error("Can't login", {
 				description: error.message,
 			});
+		},
+		onSuccess() {
+			toast.success("Login successful");
 		},
 	});
 }
@@ -40,9 +43,12 @@ export function useLogout() {
 			queryClient.setQueryData(["whoami"], null);
 		},
 		onError(error) {
-			toast.error("Logout failed", {
+			toast.error("Can't logout", {
 				description: error.message,
 			});
+		},
+		onSuccess() {
+			toast.success("Logout successful");
 		},
 	});
 }
@@ -61,7 +67,37 @@ export function useRegister() {
 			}
 		},
 		onError(error) {
-			toast.error("Register failed", {
+			toast.error("Can't register", {
+				description: error.message,
+			});
+		},
+		onSuccess() {
+			toast.success("Registration successful");
+		},
+	});
+}
+
+export interface ForgotRequest {
+	email: string;
+	code?: string;
+	new_password?: string;
+}
+
+export function useForgot() {
+	return useMutation({
+		async mutationFn(body: ForgotRequest) {
+			const response = await fetch(FORGOT_PATH, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
+
+			if (!response.ok) {
+				throw await ResponseError(response);
+			}
+		},
+		onError(error) {
+			toast.error("Can't request password reset", {
 				description: error.message,
 			});
 		},

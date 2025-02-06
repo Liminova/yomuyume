@@ -3,6 +3,7 @@
 export const LOGOUT_PATH = "/api/auth/logout";
 export const LOGIN_PATH = "/api/auth/login";
 export const REGISTER_PATH = "/api/auth/register";
+export const FORGOT_PATH = "/api/auth/forgot";
 
 export const SESSION_ID_COOKIE_NAME = "session-ID";
 export const SESSION_SECRET_COOKIE_NAME = "session-secret";

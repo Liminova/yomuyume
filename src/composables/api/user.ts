@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
 import { useMutation, useQuery } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 
 import { BOOKMARK_PATH, FAVORITE_PATH, ResponseError, USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH } from "./constants";
 
@@ -25,6 +26,11 @@ export function useSensitiveAction() {
 				throw await ResponseError(response);
 			}
 		},
+		onError(error) {
+			toast.error("Can't perform sensitive action", {
+				description: error.message,
+			});
+		},
 	});
 }
 
@@ -36,6 +42,14 @@ export function useFavorite(method: "PUT" | "DELETE") {
 				throw await ResponseError(response);
 			}
 		},
+		onError(error) {
+			toast.error(`Can't ${method === "PUT" ? "add" : "remove"} from favorites`, {
+				description: error.message,
+			});
+		},
+		onSuccess() {
+			toast.success(`${method === "PUT" ? "Added to" : "Removed from"} favorites`);
+		},
 	});
 }
 
@@ -46,6 +60,14 @@ export function useBookmark(method: "PUT" | "DELETE") {
 			if (!response.ok) {
 				throw await ResponseError(response);
 			}
+		},
+		onError(error) {
+			toast.error(`Can't ${method === "PUT" ? "add" : "remove"} from bookmarks`, {
+				description: error.message,
+			});
+		},
+		onSuccess() {
+			toast.success(`${method === "PUT" ? "Added to" : "Removed from"} bookmarks`);
 		},
 	});
 }
@@ -63,6 +85,14 @@ export function useModifyUserInfo() {
 				throw await ResponseError(response);
 			}
 		},
+		onError(error) {
+			toast.error("Can't modify user info", {
+				description: error.message,
+			});
+		},
+		onSuccess() {
+			toast.success("User info modified successfully");
+		},
 	});
 }
 
@@ -76,6 +106,11 @@ export function useSetProgress() {
 			if (!response.ok) {
 				throw await ResponseError(response);
 			}
+		},
+		onError(error) {
+			toast.error("Can't set progress", {
+				description: error.message,
+			});
 		},
 	});
 }

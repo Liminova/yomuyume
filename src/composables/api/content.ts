@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 
 import { GET_CATEGORIES_PATH, GET_CHAPTER_PATH, GET_ONESHOT_PATH, GET_SERIES_PATH, GET_TAGS_PATH, ResponseError, SEARCH_PATH } from "./constants";
 
@@ -183,9 +184,14 @@ export function useSearchTitle() {
 				throw await ResponseError(response);
 			}
 
-			const data = await response.json();
+			const data: SearchResponse = await response.json();
 			queryClient.setQueryData(["search", body], data);
 			return data;
+		},
+		onError(error) {
+			toast.error("Can't perform search", {
+				description: error.message,
+			});
 		},
 	});
 }
