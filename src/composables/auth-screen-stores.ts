@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
+import { toast } from "vue-sonner";
 
-import { useLogin, useRegister } from "./api/auth";
-// import { useConfirmResetPassword, useResetPassword } from "./api/user";
+import { useForgot, useLogin, useRegister } from "./api/auth";
 
 function validatePassword(password: string): boolean {
 	const hasUppercase = (/[A-Z]/u).test(password);
@@ -12,6 +12,10 @@ function validatePassword(password: string): boolean {
 	const hasValidLength = password.length >= 8 && password.length <= 100;
 
 	return hasUppercase && hasLowercase && nasNumeric && hasSpecial && hasValidLength;
+}
+
+function validateEmail(email: string): boolean {
+	return (/\S+@\S+\.\S+/u).test(email);
 }
 
 export const useAuthLoginStore = defineStore("auth-screen-store-login", () => {
@@ -24,8 +28,20 @@ export const useAuthLoginStore = defineStore("auth-screen-store-login", () => {
 		login,
 		password,
 		mutation,
-		loginAction(): void {
-			mutation.mutate({ login: login.value, password: password.value });
+		loginAction(cb?: ()=> void): ()=> void {
+			return (): void => {
+				mutation.mutate({
+					login: login.value,
+					password: password.value,
+				}, {
+					onSuccess() { cb?.(); },
+				});
+			};
+		},
+
+		resetFields(): void {
+			login.value = "";
+			password.value = "";
 		},
 	};
 });
@@ -38,7 +54,7 @@ export const useAuthRegisterStore = defineStore("auth-screen-store-register", ()
 
 	const isEmailValid = computed(() => {
 		if (email.value === "") { return true; }
-		return (/\S+@\S+\.\S+/u).test(email.value);
+		return validateEmail(email.value);
 	});
 	const isPasswordStrong = computed(() => validatePassword(password.value));
 	const isPasswordRetypeMatch = computed(() => {
@@ -69,43 +85,55 @@ export const useAuthRegisterStore = defineStore("auth-screen-store-register", ()
 
 		mutation,
 		registerButtonDisabled,
-		registerAction(): void {
-			mutation.mutate({
-				username: username.value,
-				email: email.value,
-				password: password.value,
-			});
+		registerAction(cb?: ()=> void): ()=> void {
+			return (): void => {
+				mutation.mutate({
+					username: username.value,
+					email: email.value,
+					password: password.value,
+				}, {
+					onSuccess() { cb?.(); },
+				});
+			};
+		},
+
+		resetFields(): void {
+			username.value = "";
+			email.value = "";
+			password.value = "";
+			passwordRetype.value = "";
 		},
 	};
 });
 
 export const useAuthResetPasswordStore = defineStore("auth-screen-store-reset-password", () => {
 	const code = ref("");
-	const codeSent = ref(false);
 	const email = ref("");
 	const newPassword = ref("");
 	const newPasswordRetype = ref("");
 
-	const isPasswordStrong = computed(() => validatePassword(newPassword.value));
-	const isPasswordRetypeMatch = computed(() => {
-		if (newPasswordRetype.value === "") { return true; }
-		return newPassword.value === newPasswordRetype.value;
+	const codeSent = ref(false);
+
+	const notStrongEnough = computed(() => {
+		if (newPassword.value === "") { return false; }
+		return !validatePassword(newPassword.value);
+	});
+	const retypeMismatch = computed(() => {
+		if (newPasswordRetype.value === "") { return false; }
+		return newPassword.value !== newPasswordRetype.value;
 	});
 
-	// const mutation = useResetPassword();
-	// const mutation2 = useConfirmResetPassword();
+	const mutation = useForgot();
 
-	// const isRequestResetPasswordButtonEnabled = computed(() => !isPasswordRetypeMatch.value || !isPasswordStrong.value || mutation.isPending.value);
-	// const isConfirmResetPasswordButtonEnabled = computed(() => !isPasswordRetypeMatch.value || !isPasswordStrong.value || mutation2.isPending.value || !codeSent.value);
-
-	const isRequestResetPasswordButtonEnabled = false;
-	const isConfirmResetPasswordButtonEnabled = false;
-
-	// watchEffect(() => {
-	// 	if (mutation.isSuccess.value) {
-	// 		codeSent.value = true;
-	// 	}
-	// });
+	const canSendRequest = computed(() => validateEmail(email.value)
+		&& !mutation.isPending.value,
+	);
+	const canSendConfirm = computed(() => newPassword.value !== ""
+		&& !notStrongEnough.value
+		&& !retypeMismatch.value
+		&& codeSent.value
+		&& !mutation.isPending.value,
+	);
 
 	return {
 		email,
@@ -113,20 +141,43 @@ export const useAuthResetPasswordStore = defineStore("auth-screen-store-reset-pa
 		codeSent,
 		newPassword,
 		newPasswordRetype,
-		isPasswordStrong,
-		isPasswordRetypeMatch,
+		notStrongEnough,
+		retypeMismatch,
 
-		isRequestResetPasswordButtonEnabled,
-		isConfirmResetPasswordButtonEnabled,
+		canSendRequest,
+		canSendConfirm,
 
-		// mutation,
-		// mutation2,
+		mutation,
 
-		requestResetPasswordAction(): void {
-			// mutation.mutate(email.value);
+		sendReqResetPass(): void {
+			mutation.mutate({ email: email.value }, {
+				onSuccess() {
+					toast.success("Code sent to your email");
+					codeSent.value = true;
+				},
+			});
 		},
-		confirmResetPasswordAction(): void {
-			// mutation2.mutate({ code: code.value, new_password: newPassword.value });
+		sendConfirmResetPass(cb?: ()=> void): ()=> void {
+			return (): void => {
+				mutation.mutate({
+					email: email.value,
+					code: code.value,
+					new_password: newPassword.value,
+				}, {
+					onSuccess() {
+						toast.success("Password reset successfully");
+						cb?.();
+					},
+				});
+			};
+		},
+
+		resetFields(): void {
+			email.value = "";
+			code.value = "";
+			newPassword.value = "";
+			newPasswordRetype.value = "";
+			codeSent.value = false;
 		},
 	};
 });
