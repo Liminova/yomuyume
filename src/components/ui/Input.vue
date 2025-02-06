@@ -86,7 +86,7 @@ const isLabelElevated = computed(() => {
 		<Toggle
 			:show="props.showSupportingText"
 			dimension="vertical"
-			class="h-6 w-full px-4 py-1 text-xs"
+			class="pointer-events-none h-6 w-full px-4 py-1 text-xs"
 			:class="{
 				'text-muted-foreground': props.style === 'default',
 				'text-destructive': props.style === 'destructive',
