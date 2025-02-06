@@ -23,8 +23,8 @@ const [innerFavorites, innerBookmarks] = [ref<number>(0), ref<number>(0)];
 const [innerIsFavorite, innerIsBookmark] = [ref(false), ref(false)];
 
 watchEffect(() => {
-	innerIsFavorite.value = props.isFavorite ?? false;
-	innerIsBookmark.value = props.isBookmark ?? false;
+	innerIsFavorite.value = props.isFavorite;
+	innerIsBookmark.value = props.isBookmark;
 	innerFavorites.value = props.favorites ?? 0;
 	innerBookmarks.value = props.bookmarks ?? 0;
 });
