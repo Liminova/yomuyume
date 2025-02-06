@@ -23,7 +23,7 @@ const props = withDefaults(defineProps<{
 		}"
 		:class="{
 			'grid': true,
-			'opacity-0': !props.show,
+			'pointer-events-none opacity-0': !props.show,
 			'opacity-100': props.show,
 			'grid-cols-[1fr]': props.dimension === 'horizontal' && props.show,
 			'grid-rows-[1fr]': props.dimension === 'vertical' && props.show,
