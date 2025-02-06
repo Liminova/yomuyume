@@ -3,6 +3,7 @@
 
 import { ref } from "vue";
 
+import { navigateTo } from "#app";
 import Toggle from "~/components/Toggle.vue";
 import Button from "~/components/ui/Button.vue";
 import Input from "~/components/ui/Input.vue";
@@ -20,7 +21,7 @@ const mode = ref<Mode>(Mode.Login);
 
 const loginStore = useAuthLoginStore();
 const registerStore = useAuthRegisterStore();
-const resetPasswordStore = useAuthResetPasswordStore();
+const resetPassStore = useAuthResetPasswordStore();
 </script>
 
 <template>
@@ -43,21 +44,30 @@ const resetPasswordStore = useAuthResetPasswordStore();
 				<Button
 					class="col-span-2 w-full"
 					:disabled="loginStore.mutation.isPending || mode !== Mode.Login"
-					@click="loginStore.loginAction">
+					@click="loginStore.loginAction(() => {
+						loginStore.resetFields();
+						void navigateTo('/');
+					})">
 					Login
 				</Button>
 				<Button
 					variant="outline"
 					class="w-full"
 					:disabled="mode !== Mode.Login"
-					@click="mode = Mode.Register">
+					@click="() => {
+						mode = Mode.Register;
+						registerStore.resetFields();
+					}">
 					Register
 				</Button>
 				<Button
 					variant="outline"
 					class="w-full"
 					:disabled="mode !== Mode.Login"
-					@click="mode = Mode.ResetPassword">
+					@click="() => {
+						mode = Mode.ResetPassword;
+						resetPassStore.resetFields();
+					}">
 					Reset password
 				</Button>
 			</Toggle>
@@ -100,7 +110,10 @@ const resetPasswordStore = useAuthResetPasswordStore();
 					class="w-full"
 					variant="outline"
 					:disabled="mode !== Mode.Register"
-					@click="mode = Mode.Login">
+					@click="() => {
+						mode = Mode.Login;
+						loginStore.resetFields();
+					}">
 					Back to login
 				</Button>
 				<Button
@@ -112,54 +125,74 @@ const resetPasswordStore = useAuthResetPasswordStore();
 			</Toggle>
 
 			<Toggle :show="mode == Mode.ResetPassword">
-				<Input
-					v-model="resetPasswordStore.email"
-					class="mb-3 w-full"
-					label="Email"
-					:disabled="mode !== Mode.ResetPassword"
-					@keydown.enter="resetPasswordStore.requestResetPasswordAction" />
+				<Toggle :show="!resetPassStore.codeSent">
+					<div class="mb-3 grid w-full grid-cols-[auto,auto] gap-2">
+						<Input
+							v-model="resetPassStore.email"
+							label="Email"
+							:disabled="mode !== Mode.ResetPassword"
+							@keydown.enter="resetPassStore.sendReqResetPass" />
+
+						<Button
+							class="z-10 self-center"
+							:disabled="!resetPassStore.canSendRequest || mode !== Mode.ResetPassword"
+							variant="link"
+							@click="resetPassStore.sendReqResetPass">
+							Send code
+						</Button>
+					</div>
+				</Toggle>
+
+				<Toggle :show="resetPassStore.codeSent">
+					<Input
+						v-model="resetPassStore.code"
+						class="mb-3 w-full"
+						label="Code sent to your email"
+						:disabled="!resetPassStore.codeSent || mode !== Mode.ResetPassword"
+						@keydown.enter="resetPassStore.sendConfirmResetPass(() => {
+							mode = Mode.Login;
+							loginStore.resetFields();
+						})" />
+					<Input
+						v-model="resetPassStore.newPassword"
+						class="mb-3 w-full"
+						label="New password"
+						:disabled="!resetPassStore.codeSent || mode !== Mode.ResetPassword"
+						@keydown.enter="resetPassStore.sendConfirmResetPass(() => {
+							mode = Mode.Login;
+							loginStore.resetFields();
+						})" />
+					<Input
+						v-model="resetPassStore.newPasswordRetype"
+						class="mb-3 w-full"
+						label="Retype new password"
+						:disabled="!resetPassStore.codeSent || mode !== Mode.ResetPassword"
+						supporting-text="Passwords do not match"
+						:show-supporting-text="resetPassStore.retypeMismatch"
+						:style="resetPassStore.retypeMismatch ? 'destructive' : 'default'"
+						@keydown.enter="resetPassStore.sendConfirmResetPass(() => {
+							mode = Mode.Login;
+							loginStore.resetFields();
+						})" />
+					<Button
+						class="mb-3 w-full"
+						:disabled="!resetPassStore.codeSent || mode !== Mode.ResetPassword"
+						@click="resetPassStore.sendConfirmResetPass(() => {
+							mode = Mode.Login;
+							loginStore.resetFields();
+						})">
+						Reset password
+					</Button>
+				</Toggle>
 
 				<Button
-					class="mb-3 w-full"
-					:disabled="mode !== Mode.ResetPassword"
-					@click="resetPasswordStore.requestResetPasswordAction">
-					Send code
-				</Button>
-
-				<Input
-					v-model="resetPasswordStore.code"
-					class="mb-3 w-full"
-					label="Code"
-					:disabled="resetPasswordStore.isConfirmResetPasswordButtonEnabled || mode !== Mode.ResetPassword"
-					@keydown.enter="resetPasswordStore.confirmResetPasswordAction" />
-
-				<Input
-					v-model="resetPasswordStore.newPassword"
-					class="mb-3 w-full"
-					label="New password"
-					:disabled="resetPasswordStore.isConfirmResetPasswordButtonEnabled || mode !== Mode.ResetPassword"
-					@keydown.enter="resetPasswordStore.confirmResetPasswordAction" />
-				<Input
-					v-model="resetPasswordStore.newPassword"
-					class="mb-3 w-full"
-					label="Retype new password"
-					:disabled="resetPasswordStore.isConfirmResetPasswordButtonEnabled || mode !== Mode.ResetPassword"
-					supporting-text="Passwords do not match"
-					:show-supporting-text="!resetPasswordStore.isPasswordRetypeMatch"
-					:style="resetPasswordStore.isPasswordRetypeMatch ? 'default' : 'destructive'"
-					@keydown.enter="resetPasswordStore.confirmResetPasswordAction" />
-				<Button
-					class="mb-1 w-full"
-					:disabled="resetPasswordStore.isConfirmResetPasswordButtonEnabled || mode !== Mode.ResetPassword"
-					@click="resetPasswordStore.confirmResetPasswordAction">
-					Reset password
-				</Button>
-
-				<Button
-					class="w-full"
+					class="z-10 w-full"
 					variant="outline"
 					:disabled="mode !== Mode.ResetPassword"
-					@click="mode = Mode.Login">
+					@click="() => {
+						mode = Mode.Login;
+						loginStore.resetFields();
+					}">
 					Back to login
 				</Button>
 			</Toggle>
