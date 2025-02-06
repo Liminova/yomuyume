@@ -34,12 +34,15 @@ const title = useGetSeries(titleID);
 
 		<!-- Chapters -->
 		<div
-			v-for="chapter in title.data.value?.chapters"
-			v-if="title.data.value"
-			:key="chapter.id">
-			<div>
-				Chapter {{ chapter.number }}
-				{{ chapter.description ? ` - ${chapter.description}` : "" }}
+
+			v-if="title.data.value">
+			<div
+				v-for="chapter in title.data.value?.chapters"
+				:key="chapter.id">
+				<div>
+					Chapter {{ chapter.number }}
+					{{ chapter.description ? ` - ${chapter.description}` : "" }}
+				</div>
 			</div>
 		</div>
 	</div>
