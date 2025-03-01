@@ -128,7 +128,10 @@ pub async fn post_sensitive(
                 })?,
                 &purpose as &CodePurpose,
                 user_id.as_ref(),
-                app_state.id_generator.secure(),
+                app_state.id_generator.secure().map_err(|e| {
+                    tracing::error!("{e}");
+                    InternalErr::SecureID(e)
+                })?,
                 now
             )
             .fetch_one(&app_state.pool)

@@ -94,7 +94,10 @@ pub async fn post_forgot(
                 })?,
                 CodePurpose::ResetPassword as CodePurpose,
                 &user_id,
-                app_state.id_generator.secure(),
+                app_state.id_generator.secure().map_err(|e| {
+                    tracing::error!("{e}");
+                    InternalErr::SecureID(e)
+                })?,
                 now
             )
             .fetch_one(&app_state.pool)

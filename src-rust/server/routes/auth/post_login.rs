@@ -78,7 +78,10 @@ pub async fn post_login(
         .and_then(|value| value.to_str().ok())
         .map(|user_agent_str| user_agent_str.to_string());
 
-    let session_secret = app_state.id_generator.secure();
+    let session_secret = app_state.id_generator.secure().map_err(|e| {
+        tracing::error!("{e}");
+        InternalErr::SecureID(e)
+    })?;
 
     let session_id = sqlx::query!(
         "INSERT INTO session_tokens (
