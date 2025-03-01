@@ -15,7 +15,7 @@ use super::{
 };
 use crate::{
     routes::errors::InternalErr,
-    structs::id::UserID,
+    structs::ids::UserID,
     utils::{app_state::AppState, constants::GET_ONESHOT_PATH},
 };
 

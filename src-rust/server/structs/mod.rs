@@ -1,7 +1,7 @@
 pub mod absolute_path;
 pub mod category_info;
 pub mod comic_info;
-pub mod id;
+pub mod ids;
 pub mod user_cache;
 
 use serde::{Deserialize, Deserializer};

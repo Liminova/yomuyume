@@ -8,7 +8,7 @@ use crate::{
     structs::{
         absolute_path::{AbsolutePath, AbsolutePathErr},
         category_info::CategoryInfo,
-        id::CategoryID,
+        ids::CategoryID,
     },
     traits::{do_something_and_ok::DoSomethingAndOk, to_blurhash::ToBlurhashFromFile},
     utils::{constants::CATEGORYINFO, id_generator::GenerateIDErr},

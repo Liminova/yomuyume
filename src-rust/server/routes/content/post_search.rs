@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     routes::errors::InternalErr,
-    structs::id::UserID,
+    structs::ids::UserID,
     utils::{app_state::AppState, constants::SEARCH_PATH},
 };
 

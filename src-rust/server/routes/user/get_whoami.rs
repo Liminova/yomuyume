@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 
 use crate::{
     routes::errors::InternalErr,
-    structs::id::UserID,
+    structs::ids::UserID,
     utils::{app_state::AppState, constants::WHOAMI_PATH},
 };
 

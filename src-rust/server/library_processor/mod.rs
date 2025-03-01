@@ -28,7 +28,7 @@ use crate::{
     },
     structs::{
         absolute_path::{AbsolutePath, AbsolutePathErr},
-        id::{CategoryID, TitleID},
+        ids::{CategoryID, TitleID},
     },
     traits::do_something_and_ok::DoSomethingAndOk,
     utils::{

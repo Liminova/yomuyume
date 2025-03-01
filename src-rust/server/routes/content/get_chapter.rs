@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 use super::{parse_pages, structs::BasePageResponse};
 use crate::{
     routes::errors::InternalErr,
-    structs::id::UserID,
+    structs::ids::UserID,
     utils::{app_state::AppState, constants::GET_CHAPTER_PATH},
 };
 

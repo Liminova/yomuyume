@@ -11,7 +11,7 @@ use utoipa::ToSchema;
 
 use crate::{
     routes::errors::{InternalErr, RequestErr},
-    structs::id::UserID,
+    structs::ids::UserID,
     utils::{app_state::AppState, constants::LIVE_CONFIG_PATH, live_config::LiveConfigItem},
 };
 

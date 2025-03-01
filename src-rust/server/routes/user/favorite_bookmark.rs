@@ -9,7 +9,7 @@ use axum::{
 
 use crate::{
     routes::errors::InternalErr,
-    structs::id::UserID,
+    structs::ids::UserID,
     utils::{
         app_state::AppState,
         constants::{BOOKMARK_PATH, FAVORITE_PATH},

@@ -17,7 +17,7 @@ use crate::{
         hash_pass, is_strong,
         user::Mailer,
     },
-    structs::{id::UserID, temp_code_purpose::TempCodePurpose},
+    structs::{db_enums::TempCodePurpose as CodePurpose, ids::UserID},
     traits::chrono_utils::ChronoUtils,
     utils::{
         app_state::AppState,

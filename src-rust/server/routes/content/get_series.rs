@@ -13,7 +13,7 @@ use utoipa::ToSchema;
 use super::{is_jxl, parse_tags, structs::BaseTitleResponse};
 use crate::{
     routes::errors::InternalErr,
-    structs::id::UserID,
+    structs::ids::UserID,
     utils::{app_state::AppState, constants::GET_SERIES_PATH},
 };
 

@@ -25,7 +25,7 @@ use crate::{
     structs::{
         absolute_path::{AbsolutePath, ToAbsolute},
         comic_info::{ComicInfo, ComicPageType},
-        id::{CategoryID, TitleID},
+        ids::{CategoryID, TitleID},
     },
     traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
     utils::constants::COMICINFO,
