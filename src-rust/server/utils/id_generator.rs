@@ -19,7 +19,7 @@ pub enum GenerateIDErr {
 }
 
 impl IDGenerator {
-    pub fn default(snowflake_id_thread_count: usize) -> Self {
+    pub fn new(snowflake_id_thread_count: usize) -> Self {
         // a shared mpmc channel between all the snowflake id generators
         let (snowflake_id_generator_request, request_receiver): (
             async_channel::Sender<oneshot::Sender<i64>>,
