@@ -80,6 +80,7 @@ pub async fn post_forgot(
                 .is_some_and(|r| r.inside(&now, &Duration::seconds(TEMP_CODE_REQUEST_RATE_LIMIT)))
             {
                 return Ok(StatusCode::TOO_MANY_REQUESTS.into_response());
+            }
 
             let code = sqlx::query!(
                 "INSERT INTO temp_codes (id, purpose, user_id, code, created_at)
