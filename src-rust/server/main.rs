@@ -30,15 +30,19 @@ use axum::{
     routing::{get, post, put},
     Router,
 };
-use routes::{auth::post_forgot, user::post_sensitive};
+use routes::{
+    admin::{get_live_config, post_live_config},
+    auth::post_forgot,
+    user::post_sensitive,
+};
 use tokio::{net::TcpListener, time::sleep};
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
 use utils::constants::{
     BOOKMARK_PATH, FAVORITE_PATH, FORGOT_PATH, GET_CATEGORIES_PATH, GET_CHAPTER_PATH,
     GET_COVER_PATH, GET_ONESHOT_PATH, GET_PAGE_PATH, GET_SCANNING_PROGRESS_PATH, GET_SERIES_PATH,
-    GET_STATUS_PATH, GET_TAGS_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, SEARCH_PATH,
-    USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH,
+    GET_STATUS_PATH, GET_TAGS_PATH, LIVE_CONFIG_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH,
+    SEARCH_PATH, USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH,
 };
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
@@ -84,6 +88,11 @@ async fn main() -> Result<()> {
         .route(FORGOT_PATH, post(post_forgot))
         .merge(
             Router::new()
+                // admin
+                .route(
+                    LIVE_CONFIG_PATH,
+                    post(post_live_config).get(get_live_config),
+                )
                 // content
                 .route(SEARCH_PATH, post(post_search))
                 .route(GET_CATEGORIES_PATH, get(get_categories))
