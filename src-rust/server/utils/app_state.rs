@@ -37,13 +37,15 @@ impl AppState {
             .await
             .expect("can't initialize live config");
 
+        let id_generator = IDGenerator::new(config.snowflake_id_thread_count);
+
         Arc::new(Self {
             pool,
             config,
             live_config,
             scanning_complete: RwLock::new(false),
             scanning_progress: RwLock::new(0.0),
-            id_generator: IDGenerator::default(),
+            id_generator,
             user_cache: DashMap::new(),
             session_cache: DashMap::new(),
         })
