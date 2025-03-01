@@ -7,6 +7,8 @@ use crate::structs::absolute_path::AbsolutePath;
 pub struct Config {
     pub app_name: String,
     pub library_path: AbsolutePath,
+    pub concurrent_scan_tasks: usize,
+    pub snowflake_id_thread_count: usize,
 
     pub listen_address: String,
     pub server_port: u16,
@@ -60,6 +62,9 @@ impl Config {
         Self {
             app_name: optional!("APP_NAME", "Yomuyume"),
             library_path,
+            concurrent_scan_tasks: optional!(num: "CONCURRENT_SCAN_TASKS", 8),
+            snowflake_id_thread_count: optional!(num: "SNOWFLAKE_ID_THREAD_COUNT", 8),
+
             listen_address: optional!("LISTEN_ADDRESS", "0.0.0.0"),
             server_port: optional!(num: "SERVER_PORT", 3000),
             database_url: must!("DATABASE_URL"),
