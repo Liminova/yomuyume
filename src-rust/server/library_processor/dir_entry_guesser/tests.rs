@@ -37,8 +37,7 @@ mod tests {
 
         tmp.path()
             .join("inner/123chapter_001.zip")
-            .to_path_buf()
-            ._create_zip_file(&vec![
+            ._create_zip_file(&[
                 tmp.path().join("file.png"),
                 tmp.path().join("file.jpg"),
                 tmp.path().join("file.txt"),
@@ -46,18 +45,15 @@ mod tests {
             .unwrap();
         tmp.path()
             .join("inner/123-----CHAPTER    00200.zip")
-            .to_path_buf()
-            ._create_zip_file(&vec![tmp.path().join("file.png")])
+            ._create_zip_file(&[tmp.path().join("file.png")])
             .unwrap();
         tmp.path()
             .join("inner/contains_no_image.zip")
-            .to_path_buf()
-            ._create_zip_file(&vec![tmp.path().join("file.txt")])
+            ._create_zip_file(&[tmp.path().join("file.txt")])
             .unwrap();
         tmp.path()
             .join("inner/contains_nomedia.zip")
-            .to_path_buf()
-            ._create_zip_file(&vec![
+            ._create_zip_file(&[
                 tmp.path().join("file.png"),
                 tmp.path().join("file.jpg"),
                 tmp.path().join(".nomedia"),
@@ -108,13 +104,11 @@ mod tests {
 
         tmp.path()
             .join("inner2/00100.zip")
-            .to_path_buf()
-            ._create_zip_file(&vec![tmp.path().join("file.png")])
+            ._create_zip_file(&[tmp.path().join("file.png")])
             .unwrap();
         tmp.path()
             .join("inner2/002.zip")
-            .to_path_buf()
-            ._create_zip_file(&vec![tmp.path().join("file.png")])
+            ._create_zip_file(&[tmp.path().join("file.png")])
             .unwrap();
 
         assert_eq!(
@@ -155,13 +149,10 @@ mod tests {
         File::create(tmp.path().join("inner2/CategoryInfo.xml")).unwrap();
 
         assert!(tmp.path().join("inner").contains_category_info_file());
-        assert_eq!(tmp.path().join("inner/CategoryInfo.xml").exists(), false);
+        assert!(!tmp.path().join("inner/CategoryInfo.xml").exists());
 
-        assert_eq!(tmp.path().join("inner2").contains_nomedia_file(true), false);
-        assert_eq!(
-            tmp.path().join("inner2").contains_nomedia_file(false),
-            false
-        );
+        assert!(!tmp.path().join("inner2").contains_nomedia_file(true));
+        assert!(!tmp.path().join("inner2").contains_nomedia_file(false));
         assert!(tmp.path().join("inner2").contains_category_info_file());
     }
 }

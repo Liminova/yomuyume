@@ -687,7 +687,7 @@ mod tests {
 
     #[test]
     fn option_string_some() {
-        let xml = r#"<ComicInfo>
+        let xml = r"<ComicInfo>
                 <Series>  series  </Series>
                 <Number>  number  </Number>
                 <AlternateSeries>  alternate series  </AlternateSeries>
@@ -718,8 +718,8 @@ mod tests {
                 <MainCharacterOrTeam>  main character or team  </MainCharacterOrTeam>
                 <Review>  review  </Review>
                 <GTIN>  gtin  </GTIN>
-            </ComicInfo>"#;
-        let comic_info = ComicInfo::from_str(&xml).unwrap();
+            </ComicInfo>";
+        let comic_info = ComicInfo::from_str(xml).unwrap();
         assert_eq!(comic_info.series, Some("series".to_string()));
         assert_eq!(comic_info.number, Some("number".to_string()));
         assert_eq!(
@@ -802,12 +802,12 @@ mod tests {
     <GTIN>gtin</GTIN>
 </ComicInfo>"
             )
-        )
+        );
     }
 
     #[test]
     fn option_string_none() {
-        let xml = r#"<ComicInfo>
+        let xml = r"<ComicInfo>
             <Series>  </Series>
             <Number>  </Number>
             <AlternateSeries>  </AlternateSeries>
@@ -838,8 +838,8 @@ mod tests {
             <MainCharacterOrTeam>  </MainCharacterOrTeam>
             <Review>  </Review>
             <GTIN>  </GTIN>
-        </ComicInfo>"#;
-        let comic_info = ComicInfo::from_str(&xml).unwrap();
+        </ComicInfo>";
+        let comic_info = ComicInfo::from_str(xml).unwrap();
         assert_eq!(comic_info.series, None);
         assert_eq!(comic_info.number, None);
         assert_eq!(comic_info.alternate_series, None);
@@ -879,11 +879,11 @@ mod tests {
     #[test]
     fn default_numbers() {
         assert!(ComicInfo::from_str(
-            r#"<ComicInfo><Count/><Volume/><AlternateCount/><Year/><Month/><Day/><PageCount/></ComicInfo>"#
+            r"<ComicInfo><Count/><Volume/><AlternateCount/><Year/><Month/><Day/><PageCount/></ComicInfo>"
         )
         .is_err());
 
-        let comic_info = ComicInfo::from_str(r#"<ComicInfo/>"#).unwrap();
+        let comic_info = ComicInfo::from_str(r"<ComicInfo/>").unwrap();
         assert_eq!(comic_info.count, -1);
         assert_eq!(comic_info.volume, -1);
         assert_eq!(comic_info.alternate_count, -1);
@@ -898,7 +898,7 @@ mod tests {
 
         assert_eq!(
             ComicInfo::from_str(
-                r#"<ComicInfo>
+                r"<ComicInfo>
                 <Count>-1</Count>
                 <Volume>-1</Volume>
                 <AlternateCount>-1</AlternateCount>
@@ -906,7 +906,7 @@ mod tests {
                 <Month>-1</Month>
                 <Day>-1</Day>
                 <PageCount>0</PageCount>
-            </ComicInfo>"#
+            </ComicInfo>"
             )
             .unwrap()
             .to_pretty_string()
@@ -918,7 +918,7 @@ mod tests {
     #[test]
     fn title() {
         assert_eq!(
-            ComicInfo::from_str(r#"<ComicInfo><Title>  Foo  </Title></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><Title>  Foo  </Title></ComicInfo>")
                 .unwrap()
                 .to_pretty_string()
                 .unwrap(),
@@ -926,7 +926,7 @@ mod tests {
         );
 
         assert_eq!(
-            ComicInfo::from_str(r#"<ComicInfo><Title /></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><Title /></ComicInfo>")
                 .unwrap()
                 .to_pretty_string()
                 .unwrap(),
@@ -936,12 +936,10 @@ mod tests {
 
     #[test]
     fn age_rating() {
-        assert!(
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>  </AgeRating></ComicInfo>"#).is_err()
-        );
+        assert!(ComicInfo::from_str(r"<ComicInfo><AgeRating>  </AgeRating></ComicInfo>").is_err());
 
-        let xml = r#"<ComicInfo></ComicInfo>"#;
-        let comic_info = ComicInfo::from_str(&xml).unwrap();
+        let xml = r"<ComicInfo></ComicInfo>";
+        let comic_info = ComicInfo::from_str(xml).unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::Unknown);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -949,27 +947,25 @@ mod tests {
         );
 
         assert_eq!(
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>Unknown  </AgeRating></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>Unknown  </AgeRating></ComicInfo>")
                 .unwrap()
                 .to_pretty_string()
                 .unwrap(),
             format!("{COMICINFO_SCHEMA}\n<ComicInfo/>")
         );
 
-        let comic_info = ComicInfo::from_str(
-            r#"<ComicInfo><AgeRating>Adults Only 18+  </AgeRating></ComicInfo>"#,
-        )
-        .unwrap();
+        let comic_info =
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>Adults Only 18+  </AgeRating></ComicInfo>")
+                .unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::AdultsOnly18);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
             format!("{COMICINFO_SCHEMA}\n<ComicInfo>\n    <AgeRating>Adults Only 18+</AgeRating>\n</ComicInfo>")
         );
 
-        let comic_info = ComicInfo::from_str(
-            r#"<ComicInfo><AgeRating>Early Childhood  </AgeRating></ComicInfo>"#,
-        )
-        .unwrap();
+        let comic_info =
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>Early Childhood  </AgeRating></ComicInfo>")
+                .unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::EarlyChildhood);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -977,7 +973,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>Everyone  </AgeRating></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>Everyone  </AgeRating></ComicInfo>")
                 .unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::Everyone);
         assert_eq!(
@@ -986,7 +982,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>Everyone 10+  </AgeRating></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>Everyone 10+  </AgeRating></ComicInfo>")
                 .unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::Everyone10);
         assert_eq!(
@@ -995,17 +991,16 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>G  </AgeRating></ComicInfo>"#).unwrap();
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>G  </AgeRating></ComicInfo>").unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::G);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
             format!("{COMICINFO_SCHEMA}\n<ComicInfo>\n    <AgeRating>G</AgeRating>\n</ComicInfo>")
         );
 
-        let comic_info = ComicInfo::from_str(
-            r#"<ComicInfo><AgeRating>Kids to Adults  </AgeRating></ComicInfo>"#,
-        )
-        .unwrap();
+        let comic_info =
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>Kids to Adults  </AgeRating></ComicInfo>")
+                .unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::KidsToAdults);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1013,7 +1008,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>M  </AgeRating></ComicInfo>"#).unwrap();
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>M  </AgeRating></ComicInfo>").unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::M);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1021,8 +1016,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>MA15+  </AgeRating></ComicInfo>"#)
-                .unwrap();
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>MA15+  </AgeRating></ComicInfo>").unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::MA15);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1032,7 +1026,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>Mature 17+  </AgeRating></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>Mature 17+  </AgeRating></ComicInfo>")
                 .unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::Mature17);
         assert_eq!(
@@ -1041,7 +1035,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>PG  </AgeRating></ComicInfo>"#).unwrap();
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>PG  </AgeRating></ComicInfo>").unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::PG);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1049,7 +1043,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>R18+  </AgeRating></ComicInfo>"#).unwrap();
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>R18+  </AgeRating></ComicInfo>").unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::R18);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1058,10 +1052,9 @@ mod tests {
             )
         );
 
-        let comic_info = ComicInfo::from_str(
-            r#"<ComicInfo><AgeRating>Rating Pending  </AgeRating></ComicInfo>"#,
-        )
-        .unwrap();
+        let comic_info =
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>Rating Pending  </AgeRating></ComicInfo>")
+                .unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::RatingPending);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1069,7 +1062,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>Teen  </AgeRating></ComicInfo>"#).unwrap();
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>Teen  </AgeRating></ComicInfo>").unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::Teen);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1079,7 +1072,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(r#"<ComicInfo><AgeRating>X18+  </AgeRating></ComicInfo>"#).unwrap();
+            ComicInfo::from_str(r"<ComicInfo><AgeRating>X18+  </AgeRating></ComicInfo>").unwrap();
         assert_eq!(comic_info.age_rating, AgeRating::X18);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1092,7 +1085,7 @@ mod tests {
     #[test]
     fn pages() {
         assert_eq!(
-            ComicInfo::from_str(&r#"<ComicInfo></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo></ComicInfo>")
                 .unwrap()
                 .to_pretty_string()
                 .unwrap(),
@@ -1100,7 +1093,7 @@ mod tests {
         );
 
         assert_eq!(
-            ComicInfo::from_str(r#"<ComicInfo><Pages></Pages></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><Pages></Pages></ComicInfo>")
                 .unwrap()
                 .to_pretty_string()
                 .unwrap(),
@@ -1146,7 +1139,7 @@ mod tests {
                 <Page Image="0" Type="FrontCover" DoublePage="false" ImageSize="0" Key="1" Bookmark="2" ImageWidth="3" ImageHeight="4" ImagePath="5" Description="6"/>
             </Pages>
         </ComicInfo>"#;
-        let comic_info = ComicInfo::from_str(&xml).unwrap();
+        let comic_info = ComicInfo::from_str(xml).unwrap();
         assert_eq!(
             comic_info.pages(),
             &vec![ComicPageInfo {
@@ -1178,7 +1171,7 @@ mod tests {
     #[test]
     fn manga() {
         let comic_info =
-            ComicInfo::from_str(&r#"<ComicInfo><Manga>Yes  </Manga></ComicInfo>"#).unwrap();
+            ComicInfo::from_str(r"<ComicInfo><Manga>Yes  </Manga></ComicInfo>").unwrap();
         assert_eq!(comic_info.manga, Manga::Yes);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1186,7 +1179,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(&r#"<ComicInfo><Manga>YesAndRightToLeft  </Manga></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><Manga>YesAndRightToLeft  </Manga></ComicInfo>")
                 .unwrap();
         assert_eq!(comic_info.manga, Manga::YesAndRightToLeft);
         assert_eq!(
@@ -1195,7 +1188,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(&r#"<ComicInfo><Manga>No  </Manga></ComicInfo>"#).unwrap();
+            ComicInfo::from_str(r"<ComicInfo><Manga>No  </Manga></ComicInfo>").unwrap();
         assert_eq!(comic_info.manga, Manga::No);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1203,23 +1196,23 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(&r#"<ComicInfo><Manga>Unknown  </Manga></ComicInfo>"#).unwrap();
+            ComicInfo::from_str(r"<ComicInfo><Manga>Unknown  </Manga></ComicInfo>").unwrap();
         assert_eq!(comic_info.manga, Manga::Unknown);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
             format!("{COMICINFO_SCHEMA}\n<ComicInfo/>")
         );
 
-        let comic_info = ComicInfo::from_str(&r#"<ComicInfo></ComicInfo>"#).unwrap();
+        let comic_info = ComicInfo::from_str(r"<ComicInfo></ComicInfo>").unwrap();
         assert_eq!(comic_info.manga, Manga::Unknown);
 
-        assert!(ComicInfo::from_str(r#"<ComicInfo><Manga/></ComicInfo>"#).is_err());
+        assert!(ComicInfo::from_str(r"<ComicInfo><Manga/></ComicInfo>").is_err());
     }
 
     #[test]
     fn yesno() {
         let comic_info =
-            ComicInfo::from_str(&r#"<ComicInfo><BlackAndWhite>Yes  </BlackAndWhite></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><BlackAndWhite>Yes  </BlackAndWhite></ComicInfo>")
                 .unwrap();
         assert_eq!(comic_info.black_and_white, YesNo::Yes);
         assert_eq!(
@@ -1228,7 +1221,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(&r#"<ComicInfo><BlackAndWhite>No  </BlackAndWhite></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><BlackAndWhite>No  </BlackAndWhite></ComicInfo>")
                 .unwrap();
         assert_eq!(comic_info.black_and_white, YesNo::No);
         assert_eq!(
@@ -1236,29 +1229,27 @@ mod tests {
             format!("{COMICINFO_SCHEMA}\n<ComicInfo>\n    <BlackAndWhite>No</BlackAndWhite>\n</ComicInfo>")
         );
 
-        let comic_info = ComicInfo::from_str(
-            &r#"<ComicInfo><BlackAndWhite>Unknown</BlackAndWhite></ComicInfo>"#,
-        )
-        .unwrap();
+        let comic_info =
+            ComicInfo::from_str(r"<ComicInfo><BlackAndWhite>Unknown</BlackAndWhite></ComicInfo>")
+                .unwrap();
         assert_eq!(comic_info.black_and_white, YesNo::Unknown);
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
             format!("{COMICINFO_SCHEMA}\n<ComicInfo/>")
         );
 
-        let comic_info = ComicInfo::from_str(&r#"<ComicInfo></ComicInfo>"#).unwrap();
+        let comic_info = ComicInfo::from_str(r"<ComicInfo></ComicInfo>").unwrap();
         assert_eq!(comic_info.black_and_white, YesNo::Unknown);
 
         assert!(
-            ComicInfo::from_str(r#"<ComicInfo><BlackAndWhite></BlackAndWhite></ComicInfo>"#)
-                .is_err()
+            ComicInfo::from_str(r"<ComicInfo><BlackAndWhite></BlackAndWhite></ComicInfo>").is_err()
         );
     }
 
     #[test]
     fn rating() {
-        let xml = r#"<ComicInfo><CommunityRating>0.0  </CommunityRating></ComicInfo>"#;
-        let comic_info = ComicInfo::from_str(&xml).unwrap();
+        let xml = r"<ComicInfo><CommunityRating>0.0  </CommunityRating></ComicInfo>";
+        let comic_info = ComicInfo::from_str(xml).unwrap();
         assert_eq!(comic_info.community_rating, Some(Rating(0.0)));
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1266,20 +1257,20 @@ mod tests {
         );
 
         assert!(ComicInfo::from_str(
-            r#"<ComicInfo><CommunityRating>-1</CommunityRating></ComicInfo>"#
+            r"<ComicInfo><CommunityRating>-1</CommunityRating></ComicInfo>"
         )
         .is_err());
         assert!(ComicInfo::from_str(
-            r#"<ComicInfo><CommunityRating>6.0</CommunityRating></ComicInfo>"#
+            r"<ComicInfo><CommunityRating>6.0</CommunityRating></ComicInfo>"
         )
         .is_err());
-        assert!(ComicInfo::from_str(
-            r#"<ComicInfo><CommunityRating></CommunityRating></ComicInfo>"#
-        )
-        .is_err());
+        assert!(
+            ComicInfo::from_str(r"<ComicInfo><CommunityRating></CommunityRating></ComicInfo>")
+                .is_err()
+        );
 
         let comic_info = ComicInfo::from_str(
-            &r#"<ComicInfo><CommunityRating>4.12  </CommunityRating></ComicInfo>"#,
+            r"<ComicInfo><CommunityRating>4.12  </CommunityRating></ComicInfo>",
         )
         .unwrap();
         assert_eq!(
@@ -1290,7 +1281,7 @@ mod tests {
 
     #[test]
     fn tags() {
-        let comic_info = ComicInfo::from_str(&r#"<ComicInfo><Tags>  </Tags></ComicInfo>"#).unwrap();
+        let comic_info = ComicInfo::from_str(r"<ComicInfo><Tags>  </Tags></ComicInfo>").unwrap();
         assert_eq!(comic_info.tags, Vec::<String>::new());
         assert_eq!(
             comic_info.to_pretty_string().unwrap(),
@@ -1298,7 +1289,7 @@ mod tests {
         );
 
         let comic_info =
-            ComicInfo::from_str(&r#"<ComicInfo><Tags>tag3  , tag1  , tag2  </Tags></ComicInfo>"#)
+            ComicInfo::from_str(r"<ComicInfo><Tags>tag3  , tag1  , tag2  </Tags></ComicInfo>")
                 .unwrap();
         assert_eq!(
             comic_info.tags,

@@ -95,7 +95,7 @@ pub fn handle_title_as_archive(
                 .is_some()
             {
                 break 'cover_finder;
-            };
+            }
 
             let Some(ref page_cfg_path) = page_cfg.image_path else {
                 unreachable!()

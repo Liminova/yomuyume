@@ -148,7 +148,7 @@ mod tests {
     #[test]
     fn no_fields() {
         let category_info: CategoryInfo =
-            quick_xml::de::from_str::<CategoryInfo>(r#"<CategoryInfo></CategoryInfo>"#).unwrap();
+            quick_xml::de::from_str::<CategoryInfo>(r"<CategoryInfo></CategoryInfo>").unwrap();
 
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn all_empty() {
         let category_info: CategoryInfo =
-            CategoryInfo::from_str(r#"<CategoryInfo><Name/><Description/><Cover/></CategoryInfo>"#)
+            CategoryInfo::from_str(r"<CategoryInfo><Name/><Description/><Cover/></CategoryInfo>")
                 .unwrap();
 
         assert_eq!(category_info.name, None);

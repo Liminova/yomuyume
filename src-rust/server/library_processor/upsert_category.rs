@@ -56,7 +56,7 @@ pub async fn upsert_category<'e>(
     #[allow(clippy::significant_drop_in_scrutinee)]
     if let Some(category_id) = category_path_to_id.read().await.get(&category_path) {
         return Ok(Some(*category_id));
-    };
+    }
 
     let category_info_path = category_path.as_ref().join(CATEGORYINFO);
     let (original_category_info, mut category_info) = {

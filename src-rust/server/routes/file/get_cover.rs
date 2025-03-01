@@ -53,7 +53,7 @@ pub async fn get_cover(
         header::CONTENT_TYPE,
         match cover_path
             .split('.')
-            .last()
+            .next_back()
             .unwrap_or_default()
             .to_lowercase()
             .as_str()

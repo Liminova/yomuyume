@@ -542,6 +542,7 @@ impl Stream for ArchiveItemStream {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use std::{
         fs::File,
@@ -565,7 +566,7 @@ mod tests {
 
     #[test]
     fn seven_zip_cli_in_path() {
-        let mut child = MemFdExecutable::new("7zz", &SEVEN_ZIP_BIN)
+        let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -591,7 +592,7 @@ mod tests {
         File::create(&test_file).unwrap();
 
         let archive_file = temp_dir.path().join("new.zip");
-        archive_file._create_zip_file(&vec![test_file]).unwrap();
+        archive_file._create_zip_file(&[test_file]).unwrap();
         let files = archive_file.list_files_in_archive().unwrap();
 
         assert_eq!(files.len(), 1);
@@ -614,7 +615,7 @@ mod tests {
 
         let archive_file = temp_dir.path().join("new.zip");
         archive_file
-            ._create_zip_file(&vec![test_file1, test_file2])
+            ._create_zip_file(&[test_file1, test_file2])
             .unwrap();
 
         assert_eq!(
@@ -638,11 +639,11 @@ mod tests {
         let filename_1 = "test.txt";
         let archive_file = temp_dir.path().join("new.zip");
         archive_file
-            ._create_zip_file(&vec![temp_dir.path().join(temp_file_name)])
+            ._create_zip_file(&[temp_dir.path().join(temp_file_name)])
             .unwrap();
 
         assert_eq!(
-            archive_file.read_file_from_archive(&filename_1).unwrap(),
+            archive_file.read_file_from_archive(filename_1).unwrap(),
             b""
         );
         assert_eq!(archive_file.list_files_in_archive().unwrap().len(), 1);
@@ -650,11 +651,11 @@ mod tests {
         // overwrite that empty file
         let content_1 = Arc::new(b"lorem ipsum".to_vec());
         archive_file
-            .upsert_file_to_archive(&filename_1, content_1.clone())
+            .upsert_file_to_archive(filename_1, content_1.clone())
             .unwrap();
 
         assert_eq!(
-            archive_file.read_file_from_archive(&filename_1).unwrap(),
+            archive_file.read_file_from_archive(filename_1).unwrap(),
             *content_1
         );
         assert_eq!(archive_file.list_files_in_archive().unwrap().len(), 1);
@@ -664,15 +665,15 @@ mod tests {
         let content_2 = Arc::new(b"dolor sit amet".to_vec());
         File::create(temp_dir.path().join(filename_2)).unwrap();
         archive_file
-            .upsert_file_to_archive(&filename_2, content_2.clone())
+            .upsert_file_to_archive(filename_2, content_2.clone())
             .unwrap();
 
         assert_eq!(
-            archive_file.read_file_from_archive(&filename_1).unwrap(),
+            archive_file.read_file_from_archive(filename_1).unwrap(),
             *content_1
         );
         assert_eq!(
-            archive_file.read_file_from_archive(&filename_2).unwrap(),
+            archive_file.read_file_from_archive(filename_2).unwrap(),
             *content_2
         );
         assert_eq!(archive_file.list_files_in_archive().unwrap().len(), 2);
@@ -686,9 +687,7 @@ mod tests {
         File::create(&test_file).unwrap();
 
         let archive_file = temp_dir.path().join("new.zip");
-        archive_file
-            ._create_zip_file(&vec![test_file.clone()])
-            .unwrap();
+        archive_file._create_zip_file(&[test_file.clone()]).unwrap();
 
         let modified_date_in_zip = archive_file.list_files_in_archive().unwrap()[0].last_modified;
         let real_modified_date: DateTime<Utc> = File::open(&test_file)

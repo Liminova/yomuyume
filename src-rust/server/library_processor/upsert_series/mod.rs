@@ -155,7 +155,7 @@ pub async fn upsert_series(
             .is_some()
         {
             break 'cover_finder;
-        };
+        }
 
         if try_everything_as_cover(
             &title_path,
@@ -169,7 +169,7 @@ pub async fn upsert_series(
         .is_none()
         {
             warn!("no page in `{title_path}` can be used as cover");
-        };
+        }
     };
 
     let mut txn = app_state

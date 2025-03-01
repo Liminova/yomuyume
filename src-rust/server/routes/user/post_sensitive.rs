@@ -84,7 +84,7 @@ pub async fn post_sensitive(
             }
         }
         TempCodePurpose::DeleteAccount | TempCodePurpose::ResetPassword => (),
-    };
+    }
 
     match req.mode {
         SensitiveRequestMode::Ask => {
@@ -112,7 +112,7 @@ pub async fn post_sensitive(
                     .inside(&now, &Duration::seconds(TEMP_CODE_REQUEST_RATE_LIMIT))
             }) {
                 return Ok(StatusCode::TOO_MANY_REQUESTS.into_response());
-            };
+            }
 
             // get new? code
             let code = sqlx::query!(
@@ -218,13 +218,13 @@ pub async fn post_sensitive(
                 tracing::error!("{e}");
                 InternalErr::DB(e)
             })?
-            .map_or(true, |record| {
+            .is_none_or(|record| {
                 record
                     .created_at
                     .outside(&Utc::now(), &Duration::seconds(TEMP_CODE_EXPIRED_AFTER))
             }) {
                 return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCode).into_response());
-            };
+            }
 
             match purpose {
                 TempCodePurpose::DeleteAccount => {
@@ -307,7 +307,7 @@ pub async fn post_sensitive(
                 }
             }
         }
-    };
+    }
 
     Ok(StatusCode::OK.into_response())
 }

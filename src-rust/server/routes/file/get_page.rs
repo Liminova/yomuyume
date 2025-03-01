@@ -88,7 +88,7 @@ pub async fn get_page(
 
     let header = [(
         header::CONTENT_TYPE,
-        match page_path.split('.').last().unwrap_or_default() {
+        match page_path.split('.').next_back().unwrap_or_default() {
             "" => "image".to_string(),
             "jpg" => "image/jpeg".to_string(),
             v => format!("image/{v}"),

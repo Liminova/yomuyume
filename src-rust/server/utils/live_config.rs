@@ -118,7 +118,7 @@ impl LiveConfig {
                     return Err(InternalErr::LiveConfig(
                         "value must be an integer".to_string(),
                     ));
-                };
+                }
             }
             (_, value) if value != "true" && value != "false" => {
                 return Err(InternalErr::LiveConfig(
@@ -126,7 +126,7 @@ impl LiveConfig {
                 ));
             }
             _ => {}
-        };
+        }
 
         sqlx::query!(
             "INSERT INTO live_config (id, value, last_updated_at)

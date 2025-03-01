@@ -204,7 +204,6 @@ pub async fn full_scan(app_state: Arc<AppState>) {
                     "can't guess the directory type for `{}`: {e:?}",
                     entry_path.display()
                 );
-                continue;
             }
         }
     }
@@ -277,7 +276,7 @@ pub async fn full_scan(app_state: Arc<AppState>) {
     .await
     {
         error!("can't cleanup non-exist categories and titles from database: {e:?}");
-    };
+    }
 
     info!("finished processing library");
 }
