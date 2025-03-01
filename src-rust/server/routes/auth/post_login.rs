@@ -126,7 +126,7 @@ pub async fn post_login(
             ),
             (
                 header::SET_COOKIE,
-                Cookie::build((SESSION_SECRET_COOKIE_NAME, session_secret.to_string()))
+                Cookie::build((SESSION_SECRET_COOKIE_NAME, session_secret))
                     .path("/")
                     .secure(true)
                     .http_only(true)
