@@ -16,7 +16,7 @@ use crate::{
         hash_pass, is_strong,
         user::Mailer,
     },
-    structs::temp_code_purpose::TempCodePurpose,
+    structs::db_enums::TempCodePurpose as CodePurpose,
     traits::chrono_utils::ChronoUtils,
     utils::{
         app_state::AppState,
@@ -63,7 +63,7 @@ pub async fn post_forgot(
                     AND tc.purpose = $1
                 WHERE u.email = $2
                 LIMIT 1"#,
-                TempCodePurpose::ResetPassword as TempCodePurpose,
+                CodePurpose::ResetPassword as CodePurpose,
                 &query.email,
             )
             .fetch_optional(&app_state.pool)
@@ -80,7 +80,6 @@ pub async fn post_forgot(
                 .is_some_and(|r| r.inside(&now, &Duration::seconds(TEMP_CODE_REQUEST_RATE_LIMIT)))
             {
                 return Ok(StatusCode::TOO_MANY_REQUESTS.into_response());
-            };
 
             let code = sqlx::query!(
                 "INSERT INTO temp_codes (id, purpose, user_id, code, created_at)
@@ -92,7 +91,7 @@ pub async fn post_forgot(
                     tracing::error!("{e}");
                     InternalErr::Snowflake(e)
                 })?,
-                TempCodePurpose::ResetPassword as TempCodePurpose,
+                CodePurpose::ResetPassword as CodePurpose,
                 &user_id,
                 app_state.id_generator.secure(),
                 now
@@ -158,7 +157,7 @@ pub async fn post_forgot(
                     LEFT JOIN deleted_code dc ON true"#,
                 &query.email,
                 &code,
-                TempCodePurpose::ResetPassword as TempCodePurpose,
+                CodePurpose::ResetPassword as CodePurpose,
             )
             .fetch_optional(&app_state.pool)
             .await

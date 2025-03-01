@@ -40,11 +40,13 @@ pub enum SensitiveRequestPurpose {
     VerifyEmail,
 }
 
+use SensitiveRequestPurpose as ReqPurpose;
+
 #[derive(Debug, ToSchema, Clone, Serialize, Deserialize)]
 pub struct SensitiveRequest {
     password: String,
     mode: SensitiveRequestMode,
-    purpose: SensitiveRequestPurpose,
+    purpose: ReqPurpose,
     code: Option<String>,
     /// At the moment this is only used for the change
     /// password purpose to set the new password
@@ -65,14 +67,14 @@ pub async fn post_sensitive(
 ) -> Result<Response, InternalErr> {
     let now = Utc::now();
     let purpose = match &req.purpose {
-        SensitiveRequestPurpose::DeleteAccount => TempCodePurpose::DeleteAccount,
-        SensitiveRequestPurpose::ChangePassword => TempCodePurpose::ResetPassword,
-        SensitiveRequestPurpose::VerifyEmail => TempCodePurpose::ValidateEmail,
+        ReqPurpose::DeleteAccount => CodePurpose::DeleteAccount,
+        ReqPurpose::ChangePassword => CodePurpose::ResetPassword,
+        ReqPurpose::VerifyEmail => CodePurpose::ValidateEmail,
     };
 
     // case-specific preludes
     match purpose {
-        TempCodePurpose::ValidateEmail => {
+        CodePurpose::ValidateEmail => {
             if app_state
                 .user_cache
                 .get(&user_id)
@@ -82,7 +84,7 @@ pub async fn post_sensitive(
                 return Ok((StatusCode::BAD_REQUEST, RequestErr::AlreadyVerified).into_response());
             }
         }
-        TempCodePurpose::DeleteAccount | TempCodePurpose::ResetPassword => (),
+        CodePurpose::DeleteAccount | CodePurpose::ResetPassword => (),
     }
 
     match req.mode {
@@ -97,7 +99,7 @@ pub async fn post_sensitive(
                 "SELECT created_at
                     FROM temp_codes
                     WHERE purpose = $1 AND user_id = $2",
-                &purpose as &TempCodePurpose,
+                &purpose as &CodePurpose,
                 user_id.as_ref(),
             )
             .fetch_optional(&app_state.pool)
@@ -124,7 +126,7 @@ pub async fn post_sensitive(
                     tracing::error!("{e}");
                     InternalErr::Snowflake(e)
                 })?,
-                &purpose as &TempCodePurpose,
+                &purpose as &CodePurpose,
                 user_id.as_ref(),
                 app_state.id_generator.secure(),
                 now
@@ -148,9 +150,9 @@ pub async fn post_sensitive(
                 .map(|u| (u.username.clone(), u.email.clone()))?;
             let app_name = &app_state.config.app_name;
             let action = match purpose {
-                TempCodePurpose::DeleteAccount => "delete your account",
-                TempCodePurpose::ResetPassword => "reset your password",
-                TempCodePurpose::ValidateEmail => "verify your email",
+                CodePurpose::DeleteAccount => "delete your account",
+                CodePurpose::ResetPassword => "reset your password",
+                CodePurpose::ValidateEmail => "verify your email",
             };
 
             mailer.send(
@@ -209,7 +211,7 @@ pub async fn post_sensitive(
                     AND user_id = $3
                 RETURNING created_at",
                 code,
-                &purpose as &TempCodePurpose,
+                &purpose as &CodePurpose,
                 user_id.as_ref(),
             )
             .fetch_optional(&app_state.pool)
@@ -227,7 +229,7 @@ pub async fn post_sensitive(
             }
 
             match purpose {
-                TempCodePurpose::DeleteAccount => {
+                CodePurpose::DeleteAccount => {
                     sqlx::query!("DELETE FROM users WHERE id = $1", user_id.as_ref())
                         .execute(&app_state.pool)
                         .await
@@ -238,7 +240,7 @@ pub async fn post_sensitive(
                     app_state.session_cache.retain(|_, v| *v != user_id);
                     app_state.user_cache.remove(&user_id);
                 }
-                TempCodePurpose::ResetPassword => {
+                CodePurpose::ResetPassword => {
                     let Some(new_password) = req
                         .payload
                         .as_ref()
@@ -279,7 +281,7 @@ pub async fn post_sensitive(
                         .value_mut()
                         .updated_at = Some(now);
                 }
-                TempCodePurpose::ValidateEmail => {
+                CodePurpose::ValidateEmail => {
                     sqlx::query!(
                         "UPDATE users
                         SET verified_at = $1
