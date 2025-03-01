@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // eslint-disable no-unused-vars
 
-import { Primitive, type PrimitiveProps } from "radix-vue";
+import { Primitive, type PrimitiveProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 
 import { cn } from "~/lib/utils";
