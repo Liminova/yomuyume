@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { NuxtLink } from "#components";
 import Image from "~/components/image";
-import { GET_COVER_PATH } from "~/composables/api/constants";
+import { GET_COVER_PATH } from "~/composables/api/common";
 import type { InnerSearchResponseTitle } from "~/composables/api/content";
 
 const props = defineProps<{ title: InnerSearchResponseTitle }>();

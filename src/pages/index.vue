@@ -5,13 +5,13 @@ import { definePageMeta } from "#imports";
 import CarouselWrapper from "~/components/home/HomeOldCarouselWrapper.vue";
 import HomeRec from "~/components/home/HomeRecCarousel.vue";
 import ItemCard from "~/components/ItemCard.vue";
-import { useActiveSearchTitle } from "~/composables/api/content";
+import { useContentActiveSearchTitle } from "~/composables/api/content";
 
 definePageMeta({ layout: "nav-drawer" });
 
 register();
 
-const titles = useActiveSearchTitle({});
+const titles = useContentActiveSearchTitle({});
 </script>
 
 <template>

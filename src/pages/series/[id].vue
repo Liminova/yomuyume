@@ -2,12 +2,12 @@
 import { useRoute } from "#app";
 import { definePageMeta } from "#imports";
 import TitleInteractionArea from "~/components/Title/TitleInteractionArea.vue";
-import { useGetSeries } from "~/composables/api/content";
+import { useContentGetSeries } from "~/composables/api/content";
 
 definePageMeta({ layout: "nav-drawer" });
 
 const titleID = useRoute().params.id as string;
-const title = useGetSeries(titleID);
+const title = useContentGetSeries(titleID);
 </script>
 
 <template>

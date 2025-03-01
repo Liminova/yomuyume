@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { navigateTo } from "#app";
-import { useLogout } from "~/composables/api/auth";
+import { useAuthLogout } from "~/composables/api/auth";
 
-const logout = useLogout();
+const logout = useAuthLogout();
 
 function handleLogout(): void {
 	logout.mutate();

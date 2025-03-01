@@ -2,12 +2,12 @@
 import { useRoute } from "#app";
 import { definePageMeta } from "#imports";
 import TitleInteractionArea from "~/components/Title/TitleInteractionArea.vue";
-import { useGetOneshot } from "~/composables/api/content";
+import { useContentGetOneshot } from "~/composables/api/content";
 
 definePageMeta({ layout: "nav-drawer" });
 
 const titleID = useRoute().params.id as string;
-const title = useGetOneshot(titleID);
+const title = useContentGetOneshot(titleID);
 </script>
 
 <template>

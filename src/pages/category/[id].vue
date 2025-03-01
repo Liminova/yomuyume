@@ -5,7 +5,7 @@ import { useRoute } from "#app";
 import { NuxtLink } from "#components";
 import { definePageMeta } from "#imports";
 import ItemCard from "~/components/ItemCard.vue";
-import { useSearchTitle } from "~/composables/api/content";
+import { useContentSearchTitle } from "~/composables/api/content";
 import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
 
 definePageMeta({ layout: "nav-drawer" });
@@ -13,7 +13,7 @@ definePageMeta({ layout: "nav-drawer" });
 const imagePerRow = ref(5);
 const spaceBetween = ref(16);
 
-const searchTitle = useSearchTitle();
+const searchTitle = useContentSearchTitle();
 searchTitle.mutate({ category_ids: [useRoute().params.id as string] });
 
 const observer = new ResizeObserver(() => {

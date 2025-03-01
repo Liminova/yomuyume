@@ -7,14 +7,14 @@ import { onMounted, onUnmounted, ref } from "vue";
 
 import Button from "~/components/ui/Button.vue";
 import { Carousel, type CarouselApi, CarouselContent, CarouselItem } from "~/components/ui/carousel";
-import { useActiveSearchTitle } from "~/composables/api/content";
+import { useContentActiveSearchTitle } from "~/composables/api/content";
 import { cn } from "~/lib/utils";
 
 import Toggle from "../Toggle.vue";
 import HomeRecCard from "./HomeRecCarouselCard.vue";
 
 const carouselRef = ref<InstanceType<typeof Carousel> | null>(null);
-const titles = useActiveSearchTitle({});
+const titles = useContentActiveSearchTitle({});
 
 const isNextSlideBarActive = ref(true);
 const nextSlideBar = ref<HTMLElement | null>(null);

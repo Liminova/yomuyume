@@ -4,7 +4,7 @@ import { Bookmark, Heart } from "lucide-vue-next";
 
 import { ref, watchEffect } from "#imports";
 import Button from "~/components/ui/Button.vue";
-import { useBookmark, useFavorite } from "~/composables/api/user";
+import { useUserBookmark, useUserFavorite } from "~/composables/api/user";
 import { cn } from "~/lib/utils";
 
 const props = defineProps<{
@@ -16,8 +16,8 @@ const props = defineProps<{
 	bookmarks?: number;
 }>();
 
-const [addFavorite, deleteFavorite] = [useFavorite("PUT"), useFavorite("DELETE")];
-const [addBookmark, deleteBookmark] = [useBookmark("PUT"), useBookmark("DELETE")];
+const [addFavorite, deleteFavorite] = [useUserFavorite("PUT"), useUserFavorite("DELETE")];
+const [addBookmark, deleteBookmark] = [useUserBookmark("PUT"), useUserBookmark("DELETE")];
 
 const [innerFavorites, innerBookmarks] = [ref<number>(0), ref<number>(0)];
 const [innerIsFavorite, innerIsBookmark] = [ref(false), ref(false)];

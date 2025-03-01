@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { toast } from "vue-sonner";
 
-import { useForgot, useLogin, useRegister } from "./api/auth";
+import { useAuthForgot, useAuthLogin, useAuthRegister } from "./api/auth";
 
 function validatePassword(password: string): boolean {
 	const hasUppercase = (/[A-Z]/u).test(password);
@@ -22,7 +22,7 @@ export const useAuthLoginStore = defineStore("auth-screen-store-login", () => {
 	const login = ref("");
 	const password = ref("");
 
-	const mutation = useLogin();
+	const mutation = useAuthLogin();
 
 	return {
 		login,
@@ -62,7 +62,7 @@ export const useAuthRegisterStore = defineStore("auth-screen-store-register", ()
 		return password.value === passwordRetype.value;
 	});
 
-	const mutation = useRegister();
+	const mutation = useAuthRegister();
 
 	const registerButtonDisabled = computed(() => username.value === ""
 		|| !isPasswordRetypeMatch.value
@@ -123,7 +123,7 @@ export const useAuthResetPasswordStore = defineStore("auth-screen-store-reset-pa
 		return newPassword.value !== newPasswordRetype.value;
 	});
 
-	const mutation = useForgot();
+	const mutation = useAuthForgot();
 
 	const canSendRequest = computed(() => validateEmail(email.value)
 		&& !mutation.isPending.value,
