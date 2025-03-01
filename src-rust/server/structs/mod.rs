@@ -1,6 +1,7 @@
 pub mod absolute_path;
 pub mod category_info;
 pub mod comic_info;
+pub mod db_enums;
 pub mod ids;
 pub mod user_cache;
 
