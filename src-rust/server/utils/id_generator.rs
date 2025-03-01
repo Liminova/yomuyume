@@ -1,5 +1,5 @@
+use argon2::password_hash::rand_core::{OsRng, RngCore};
 use async_channel::Sender;
-use rand_core::{OsRng, RngCore};
 use snowflake::Snowflake;
 use tokio::sync::oneshot;
 
@@ -8,18 +8,26 @@ pub struct IDGenerator {
     snowflake_id_generator_request: Sender<oneshot::Sender<i64>>,
 }
 
-impl Default for IDGenerator {
-    fn default() -> Self {
-        let physical_cpu_count = num_cpus::get_physical().min(1024);
+#[derive(Debug, thiserror::Error)]
+pub enum GenerateIDErr {
+    #[error("can't send a request to generate snowflake id")]
+    SendRequest,
+    #[error("can't get snowflake id from oneshot channel")]
+    GetID,
+    #[error("generating new snowflake id should not take more than 1 second")]
+    TimeOut,
+}
 
+impl IDGenerator {
+    pub fn default(snowflake_id_thread_count: usize) -> Self {
         // a shared mpmc channel between all the snowflake id generators
         let (snowflake_id_generator_request, request_receiver): (
             async_channel::Sender<oneshot::Sender<i64>>,
             async_channel::Receiver<oneshot::Sender<i64>>,
-        ) = async_channel::bounded(physical_cpu_count);
+        ) = async_channel::bounded(snowflake_id_thread_count);
 
         // spin up the snowflake id generators
-        for worker_id in 0..physical_cpu_count {
+        for worker_id in 0..snowflake_id_thread_count {
             let receiver = request_receiver.clone();
             tokio::spawn(async move {
                 let mut sfgen = Snowflake::new(0, worker_id as u64, 0)
@@ -43,19 +51,7 @@ impl Default for IDGenerator {
             snowflake_id_generator_request,
         }
     }
-}
 
-#[derive(Debug, thiserror::Error)]
-pub enum GenerateIDErr {
-    #[error("can't send a request to generate snowflake id")]
-    SendRequest,
-    #[error("can't get snowflake id from oneshot channel")]
-    GetID,
-    #[error("generating new snowflake id should not take more than 1 second")]
-    TimeOut,
-}
-
-impl IDGenerator {
     const SECURE_ID_LENGTH: usize = 32;
     const SECURE_ID_CHARSET: &[char; 64] = &[
         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
@@ -79,13 +75,13 @@ impl IDGenerator {
         }
     }
 
-    pub fn secure(&self) -> String {
+    pub fn secure(&self) -> Result<String, argon2::password_hash::rand_core::Error> {
         let mut id = String::with_capacity(Self::SECURE_ID_LENGTH);
         let mut bytes = vec![0u8; Self::SECURE_ID_LENGTH];
-        OsRng.fill_bytes(&mut bytes);
+        OsRng.try_fill_bytes(&mut bytes)?;
         for &byte in &bytes {
             id.push(Self::SECURE_ID_CHARSET[(byte as usize) & Self::SECURE_ID_MASK]);
         }
-        id
+        Ok(id)
     }
 }
