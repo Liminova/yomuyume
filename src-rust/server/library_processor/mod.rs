@@ -208,7 +208,7 @@ pub async fn full_scan(app_state: Arc<AppState>) {
         }
     }
 
-    let sem = Arc::new(Semaphore::new(num_cpus::get()));
+    let sem = Arc::new(Semaphore::new(app_state.config.concurrent_scan_tasks));
     let mut futs = vec![];
     let upserted_title_ids = Arc::new(Mutex::new(vec![]));
 
