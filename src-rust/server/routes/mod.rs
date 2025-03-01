@@ -12,6 +12,7 @@ use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
 };
 use errors::InternalErr;
+use serde::{Deserialize, Serialize};
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
@@ -174,4 +175,12 @@ fn is_strong(input: &str) -> bool {
     }
 
     false
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "temp_codes_purpose", rename_all = "snake_case")]
+pub enum TempCodePurpose {
+    DeleteAccount,
+    ResetPassword,
+    ValidateEmail,
 }

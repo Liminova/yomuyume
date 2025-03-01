@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     routes::errors::InternalErr,
-    utils::{app_state::AppState, constants::GET_TAGS_PATH, macros::bail_if_empty},
+    utils::{app_state::AppState, constants::GET_TAGS_PATH},
 };
 
 use axum::{
@@ -44,6 +44,8 @@ pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response
         })
         .collect::<Vec<_>>();
 
-    bail_if_empty!(data, Ok(StatusCode::NO_CONTENT.into_response()));
+    if data.is_empty() {
+        return Ok(StatusCode::NO_CONTENT.into_response());
+    }
     Ok((StatusCode::OK, Json(data)).into_response())
 }

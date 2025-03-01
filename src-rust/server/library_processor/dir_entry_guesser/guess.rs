@@ -7,10 +7,7 @@ use crate::{
         has_pattern_of_a_series::HasPatternOfSeries, ScannedChapterInfo,
     },
     traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
-    utils::{
-        archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
-        macros::bail_if_empty,
-    },
+    utils::archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
 };
 
 #[derive(Debug)]
@@ -76,7 +73,9 @@ impl DirEntryTypeGuesser for DirEntry {
             .filter_map(|e| e.okay(|e| warn!("can't extract item from parent `{path_str}`: {e:?}")))
             .collect::<Vec<_>>();
 
-        bail_if_empty!(items_in_dir, Ok(DirEntryType::Ignored));
+        if items_in_dir.is_empty() {
+            return Ok(DirEntryType::Ignored);
+        }
 
         if dir.contains_category_info_file() {
             return Ok(DirEntryType::CategoryDir(items_in_dir));

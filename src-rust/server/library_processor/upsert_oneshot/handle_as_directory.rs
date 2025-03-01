@@ -14,7 +14,7 @@ use crate::{
         do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils,
         to_blurhash::ToBlurhashFromFile, try_find_map::IteratorExt,
     },
-    utils::{constants::COMICINFO, macros::bail_if_empty},
+    utils::constants::COMICINFO,
 };
 
 #[derive(Debug, Clone)]
@@ -56,7 +56,9 @@ pub fn handle_title_as_directory(
     sub_entries: &[DirEntry],
     nomedia_support: bool,
 ) -> Result<TitleHandlerOk, UpsertTitleErr> {
-    bail_if_empty!(sub_entries, Err(UpsertTitleErr::IsEmpty));
+    if sub_entries.is_empty() {
+        return Err(UpsertTitleErr::IsEmpty);
+    }
 
     let comicinfo_path = title_path.as_ref().join(COMICINFO);
 
@@ -143,7 +145,9 @@ pub fn handle_title_as_directory(
         })
         .collect::<Vec<_>>();
     pages_in_dir.extend(sub_pages);
-    bail_if_empty!(pages_in_dir, Err(UpsertTitleErr::IsEmpty));
+    if pages_in_dir.is_empty() {
+        return Err(UpsertTitleErr::IsEmpty);
+    }
 
     'cover_finder: {
         // use `page_abs_path` to interact with the file

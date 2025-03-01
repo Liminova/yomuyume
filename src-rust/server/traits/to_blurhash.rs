@@ -6,7 +6,7 @@ use std::{
 use image::{imageops::FilterType::Gaussian, DynamicImage, GenericImageView};
 use jxl_oxide::integration::JxlDecoder;
 
-use crate::utils::{archive_file::ArchiveFile, macros::bail_if_empty};
+use crate::utils::archive_file::ArchiveFile;
 
 /// Not contains the actual width and height, but the
 /// `resize_to_fill(32, 32, Gaussian)` result. Decode a blurhash to the original
@@ -108,7 +108,9 @@ impl ToBlurhashFromArchive for PathBuf {
         filename: &str,
     ) -> Result<ToBlurhashOk, ToBlurhashFromArchiveErr> {
         let buf = self.read_file_from_archive(filename)?;
-        bail_if_empty!(buf, Err(ToBlurhashFromArchiveErr::FileNotFound));
+        if buf.is_empty() {
+            return Err(ToBlurhashFromArchiveErr::FileNotFound);
+        }
 
         if Path::new(filename)
             .extension()

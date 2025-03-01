@@ -22,7 +22,6 @@ use crate::{
     utils::{
         app_state::AppState,
         constants::{TEMP_CODE_EXPIRED_AFTER, TEMP_CODE_REQUEST_RATE_LIMIT, USER_SENSITIVE_PATH},
-        macros::bail_if_empty,
     },
 };
 
@@ -173,10 +172,11 @@ pub async fn post_sensitive(
                 })?;
         }
         SensitiveRequestMode::Confirm => {
-            bail_if_empty!(
-                req.password,
-                Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCurrentPassword).into_response())
-            );
+            if req.password.is_empty() {
+                return Ok(
+                    (StatusCode::BAD_REQUEST, RequestErr::InvalidCurrentPassword).into_response(),
+                );
+            }
             let Some(code) = req.code.as_ref() else {
                 return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCode).into_response());
             };

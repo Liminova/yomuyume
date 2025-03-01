@@ -8,7 +8,6 @@ use crate::{
     utils::{
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
         constants::COMICINFO,
-        macros::bail_if_empty,
     },
 };
 
@@ -25,7 +24,9 @@ pub fn handle_archive_chapter(
     nomedia_support: bool,
 ) -> Result<ChapterInfo, HandleArchiveChapterErr> {
     let pages_in_archive = items_in_archive.keep_images(nomedia_support);
-    bail_if_empty!(pages_in_archive, Err(HandleArchiveChapterErr::IsEmpty));
+    if pages_in_archive.is_empty() {
+        return Err(HandleArchiveChapterErr::IsEmpty);
+    }
 
     let chapter_comicinfo = chapter_path
         .as_ref()

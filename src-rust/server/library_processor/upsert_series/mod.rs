@@ -28,7 +28,7 @@ use crate::{
         id::{CategoryID, TitleID},
     },
     traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
-    utils::{constants::COMICINFO, macros::bail_if_empty},
+    utils::constants::COMICINFO,
 };
 
 /// differ from [`PageInTitle`] in that it also contains the page description
@@ -110,7 +110,9 @@ pub async fn upsert_series(
             }
         })
         .collect::<Vec<_>>();
-    bail_if_empty!(handled_chapters, Err(UpsertTitleErr::IsEmpty));
+    if handled_chapters.is_empty() {
+        return Err(UpsertTitleErr::IsEmpty);
+    }
 
     if comicinfo != original_comicinfo {
         comicinfo_path

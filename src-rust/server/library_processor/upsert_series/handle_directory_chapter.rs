@@ -12,8 +12,6 @@ use crate::{
     utils::constants::COMICINFO,
 };
 
-use super::bail_if_empty;
-
 #[derive(Debug, thiserror::Error)]
 pub enum HandleDirectoryChapterErr {
     #[error("it's empty")]
@@ -143,7 +141,9 @@ pub fn handle_directory_chapter(
         .collect::<Vec<_>>();
 
     pages_in_chapter.extend(subpages_in_chapter);
-    bail_if_empty!(pages_in_chapter, Err(HandleDirectoryChapterErr::IsEmpty));
+    if pages_in_chapter.is_empty() {
+        return Err(HandleDirectoryChapterErr::IsEmpty);
+    }
 
     Ok(ChapterInfo {
         volume: match chapter_comicinfo.volume {

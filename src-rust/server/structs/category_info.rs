@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::option_blurhash_deserializer;
-use crate::utils::{constants::CATEGORY_INFO_SCHEMA, macros::bail_if_empty};
+use crate::utils::constants::CATEGORY_INFO_SCHEMA;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
 pub struct CategoryInfo {
@@ -49,7 +49,9 @@ fn description_deserializer<'de, D: Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Option<String>, D::Error> {
     let s = String::deserialize(deserializer)?.trim().to_string();
-    bail_if_empty!(s, Ok(None));
+    if s.is_empty() {
+        return Ok(None);
+    }
     Ok(Some(s))
 }
 
@@ -105,7 +107,9 @@ impl Cover {
 
 impl CategoryInfo {
     pub fn from_str(s: &str) -> Result<Self, quick_xml::DeError> {
-        bail_if_empty!(s, Ok(Self::default()));
+        if s.is_empty() {
+            return Ok(Self::default());
+        }
         quick_xml::de::from_str::<CategoryInfo>(s)
     }
 

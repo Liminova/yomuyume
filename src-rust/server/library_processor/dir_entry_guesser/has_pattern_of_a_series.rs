@@ -3,10 +3,7 @@ use std::fs::DirEntry;
 use crate::{
     library_processor::dir_entry_guesser::{ScannedChapterInfo, ScannedChapterType},
     traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
-    utils::{
-        archive_file::{ArchiveFile, ItemsInArchiveUtils},
-        macros::bail_if_empty,
-    },
+    utils::archive_file::{ArchiveFile, ItemsInArchiveUtils},
 };
 
 pub trait HasPatternOfSeries {
@@ -71,7 +68,9 @@ impl HasPatternOfSeries for Vec<DirEntry> {
             })
             .collect::<Vec<_>>();
 
-        bail_if_empty!(are_we_chapters, None);
+        if are_we_chapters.is_empty() {
+            return None;
+        }
 
         let mut basename = String::new();
         let mut chapters: Vec<ScannedChapterInfo> = Vec::with_capacity(are_we_chapters.len());

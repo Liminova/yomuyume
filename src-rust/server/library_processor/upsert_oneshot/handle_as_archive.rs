@@ -16,7 +16,6 @@ use crate::{
     utils::{
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
         constants::COMICINFO,
-        macros::bail_if_empty,
     },
 };
 
@@ -30,7 +29,9 @@ pub fn handle_title_as_archive(
     nomedia_support: bool,
 ) -> Result<TitleHandlerOk, UpsertTitleErr> {
     let pages_in_archive = files_in_archive.keep_images(nomedia_support);
-    bail_if_empty!(pages_in_archive, Err(UpsertTitleErr::IsEmpty));
+    if pages_in_archive.is_empty() {
+        return Err(UpsertTitleErr::IsEmpty);
+    }
 
     let (original_comicinfo, mut comicinfo) = {
         let tmp = title_path
