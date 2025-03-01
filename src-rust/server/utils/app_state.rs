@@ -5,7 +5,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     structs::{
-        id::{SessionID, UserID},
+        ids::{SessionID, UserID},
         user_cache::UserCache,
     },
     utils::{config::Config, id_generator::IDGenerator, live_config::LiveConfig},
