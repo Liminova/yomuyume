@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
 import { useMutation, useQuery } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 
-import { BOOKMARK_PATH, FAVORITE_PATH, ResponseError, USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH } from "./constants";
+import { BOOKMARK_PATH, FAVORITE_PATH, NewYomuyumeRequest, USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH } from "./common";
 
 export interface SensitiveRequest {
 	password: string;
@@ -13,19 +13,12 @@ export interface SensitiveRequest {
 	payload?: string;
 }
 
-export function useSensitiveAction() {
+export function useUserSensitiveAction() {
 	return useMutation({
-		async mutationFn(body: SensitiveRequest): Promise<void> {
-			const response = await fetch(USER_SENSITIVE_PATH, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-		},
+		mutationFn: async (body: SensitiveRequest) => NewYomuyumeRequest(USER_SENSITIVE_PATH, {
+			method: "POST",
+			body: JSON.stringify(body),
+		}),
 		onError(error) {
 			toast.error("Can't perform sensitive action", {
 				description: error.message,
@@ -34,14 +27,9 @@ export function useSensitiveAction() {
 	});
 }
 
-export function useFavorite(method: "PUT" | "DELETE") {
+export function useUserFavorite(method: "PUT" | "DELETE") {
 	return useMutation({
-		async mutationFn(titleID: string): Promise<void> {
-			const response = await fetch(FAVORITE_PATH(titleID), { method });
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-		},
+		mutationFn: async (titleID: string) => NewYomuyumeRequest(FAVORITE_PATH(titleID), { method }),
 		onError(error) {
 			toast.error(`Can't ${method === "PUT" ? "add" : "remove"} from favorites`, {
 				description: error.message,
@@ -53,14 +41,9 @@ export function useFavorite(method: "PUT" | "DELETE") {
 	});
 }
 
-export function useBookmark(method: "PUT" | "DELETE") {
+export function useUserBookmark(method: "PUT" | "DELETE") {
 	return useMutation({
-		async mutationFn(titleID: string): Promise<void> {
-			const response = await fetch(BOOKMARK_PATH(titleID), { method });
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-		},
+		mutationFn: async (titleID: string) => NewYomuyumeRequest(BOOKMARK_PATH(titleID), { method }),
 		onError(error) {
 			toast.error(`Can't ${method === "PUT" ? "add" : "remove"} from bookmarks`, {
 				description: error.message,
@@ -72,19 +55,12 @@ export function useBookmark(method: "PUT" | "DELETE") {
 	});
 }
 
-export function useModifyUserInfo() {
+export function useUserModifyInfo() {
 	return useMutation({
-		async mutationFn(body: { username?: string; email?: string }): Promise<void> {
-			const response = await fetch(USER_MODIFY_PATH, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-		},
+		mutationFn: async (body: { username?: string; email?: string }) => NewYomuyumeRequest(USER_MODIFY_PATH, {
+			method: "POST",
+			body: JSON.stringify(body),
+		}),
 		onError(error) {
 			toast.error("Can't modify user info", {
 				description: error.message,
@@ -96,17 +72,11 @@ export function useModifyUserInfo() {
 	});
 }
 
-export function useSetProgress() {
+export function useUserSetProgress() {
 	return useMutation({
-		async mutationFn(query: { titleID: string; page: number }): Promise<void> {
-			const response = await fetch(USER_PROGRESS_PATH(query.titleID, query.page), {
-				method: "PUT",
-			});
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-		},
+		mutationFn: async (query: { titleID: string; page: number }) => NewYomuyumeRequest(USER_PROGRESS_PATH(query.titleID, query.page), {
+			method: "PUT",
+		}),
 		onError(error) {
 			toast.error("Can't set progress", {
 				description: error.message,
@@ -125,17 +95,9 @@ export interface WhoAmIResponseBody {
 	verified_at?: string;
 }
 
-export function useWhoAmI() {
+export function useUserWhoAmI() {
 	return useQuery({
 		queryKey: ["whoami"],
-		async queryFn() {
-			const response = await fetch(WHOAMI_PATH);
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-
-			return response.json();
-		},
+		queryFn: async ({ signal }) => NewYomuyumeRequest<WhoAmIResponseBody>(WHOAMI_PATH, { signal }),
 	});
 }

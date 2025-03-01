@@ -30,7 +30,35 @@ export const LIVE_CONFIG_PATH = "/api/admin/live_config";
 
 export const GET_STATUS_PATH = "/api/status";
 
-export async function ResponseError(response: Response): Promise<Error> {
-	const errMsg = await response.text();
-	return new Error(`[${response.status}] ${errMsg === "" ? response.statusText : errMsg}`);
+export async function NewYomuyumeRequest<T = void>(
+	path: string,
+	init?: RequestInit,
+	queryParams?: Record<string, string | undefined>,
+): Promise<T> {
+	const headers = new Headers();
+	headers.set("Content-Type", "application/json");
+
+	let path_ = path;
+	if (queryParams) {
+		if (!path_.endsWith("?")) {
+			path_ += "?";
+		}
+		const searchParams = new URLSearchParams();
+		for (const key of Object.keys(queryParams)) {
+			if (queryParams[key] !== undefined) {
+				searchParams.append(key, queryParams[key]);
+			}
+		}
+		path_ += searchParams.toString();
+	}
+
+	const resp = await fetch(path_, { ...init, headers });
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+	const respBody = await resp.json();
+
+	if (resp.status !== 200) {
+		throw new Error(`[${resp.status}] ${respBody ?? resp.statusText}`);
+	}
+
+	return respBody as T;
 }

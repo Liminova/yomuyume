@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 
-import { GET_CATEGORIES_PATH, GET_CHAPTER_PATH, GET_ONESHOT_PATH, GET_SERIES_PATH, GET_TAGS_PATH, ResponseError, SEARCH_PATH } from "./constants";
+import { GET_CATEGORIES_PATH, GET_CHAPTER_PATH, GET_ONESHOT_PATH, GET_SERIES_PATH, GET_TAGS_PATH, NewYomuyumeRequest, SEARCH_PATH } from "./common";
 
 export interface CategoriesResponseBodyInner {
 	id: string;
@@ -21,17 +21,7 @@ export type GetCategoriesResponseBody = Array<{ id: string; name?: string; descr
 export function useGetCategories() {
 	return useQuery({
 		queryKey: ["categories"],
-		async queryFn(): Promise<GetCategoriesResponseBody> {
-			const response = await fetch(GET_CATEGORIES_PATH, {
-				headers: { "Content-Type": "application/json" },
-			});
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-
-			return response.json();
-		},
+		queryFn: async ({ signal }) => NewYomuyumeRequest<GetCategoriesResponseBody>(GET_CATEGORIES_PATH, { signal }),
 	});
 }
 
@@ -85,18 +75,10 @@ export interface OneshotResponse extends BaseTitleResponse {
 	pages?: BasePageResponse[];
 }
 
-export function useGetOneshot(id: string) {
+export function useContentGetOneshot(id: string) {
 	return useQuery({
 		queryKey: ["title", id],
-		async queryFn(): Promise<OneshotResponse> {
-			const response = await fetch(GET_ONESHOT_PATH(id));
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-
-			return response.json();
-		},
+		queryFn: async ({ signal }) => NewYomuyumeRequest<OneshotResponse>(GET_ONESHOT_PATH(id), { signal }),
 	});
 }
 
@@ -108,18 +90,10 @@ export interface SeriesResponse extends BaseTitleResponse {
 	}>;
 }
 
-export function useGetSeries(id: string) {
+export function useContentGetSeries(id: string) {
 	return useQuery({
 		queryKey: ["title", id],
-		async queryFn(): Promise<SeriesResponse> {
-			const response = await fetch(GET_SERIES_PATH(id));
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-
-			return response.json();
-		},
+		queryFn: async ({ signal }) => NewYomuyumeRequest<SeriesResponse>(GET_SERIES_PATH(id), { signal }),
 	});
 }
 
@@ -131,18 +105,10 @@ export interface ChapterResponse extends BaseTitleResponse {
 	pages?: BasePageResponse[];
 }
 
-export function useGetChapter(id: string) {
+export function useContentGetChapter(id: string) {
 	return useQuery({
 		queryKey: ["title", id],
-		async queryFn(): Promise<ChapterResponse> {
-			const response = await fetch(GET_CHAPTER_PATH(id));
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-
-			return response.json();
-		},
+		queryFn: async ({ signal }) => NewYomuyumeRequest<ChapterResponse>(GET_CHAPTER_PATH(id), { signal }),
 	});
 }
 
@@ -169,24 +135,16 @@ export interface SearchResponse {
 	limit: number;
 }
 
-export function useSearchTitle() {
+export function useContentSearchTitle() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		async mutationFn(body: SearchRequest): Promise<SearchResponse> {
-			const response = await fetch(SEARCH_PATH, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-
-			const data: SearchResponse = await response.json();
-			queryClient.setQueryData(["search", body], data);
-			return data;
+		mutationFn: async (body: SearchRequest) => NewYomuyumeRequest<SearchResponse>(SEARCH_PATH, {
+			method: "POST",
+			body: JSON.stringify(body),
+		}),
+		onSuccess(data, variables) {
+			queryClient.setQueryData(["search", variables], data);
 		},
 		onError(error) {
 			toast.error("Can't perform search", {
@@ -196,36 +154,20 @@ export function useSearchTitle() {
 	});
 }
 
-export function useActiveSearchTitle(body: SearchRequest) {
+export function useContentActiveSearchTitle(body: SearchRequest) {
 	return useQuery({
 		queryKey: ["search", body],
-		async queryFn(): Promise<SearchResponse> {
-			const response = await fetch(SEARCH_PATH, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-
-			return response.json();
-		},
+		queryFn: async ({ signal }) => NewYomuyumeRequest<SearchResponse>(SEARCH_PATH, {
+			method: "POST",
+			body: JSON.stringify(body),
+			signal,
+		}),
 	});
 }
 
-export function useGetTags() {
+export function useContentGetTags() {
 	return useQuery({
 		queryKey: ["tags"],
-		queryFn: async (): Promise<TitleTag[]> => {
-			const response = await fetch(GET_TAGS_PATH);
-
-			if (!response.ok) {
-				throw await ResponseError(response);
-			}
-
-			return response.json();
-		},
+		queryFn: async ({ signal }) => NewYomuyumeRequest<TitleTag[]>(GET_TAGS_PATH, { signal }),
 	});
 }
