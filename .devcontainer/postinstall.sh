@@ -12,6 +12,12 @@ SEVENZ_MD5=c7dce9920aac9217ae6ce2e35f18b985
 
 cd "/workspaces/yomuyume"
 
+# rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+
 # git symlink
 if [ ! -f /usr/local/bin/git ]; then
     if [ -f /usr/bin/git ]; then

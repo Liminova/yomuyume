@@ -13,8 +13,4 @@ RUN groupadd -g 1000 ymym && \
 
 USER ymym
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal -c clippy rustfmt
-
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-
 ENV CARGO_HOME=/usr/local/cargo
