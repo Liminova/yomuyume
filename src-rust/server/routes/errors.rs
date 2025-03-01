@@ -32,6 +32,8 @@ pub enum InternalErr {
 
     #[error("can't generate snowflake id: {0}")]
     Snowflake(GenerateIDErr),
+    #[error("can't generate secure id: {0}")]
+    SecureID(argon2::password_hash::rand_core::Error),
     #[error("can't hash password: {0}")]
     PasswordHash(argon2::password_hash::errors::Error),
 
@@ -84,6 +86,9 @@ pub enum RequestErr {
 
     #[error("your email is already verified")]
     AlreadyVerified,
+
+    #[error("set live config do nothing, this might because the whole body is empty, or the backend forgot to handle this case")]
+    SetLiveConfigDoNothing,
 }
 
 impl IntoResponse for RequestErr {
