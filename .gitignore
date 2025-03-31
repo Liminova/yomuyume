@@ -1,13 +1,13 @@
 # Nuxt dev/build outputs
-.output
-.data
-.nuxt
-.nitro
-.cache
-dist
+src-frontend/.output
+src-frontend/.data
+src-frontend/.nuxt
+src-frontend/.nitro
+src-frontend/.cache
+src-frontend/dist
 
 # Node dependencies
-node_modules
+src-frontend/node_modules
 .pnpm-store
 
 # Logs
@@ -36,3 +36,5 @@ docker-compose.yml
 *.zip
 /library
 *.jxl
+
+Main.session.sql
