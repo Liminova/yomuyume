@@ -53,12 +53,14 @@ export async function NewYomuyumeRequest<T = void>(
 	}
 
 	const resp = await fetch(path_, { ...init, headers });
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-	const respBody = await resp.json();
 
 	if (resp.status !== 200) {
-		throw new Error(`[${resp.status}] ${respBody ?? resp.statusText}`);
+		const errorText = await resp.text();
+		throw new Error(`[${resp.status}] ${errorText || resp.statusText}`);
 	}
+
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+	const respBody = await resp.json();
 
 	return respBody as T;
 }
