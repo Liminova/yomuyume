@@ -7,7 +7,7 @@ import HomeRec from "~/components/home/HomeRecCarousel.vue";
 import ItemCard from "~/components/ItemCard.vue";
 import { useContentActiveSearchTitle } from "~/composables/api/content";
 
-definePageMeta({ layout: "nav-drawer" });
+definePageMeta({ layout: "nav-drawer", middleware: ["auth"] });
 
 register();
 

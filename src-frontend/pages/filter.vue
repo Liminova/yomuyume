@@ -16,7 +16,7 @@ import Input from "~/components/ui/Input.vue";
 import { type InnerSearchResponseTitle, useGetCategories } from "~/composables/api/content";
 import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
 
-definePageMeta({ layout: "nav-drawer" });
+definePageMeta({ layout: "nav-drawer", middleware: ["auth"] });
 
 // Key: category id, Value: category name
 // const categories = ref<Record<string, string>>({});
