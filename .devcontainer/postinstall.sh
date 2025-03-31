@@ -4,11 +4,13 @@ DEVCONTAINER_DIR="/workspaces/yomuyume/.devcontainer"
 MOLD_VERSION=2.36.0
 DAV1D_VERSION="1.5.0"
 SEVENZ_VERSION="2408"
+FZF_VERSION=0.60.3
 
 DAV1D_MD5=dda9e056e8dc95471a1126308c18868d
 MOLD_MD5=0cbdd068a70ef28cad32c4005fd9f1df
 SEVENZ_TAR_MD5=8908df4bec189cd1f314b54724911a36
 SEVENZ_MD5=c7dce9920aac9217ae6ce2e35f18b985
+FZF_MD5=b9eccd3cb5ffeeaef1e85703bf0c9f75
 
 cd "/workspaces/yomuyume"
 
@@ -85,7 +87,7 @@ fi
 curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 echo 'export PATH="/usr/local/cargo/bin:$PATH"' >> ~/.zshrc
 
-cargo binstall nrr wasm-pack
+cargo binstall -y wasm-pack just
 
 # install volta
 curl https://get.volta.sh | bash
@@ -96,3 +98,14 @@ export PATH="$VOLTA_HOME/bin:$PATH"
 volta install node@lts pnpm
 pnpm config set store-dir ~/.pnpm-store
 pnpm i
+
+# fzf for just
+if [ ! -f /usr/local/bin/fzf ]; then
+    curl -L -o /tmp/fzf.tar.gz https://github.com/junegunn/fzf/releases/download/v$FZF_VERSION/fzf-$FZF_VERSION-linux_amd64.tar.gz
+    if [ "$(md5sum /tmp/fzf.tar.gz | awk '{print $1}')" = "$FZF_MD5" ]; then
+        sudo tar -xvf /tmp/fzf.tar.gz -C /usr/local/bin
+    else
+        echo "fzf-$FZF_VERSION-linux_amd64.tar.gz has been modified"
+    fi
+    rm -f /tmp/fzf.tar.gz
+fi
