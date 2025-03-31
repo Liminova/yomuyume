@@ -1,18 +1,18 @@
-# development
+# Development
 
-## environment
-highly recommended to use vscode + devcontainer.
+## Environment
+Highly recommended to use vscode + devcontainer.
 
-## non-rust-or-js dependencies
+## Non-rust-or-js dependencies
 - [dav1d](https://code.videolan.org/videolan/dav1d) for the [image](https://crates.io/crates/image) crate to decode `avif` images and encode in blurhash.
 - [7zz](https://www.7-zip.org/download.html) CLI for interacting with archive files.
 
-automatically handled by the `.devcontainer/postinstall.sh` script.
+Automatically handled by the `.devcontainer/postinstall.sh` script if you use the devcontainer.
 
-## architectures
+## Architectures
 
 <details>
-  <summary>development</summary>
+  <summary>Development</summary>
 
 ```mermaid
 flowchart TD
@@ -51,7 +51,7 @@ flowchart TD
 </details>
 
 <details>
-  <summary>production</summary>
+  <summary>Production</summary>
 
 ```mermaid
 flowchart LR
@@ -97,7 +97,7 @@ flowchart LR
 </details>
 
 <details>
-  <summary>production w/ Cloudflare tunnel</summary>
+  <summary>Production w/ Cloudflare tunnel</summary>
 
 ```mermaid
   flowchart LR
@@ -141,14 +141,16 @@ flowchart LR
 - one advantage of this is if you use Cloudflare access to protect applications running on your server, Yomuyume (in the future) can read the authentication headers from Cloudflare and access the app directly without re-login.
 </details>
 
-## repo structure
+## Repo structure
 - `.devcontainer/`: everything needed for the development environment
-- `benches/`: some micro benchmarks
+- `src-rust/benches/`: some micro benchmarks
+- `src-rust/blurhash-webp-wasm/`: some micro benchmarks
+- `src-rust/jxl-webp-wasm/`: some micro benchmarks
+- `src-rust/server/`: the rust server
 - `database/`: schemas, migrations `.sql` files
-- `src/`: the nuxt spa web client
-- `src-rust/`: the rust server
+- `src-frontend/`: the nuxt spa web client
 
-## interact with the database
-using `sqlx::query!()` to achieve compile-time syntactic and semantic checks, but it can only interact with one database inside a Postgres server at a time (there's only one `DATABASE_URL` env var).
+## Interact with the database
+Using `sqlx::query!()` to achieve compile-time syntactic and semantic checks, but it can only interact with one database inside a Postgres server at a time (there's only one `DATABASE_URL` env var).
 
-as a result, we share the same database for the backend itself and the benchmarks, so try to keep everything in `database/` neat and tidy. `sqltools` allows you to `Run Selected Query` in the context menu, use that.
+As a result, we share the same database for the backend itself and the benchmarks, so try to keep everything in `database/` neat and tidy. `sqltools` allows you to `Run Selected Query` in the context menu, use that.
