@@ -55,7 +55,6 @@
 				"[rust]": {
 					"editor.formatOnSave": true
 				},
-				"typescript.tsdk": "node_modules/typescript/lib",
 				"explorer.fileNesting.patterns": {
 					"*.ts": "${capture}.js",
 					"*.js": "${capture}.js.map, ${capture}.min.js, ${capture}.d.ts",
@@ -67,5 +66,5 @@
 			}
 		}
 	},
-	"postCreateCommand": "bash .devcontainer/postinstall.sh"
+	"postCreateCommand": "zsh .devcontainer/postinstall.sh"
 }
