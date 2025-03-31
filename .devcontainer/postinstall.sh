@@ -109,3 +109,5 @@ if [ ! -f /usr/local/bin/fzf ]; then
     fi
     rm -f /tmp/fzf.tar.gz
 fi
+
+echo 'alias j=just' >> ~/.zshrc
