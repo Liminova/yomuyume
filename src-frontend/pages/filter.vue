@@ -1,0 +1,205 @@
+<script setup lang="ts">
+import { useDebounceFn } from "@vueuse/core";
+import { onMounted, onUnmounted, ref } from "vue";
+
+import { definePageMeta } from "#imports";
+import ChipSection from "~/components/filter/ChipSection.vue";
+import {
+	FilterReadingStatus,
+	FilterSortBy,
+	FilterSortOrder,
+	FilterType,
+} from "~/components/filter/FilterType";
+import ItemCard from "~/components/ItemCard.vue";
+import Toggle from "~/components/Toggle.vue";
+import Input from "~/components/ui/Input.vue";
+import { type InnerSearchResponseTitle, useGetCategories } from "~/composables/api/content";
+import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
+
+definePageMeta({ layout: "nav-drawer" });
+
+// Key: category id, Value: category name
+// const categories = ref<Record<string, string>>({});
+// const snackbarMessage = ref("");
+
+// void (async () => {
+// 	const { data, message } = await indexApi.categories();
+
+// 	if (data === undefined) {
+// 		snackbarMessage.value = message ?? "";
+// 		return;
+// 	}
+
+// 	for (const category of data) {
+// 		categories.value[category.id] = category.name;
+// 	}
+// })();
+
+const categories = useGetCategories();
+
+// For the result grid styling =================================================
+
+const imageContainerRef = ref<HTMLElement | null>(null);
+const imagePerRow = ref(5);
+const spaceBetween = ref(16);
+
+// Results =====================================================================
+
+const filteredTitles = ref<InnerSearchResponseTitle[]>([]); /** found titles */
+const filteredTitlesToDisplay = ref<InnerSearchResponseTitle[]>([]);
+
+function fetchMoreResult(): void {
+	const howFarFromBottom = document.body.getBoundingClientRect().bottom - window.innerHeight;
+
+	if (howFarFromBottom < 200) {
+		const newTitles = filteredTitles.value.slice(
+			filteredTitlesToDisplay.value.length,
+			filteredTitlesToDisplay.value.length + imagePerRow.value * 3,
+		);
+
+		filteredTitlesToDisplay.value = filteredTitlesToDisplay.value.concat(newTitles);
+	}
+}
+
+const observer = new ResizeObserver(() => {
+	const breakPoint = getSwiperBreakpoint();
+
+	imagePerRow.value = breakPoint.slidesPerView;
+	spaceBetween.value = breakPoint.spaceBetween;
+});
+
+const debouncedFetchMoreResult = useDebounceFn(fetchMoreResult);
+
+onMounted(() => {
+	window.addEventListener("scroll", debouncedFetchMoreResult);
+	if (imageContainerRef.value === null) {
+		return;
+	}
+
+	observer.observe(imageContainerRef.value);
+});
+
+onUnmounted(() => {
+	window.removeEventListener("scroll", debouncedFetchMoreResult);
+	observer.disconnect();
+});
+
+// Chips variables =============================================================
+
+const keywords = ref<string>("");
+const inCategories = ref(new Set<string>());
+const readingStatus = ref<string[]>([]);
+const sortBy = ref("");
+const sortOrder = ref("");
+
+function chipCategoryHandler(eventTarget: HTMLElement): void {
+	const uuid = eventTarget.getAttribute("uuid") ?? "";
+	const selected = eventTarget.getAttribute("selected") === null;
+
+	if (selected) {
+		inCategories.value.add(uuid);
+	} else {
+		inCategories.value.delete(uuid);
+	}
+}
+
+// watchEffect(async () => {
+// 	const { data, message } = await indexApi.filter({
+// 		keywords: keywords.value
+// 			.split(" ")
+// 			.map((keyword) => keyword.trim())
+// 			.filter((keyword) => keyword !== ""),
+// 		category_ids: Array.from(inCategories.value),
+// 		is_reading: readingStatus.value.includes(FilterReadingStatus.Reading.name),
+// 		is_finished: readingStatus.value.includes(FilterReadingStatus.Finished.name),
+// 		is_bookmarked: readingStatus.value.includes(FilterReadingStatus.Bookmarked.name),
+// 		is_favorite: readingStatus.value.includes(FilterReadingStatus.Liked.name),
+// 		sort_by: sortBy.value,
+// 		sort_order: sortOrder.value,
+// 	});
+
+// 	if (data === undefined) {
+// 		snackbarMessage.value = message ?? "";
+// 		return;
+// 	}
+
+// 	filteredTitles.value = data;
+// 	filteredTitlesToDisplay.value = filteredTitles.value.slice(0, imagePerRow.value * 3);
+// });
+</script>
+
+<template>
+	<div class="mb-10 mt-3 flex w-full flex-col px-6 lg:mt-0 lg:pl-0 lg:pr-3">
+		<!-- Filter region -->
+		<div class="flex w-full flex-col gap-2">
+			<div class="text-xl font-semibold" />
+			<Input
+				v-model="keywords"
+				label="filter by keywords"
+				value=""
+				class="my-4 max-w-sm" />
+
+			<ChipSection
+				title="Status"
+				:filter-type="FilterType.ReadingStatus"
+				:filter-type-posible-val="FilterReadingStatus"
+				@add="readingStatus.push($event)"
+				@delete="readingStatus.splice(readingStatus.indexOf($event), 1)" />
+
+			<ChipSection
+				title="Sort by"
+				:filter-type="FilterType.SortResult"
+				:filter-type-posible-val="FilterSortBy"
+				is-overwrite
+				@overwrite="sortBy = $event" />
+
+			<ChipSection
+				title="Sort order"
+				:filter-type="FilterType.SortOrder"
+				:filter-type-posible-val="FilterSortOrder"
+				is-overwrite
+				@overwrite="sortOrder = $event" />
+
+			<div class="flex flex-row flex-wrap items-center gap-4">
+				<div class="text-xl font-semibold">
+					in category
+				</div>
+				<!-- <md-chip-set class="flex-rows flex">
+						<md-filter-chip
+							v-for="{ id, name } in categories.data.value"
+							:key="id"
+							:uuid="id"
+							:label="name"
+							@click="chipCategoryHandler($event.target)" />
+					</md-chip-set> -->
+			</div>
+		</div>
+
+		<!-- Result region -->
+		<Toggle :show="filteredTitles.length > 0">
+			<div class="mb-8 mt-10 text-4xl font-bold">
+				Here's what I found
+			</div>
+		</Toggle>
+		<Toggle :show="filteredTitles.length === 0">
+			<div class="mb-8 mt-10 text-4xl font-bold">
+				Can't find anything
+			</div>
+		</Toggle>
+		<div
+			ref="imageContainerRef"
+			class="grid"
+			:style="{
+				gridTemplateColumns: `repeat(${imagePerRow}, 1fr)`,
+				gap: `${spaceBetween}px`,
+			}">
+			<NuxtLink
+				v-for="title in filteredTitlesToDisplay"
+				:key="title.id"
+				:to="`${title.is_series ? 'series' : 'oneshot'}/${title.id}`">
+				>
+				<ItemCard :title="title" />
+			</NuxtLink>
+		</div>
+	</div>
+</template>

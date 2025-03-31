@@ -1,0 +1,39 @@
+{
+	"name": "yomuyume",
+	"author": {
+		"name": "Liminova",
+		"url": "https://github.com/Liminova"
+	},
+	"license": "MIT & Apache-2.0",
+	"type": "module",
+	"scripts": {
+		"postinstall": "nuxt prepare"
+	},
+	"devDependencies": {
+		"@types/node": "^22.13.14",
+		"@vite-pwa/nuxt": "0.10.6",
+		"eslint": "^9.23.0",
+		"eslint-plugin-hagemanto": "^5.1.2",
+		"eslint-plugin-vue": "^10.0.0"
+	},
+	"dependencies": {
+		"@pinia/nuxt": "^0.10.1",
+		"@tanstack/vue-query": "^5.71.1",
+		"@vueuse/core": "^13.0.0",
+		"clsx": "^2.1.1",
+		"embla-carousel-autoplay": "^8.5.2",
+		"embla-carousel-vue": "^8.5.2",
+		"idb": "^8.0.2",
+		"lucide-vue-next": "^0.479.0",
+		"nuxt": "^3.16.1",
+		"pinia": "^3.0.1",
+		"reka-ui": "^2.1.1",
+		"swiper": "^11.2.6",
+		"tailwind-merge": "^3.0.2",
+		"tailwindcss": "^3.4.17",
+		"tailwindcss-animate": "^1.0.7",
+		"vite-plugin-wasm": "^3.4.1",
+		"vue": "^3.5.13",
+		"vue-sonner": "^1.3.0"
+	}
+}
