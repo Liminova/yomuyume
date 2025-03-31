@@ -3,7 +3,7 @@ import pluginVue from 'eslint-plugin-vue';
 
 export default [
 	{ name: "yomuyume/files", files: ["**/*.{ts,vue}"] },
-	{ name: "yomuyume/ignores", ignores: ["**/*.d.ts", "**/*.js", "node_modules", ".nuxt"] },
+	{ name: "yomuyume/ignores", ignores: ["**/*.d.ts", "**/*.js", "node_modules", ".nuxt", ".output", "assets", "public", "server", "*.config.*"] },
 
 	...hagemanto({
 		enableJsx: false,
