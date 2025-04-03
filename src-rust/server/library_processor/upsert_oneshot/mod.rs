@@ -93,7 +93,6 @@ pub async fn upsert_oneshot(
                 release,
                 path,
                 is_dir,
-                is_series,
                 cover_path,
                 cover_blurhash,
                 cover_width,
@@ -109,7 +108,6 @@ pub async fn upsert_oneshot(
                 $6,
                 $7,
                 $8,
-                FALSE,
                 $9,
                 $10,
                 $11,
@@ -124,7 +122,6 @@ pub async fn upsert_oneshot(
             release = EXCLUDED.release,
             path = EXCLUDED.path,
             is_dir = EXCLUDED.is_dir,
-            is_series = FALSE,
             cover_path = EXCLUDED.cover_path,
             cover_blurhash = EXCLUDED.cover_blurhash,
             cover_width = EXCLUDED.cover_width,
@@ -165,6 +162,41 @@ pub async fn upsert_oneshot(
     )
     .await?;
 
+    let chapter_id = sqlx::query!(
+        r#"INSERT INTO chapters (
+                id,
+                title_id,
+                number,
+                description,
+                path,
+                is_dir
+            )
+        VALUES (
+                $1,
+                $2,
+                0,
+                '',
+                '',
+                TRUE
+            ) ON CONFLICT (title_id, path) DO
+        UPDATE
+        SET number = 0,
+            description = '',
+            path = '',
+            is_dir = TRUE
+        RETURNING id"#,
+        app_state
+            .id_generator
+            .snowflake()
+            .await
+            .map_err(UpsertTitleErr::GenTitleID)?,
+        title_id,
+    )
+    .fetch_one(&mut *txn)
+    .await
+    .map_err(UpsertTitleErr::UpsertChapter)?
+    .id;
+
     '_upsert_pages: {
         let page_count = title.pages_in_title.len();
 
@@ -191,7 +223,7 @@ pub async fn upsert_oneshot(
 
         sqlx::query!(
             "WITH _ AS (
-                INSERT INTO oneshots_pages (id, title_id, path, filesize, description)
+                INSERT INTO pages (id, chapter_id, path, filesize, description)
                 SELECT id,
                     $1,
                     path,
@@ -202,16 +234,16 @@ pub async fn upsert_oneshot(
                         $3::text [],
                         $4::bigint [],
                         $5::text []
-                    ) AS t(id, path, filesize, description) ON CONFLICT (title_id, path) DO
+                    ) AS t(id, path, filesize, description) ON CONFLICT (chapter_id, path) DO
                 UPDATE
                 SET description = EXCLUDED.description
             )
-            DELETE FROM oneshots_pages
-            WHERE title_id = $1
+            DELETE FROM pages
+            WHERE chapter_id = $1
                 AND path NOT IN (
                     SELECT UNNEST($3::text []) AS path
                 )",
-            title_id,
+            &chapter_id,
             &page_ids,
             &page_paths,
             &page_filesizes,
