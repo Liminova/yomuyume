@@ -70,6 +70,8 @@ enum UpsertTitleErr {
     UpsertSeries(sqlx::Error),
     #[error("can't upsert series' chapters: {0:?}")]
     UpsertChapters(sqlx::Error),
+    #[error("can't upsert oneshot' chapters: {0:?}")]
+    UpsertChapter(sqlx::Error),
 
     #[error("can't extract {COMICINFO} from archive: {0:?}")]
     ComicInfoExtract(ArchiveFileError),
