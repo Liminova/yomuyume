@@ -199,7 +199,6 @@ pub async fn upsert_series(
                 release,
                 path,
                 is_dir,
-                is_series,
                 cover_path,
                 cover_blurhash,
                 cover_width,
@@ -215,7 +214,6 @@ pub async fn upsert_series(
                 $6,
                 $7,
                 TRUE,
-                TRUE,
                 $8,
                 $9,
                 $10,
@@ -230,7 +228,6 @@ pub async fn upsert_series(
             release = EXCLUDED.release,
             path = EXCLUDED.path,
             is_dir = TRUE,
-            is_series = TRUE,
             cover_path = EXCLUDED.cover_path,
             cover_blurhash = EXCLUDED.cover_blurhash,
             cover_width = EXCLUDED.cover_width,
@@ -417,7 +414,7 @@ pub async fn upsert_series(
         }
 
         sqlx::query!(
-            "INSERT INTO chapters_pages (id, chapter_id, path, filesize, description)
+            "INSERT INTO pages (id, chapter_id, path, filesize, description)
             SELECT id,
                 chapter_id,
                 path,
