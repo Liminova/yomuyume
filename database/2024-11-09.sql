@@ -99,8 +99,8 @@ CREATE TABLE IF NOT EXISTS progresses (
     id BIGINT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     title_id BIGINT NOT NULL,
+    page_id BIGINT NOT NULL,
     last_read_at TIMESTAMP WITH TIME ZONE,
-    page INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "uc-progresses-user_id-title_id" UNIQUE (user_id, title_id)
