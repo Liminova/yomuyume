@@ -25,8 +25,6 @@ pub enum InternalErr {
 
     #[error("title w/ ID {0} has no chapter, this should not happen")]
     NoChapter(i64),
-    #[error("title w/ ID {0} has no page, this should not happen")]
-    TitleNoPage(i64),
     #[error("chapter w/ ID {0} has no page, this should not happen")]
     ChapterNoPage(i64),
 
