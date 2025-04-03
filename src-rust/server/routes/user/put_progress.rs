@@ -1,17 +1,25 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, State},
+    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     Extension,
 };
+use axum_extra::extract::Query;
 
 use crate::{
     routes::errors::InternalErr,
     structs::ids::UserID,
     utils::{app_state::AppState, constants::USER_PROGRESS_PATH},
 };
+
+#[derive(serde::Deserialize)]
+pub struct PutProgressQuery {
+    title_id: i64,
+    page_id: i64,
+    percent: i16,
+}
 
 /// Set reading progress
 #[utoipa::path(
@@ -33,18 +41,20 @@ use crate::{
 pub async fn put_progress(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
-    Path((title_id, page)): Path<(i64, i32)>,
+    Query(query): Query<PutProgressQuery>,
 ) -> Result<Response, InternalErr> {
     sqlx::query!(
-        "INSERT INTO progresses (user_id, title_id, last_read_at, page)
-        VALUES ($1, $2, $3, $4) ON CONFLICT (user_id, title_id) DO
+        "INSERT INTO progresses (user_id, title_id, page_id, percent, last_read_at)
+        VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id, title_id) DO
         UPDATE
-        SET last_read_at = EXCLUDED.last_read_at,
-            page = EXCLUDED.page",
+        SET page_id = EXCLUDED.page_id,
+            percent = EXCLUDED.percent,
+            last_read_at = EXCLUDED.last_read_at",
         user_id.as_ref(),
-        title_id,
-        chrono::Utc::now(),
-        page
+        query.title_id,
+        query.page_id,
+        query.percent,
+        chrono::Utc::now()
     )
     .execute(&app_state.pool)
     .await
