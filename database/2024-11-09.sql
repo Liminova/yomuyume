@@ -96,7 +96,6 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 DROP TABLE IF EXISTS progresses CASCADE;
 CREATE TABLE IF NOT EXISTS progresses (
-    id BIGINT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     title_id BIGINT NOT NULL,
     page_id BIGINT NOT NULL,
@@ -104,7 +103,8 @@ CREATE TABLE IF NOT EXISTS progresses (
     last_read_at TIMESTAMP WITH TIME ZONE,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "uc-progresses-user_id-title_id" UNIQUE (user_id, title_id)
+    FOREIGN KEY (page_id) REFERENCES pages (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "pk-progresses-user_id-title_id" PRIMARY KEY (user_id, title_id)
 );
 DROP TYPE IF EXISTS temp_codes_purpose CASCADE;
 DO $$ BEGIN CREATE TYPE temp_codes_purpose AS ENUM (
