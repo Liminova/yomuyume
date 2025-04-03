@@ -54,12 +54,17 @@ pub struct SensitiveRequest {
 }
 
 /// Perform sensitive action
-#[utoipa::path(get, path = USER_SENSITIVE_PATH, responses(
-    (status = 200, description = "Code sent to user's email"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 429, description = "Too many requests"),
-    (status = 500, description = "Internal server error", body = String),
-), security(("session-id" = [], "session-secret" = [])))]
+#[utoipa::path(
+    get,
+    path = USER_SENSITIVE_PATH,
+    responses(
+        (status = 200, description = "Code sent to user's email"),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 429, description = "Too many requests"),
+        (status = 500, description = "Internal server error", body = String),
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn post_sensitive(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,

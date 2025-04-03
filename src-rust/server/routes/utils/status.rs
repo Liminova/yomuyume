@@ -29,9 +29,13 @@ pub struct StatusResponse {
 }
 
 /// Get server status
-#[utoipa::path(get, path = GET_STATUS_PATH, responses(
-    (status = 200, description = "Status check success", body = StatusResponse)
-))]
+#[utoipa::path(
+    get,
+    path = GET_STATUS_PATH,
+    responses(
+        (status = 200, description = "Status check success", body = StatusResponse)
+    ))
+]
 pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
     (
         StatusCode::OK,
@@ -45,9 +49,13 @@ pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
 }
 
 /// Post server status
-#[utoipa::path(post, path = GET_STATUS_PATH, responses(
-    (status = 200, description = "Status check success", body = StatusResponse)
-))]
+#[utoipa::path(
+    post,
+    path = GET_STATUS_PATH,
+    responses(
+        (status = 200, description = "Status check success", body = StatusResponse)
+    ))
+]
 pub async fn post_status(
     State(app_state): State<Arc<AppState>>,
     query: Json<StatusRequest>,

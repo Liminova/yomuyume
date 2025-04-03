@@ -25,13 +25,21 @@ pub struct ChapterResponse {
     pages: Option<Vec<BasePageResponse>>,
 }
 
-/// Chapter info & pages
-#[utoipa::path(get, path = GET_CHAPTER_PATH, responses(
-    (status = 200, description = "Fetch chapter success", body = ChapterResponse),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 404, description = "No chapter found for the given id"),
-    (status = 500, description = "Internal server error", body = String)
-), security(("session-id" = [], "session-secret" = [])))]
+/// Get chapter's info & pages
+#[utoipa::path(
+    get,
+    path = GET_CHAPTER_PATH,
+    responses(
+        (status = 200, description = "Fetch chapter success", body = ChapterResponse),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 404, description = "No chapter found for the given id"),
+        (status = 500, description = "Internal server error", body = String)
+    ),
+    params(
+        ("chapter_id" = i64, Path, description = "Chapter ID")
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn get_chapter(
     State(app_state): State<Arc<AppState>>,
     Path(chapter_id): Path<i64>,

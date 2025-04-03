@@ -17,11 +17,16 @@ use crate::{
 };
 
 /// Favorite a title
-#[utoipa::path(put, path = FAVORITE_PATH, responses(
-    (status = 200, description = "Add favorite successful"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String)
-), security(("session-id" = [], "session-secret" = [])))]
+#[utoipa::path(
+    put,
+    path = FAVORITE_PATH,
+    responses(
+        (status = 200, description = "Add favorite successful"),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String)
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn put_favorite(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
@@ -48,11 +53,16 @@ pub async fn put_favorite(
 }
 
 /// Bookmark a title
-#[utoipa::path(put, path = BOOKMARK_PATH, responses(
-    (status = 200, description = "Add bookmark successful"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String)
-), security(("session-id" = [], "session-secret" = [])))]
+#[utoipa::path(
+    put,
+    path = BOOKMARK_PATH,
+    responses(
+        (status = 200, description = "Add bookmark successful"),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String)
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn put_bookmark(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
@@ -79,11 +89,16 @@ pub async fn put_bookmark(
 }
 
 /// Un-favorite a title
-#[utoipa::path(delete, path = FAVORITE_PATH, responses(
-    (status = 200, description = "Delete favorite successful"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String)
-), security(("session-id" = [], "session-secret" = [])))]
+#[utoipa::path(
+    delete,
+    path = FAVORITE_PATH,
+    responses(
+        (status = 200, description = "Delete favorite successful"),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String)
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn delete_favorite(
     State(data): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
@@ -107,11 +122,16 @@ pub async fn delete_favorite(
 }
 
 /// Un-bookmark a title
-#[utoipa::path(delete, path = BOOKMARK_PATH, responses(
-    (status = 200, description = "Delete bookmark successful"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String)
-), security(("session-id" = [], "session-secret" = [])))]
+#[utoipa::path(
+    delete,
+    path = BOOKMARK_PATH,
+    responses(
+        (status = 200, description = "Delete bookmark successful"),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String)
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn delete_bookmark(
     State(data): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,

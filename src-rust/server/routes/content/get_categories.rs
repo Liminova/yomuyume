@@ -31,12 +31,17 @@ pub struct InnerCategoriesResponse {
 type CategoriesResponse = Vec<InnerCategoriesResponse>;
 
 /// Categories & infos
-#[utoipa::path(get, path = GET_CATEGORIES_PATH, responses(
-    (status = 200, description = "Fetch all categories success", body = CategoriesResponse),
-    (status = 204, description = "No category found"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String),
-), security(("session-id" = [], "session-secret" = [])))]
+#[utoipa::path(
+    get,
+    path = GET_CATEGORIES_PATH,
+    responses(
+        (status = 200, description = "Fetch all categories success", body = CategoriesResponse),
+        (status = 204, description = "No category found"),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn get_categories(
     State(app_state): State<Arc<AppState>>,
 ) -> Result<Response, InternalErr> {

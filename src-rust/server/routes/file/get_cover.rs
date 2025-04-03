@@ -15,13 +15,18 @@ use crate::{
 };
 
 /// Get cover file
-#[utoipa::path(get, path = GET_COVER_PATH, responses(
-    (status = 200, description = "Fetch cover successful", body = Vec<u8>),
-    (status = 204, description = "Title has no cover"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 404, description = "Title not found"),
-    (status = 500, description = "Internal server error", body = String),
-), security(("session-id" = [], "session-secret" = [])))]
+#[utoipa::path(
+    get,
+    path = GET_COVER_PATH,
+    responses(
+        (status = 200, description = "Fetch cover successful", body = Vec<u8>),
+        (status = 204, description = "Title has no cover"),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 404, description = "Title not found"),
+        (status = 500, description = "Internal server error", body = String),
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn get_cover(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,

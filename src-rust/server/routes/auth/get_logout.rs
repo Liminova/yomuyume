@@ -20,11 +20,16 @@ use crate::{
 };
 
 /// Logout
-#[utoipa::path(get, path = LOGOUT_PATH, responses(
-    (status = 200, description = "Logout successful"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String),
-), security(("session-id" = [], "session-secret" = [])))]
+#[utoipa::path(
+    get,
+    path = LOGOUT_PATH,
+    responses(
+        (status = 200, description = "Logout successful"),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn get_logout(
     cookie_jar: CookieJar,
     State(app_state): State<Arc<AppState>>,

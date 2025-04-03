@@ -35,12 +35,16 @@ pub struct ForgotRequest {
 ///
 /// Send the first with only the email to request the code,
 /// send the second one with all the fields to reset the password.
-#[utoipa::path(post, path = FORGOT_PATH, responses(
-    (status = 200, description = "Request successful"),
-    (status = 400, description = "Bad request", body = String),
-    (status = 418, description = "What are you trying to do?",),
-    (status = 500, description = "Internal server error", body = String),
-))]
+#[utoipa::path(
+    post,
+    path = FORGOT_PATH,
+    responses(
+        (status = 200, description = "Request successful"),
+        (status = 400, description = "Bad request", body = String),
+        (status = 418, description = "What are you trying to do?",),
+        (status = 500, description = "Internal server error", body = String),
+    ))
+]
 pub async fn post_forgot(
     State(app_state): State<Arc<AppState>>,
     query: Json<ForgotRequest>,

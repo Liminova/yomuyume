@@ -27,11 +27,15 @@ pub struct LoginRequest {
 }
 
 /// Login
-#[utoipa::path(post, path = LOGIN_PATH, responses(
-    (status = 200, description = "Login successful"),
-    (status = 400, description = "Bad request", body = String),
-    (status = 500, description = "Internal server error", body = String),
-))]
+#[utoipa::path(
+    post,
+    path = LOGIN_PATH,
+    responses(
+        (status = 200, description = "Login successful"),
+        (status = 400, description = "Bad request", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    ))
+]
 pub async fn post_login(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,

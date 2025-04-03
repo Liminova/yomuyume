@@ -29,11 +29,16 @@ pub struct WhoAmIResponse {
 }
 
 /// Get current logged in user
-#[utoipa::path(get, path = WHOAMI_PATH, responses(
-    (status = 200, description = "Get whoami successful", body = WhoAmIResponse),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String),
-), security(("session-id" = [], "session-secret" = [])))]
+#[utoipa::path(
+    get,
+    path = WHOAMI_PATH,
+    responses(
+        (status = 200, description = "Get whoami successful", body = WhoAmIResponse),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn get_whoami(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
