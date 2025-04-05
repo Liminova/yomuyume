@@ -59,21 +59,20 @@ pub const REGISTER_PATH: &str = "/api/auth/register";
 pub const FORGOT_PATH: &str = "/api/auth/forgot";
 
 pub const GET_CATEGORIES_PATH: &str = "/api/content/categories";
-pub const GET_CHAPTER_PATH: &str = "/api/content/chapter/{chapter_id}";
-pub const GET_ONESHOT_PATH: &str = "/api/content/oneshot/{title_id}";
-pub const GET_SERIES_PATH: &str = "/api/content/series/{title_id}";
+pub const GET_TITLE_PATH: &str = "/api/content/title/{title_id}";
+pub const GET_PAGES_PATH: &str = "/api/content/pages/{chapter_id}";
 pub const GET_TAGS_PATH: &str = "/api/content/tags";
 pub const SEARCH_PATH: &str = "/api/content/search";
 
-pub const GET_PAGE_PATH: &str = "/api/file/page/{is_series}/{page_id}";
-pub const GET_COVER_PATH: &str = "/api/file/cover/{title_id}";
+pub const GET_PAGE_FILE_PATH: &str = "/api/file/page/{page_id}";
+pub const GET_COVER_FILE_PATH: &str = "/api/file/cover/{title_id}";
 
 pub const FAVORITE_PATH: &str = "/api/user/favorite/{title_id}";
 pub const BOOKMARK_PATH: &str = "/api/user/bookmark/{title_id}";
 pub const WHOAMI_PATH: &str = "/api/user/whoami";
 pub const USER_MODIFY_PATH: &str = "/api/user/modify";
 pub const USER_SENSITIVE_PATH: &str = "/api/user/sensitive";
-pub const USER_PROGRESS_PATH: &str = "/api/user/progress/{title_id}/{page}";
+pub const USER_PROGRESS_PATH: &str = "/api/user/progress";
 
 pub const GET_SCANNING_PROGRESS_PATH: &str = "/api/admin/scanning_progress";
 pub const LIVE_CONFIG_PATH: &str = "/api/admin/live_config";
