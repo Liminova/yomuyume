@@ -89,18 +89,17 @@ impl Modify for SecurityAddon {
         user::put_progress,
 
         content::get_categories,
-        content::post_search,
-        content::get_chapter,
-        content::get_oneshot,
-        content::get_series,
+        content::get_title,
+        content::get_pages,
+        content::get_search,
         content::get_tags,
 
         utils::get_status,
         utils::post_status,
         utils::get_scanning_progress,
 
-        file::get_page,
-        file::get_cover,
+        file::get_page_file,
+        file::get_cover_file,
     ),
     components(schemas(
         // Admin
@@ -121,10 +120,7 @@ impl Modify for SecurityAddon {
 
         // Content
         content::InnerCategoriesResponse,
-        content::ChapterResponse,
-        content::OneshotResponse,
-        content::SeriesResponse,
-        content::SearchRequest,
+        content::TitleResponse,
         content::InnerTitleSearchResponse,
         content::SearchResponse,
         content::InnerSearchRequestOrderBy,
