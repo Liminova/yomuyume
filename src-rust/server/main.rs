@@ -39,10 +39,10 @@ use tokio::{net::TcpListener, time::sleep};
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
 use utils::constants::{
-    BOOKMARK_PATH, FAVORITE_PATH, FORGOT_PATH, GET_CATEGORIES_PATH, GET_CHAPTER_PATH,
-    GET_COVER_PATH, GET_ONESHOT_PATH, GET_PAGE_PATH, GET_SCANNING_PROGRESS_PATH, GET_SERIES_PATH,
-    GET_STATUS_PATH, GET_TAGS_PATH, LIVE_CONFIG_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH,
-    SEARCH_PATH, USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH,
+    BOOKMARK_PATH, FAVORITE_PATH, FORGOT_PATH, GET_CATEGORIES_PATH, GET_COVER_FILE_PATH,
+    GET_PAGES_PATH, GET_PAGE_FILE_PATH, GET_SCANNING_PROGRESS_PATH, GET_STATUS_PATH, GET_TAGS_PATH,
+    GET_TITLE_PATH, LIVE_CONFIG_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, SEARCH_PATH,
+    USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH,
 };
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
@@ -50,8 +50,8 @@ use utoipa_redoc::{Redoc, Servable};
 use crate::{
     routes::{
         auth::{get_logout, post_login, post_register},
-        content::{get_categories, get_chapter, get_oneshot, get_series, get_tags, post_search},
-        file::{get_cover, get_page},
+        content::{get_categories, get_pages, get_search, get_tags, get_title},
+        file::{get_cover_file, get_page_file},
         middlewares::auth::auth,
         user::{
             delete_bookmark, delete_favorite, get_whoami, post_modify, put_bookmark, put_favorite,
@@ -94,11 +94,10 @@ async fn main() -> Result<()> {
                     post(post_live_config).get(get_live_config),
                 )
                 // content
-                .route(SEARCH_PATH, post(post_search))
+                .route(SEARCH_PATH, post(get_search))
                 .route(GET_CATEGORIES_PATH, get(get_categories))
-                .route(GET_SERIES_PATH, get(get_series))
-                .route(GET_ONESHOT_PATH, get(get_oneshot))
-                .route(GET_CHAPTER_PATH, get(get_chapter))
+                .route(GET_TITLE_PATH, get(get_title))
+                .route(GET_PAGES_PATH, get(get_pages))
                 .route(GET_TAGS_PATH, get(get_tags))
                 // user
                 .route(WHOAMI_PATH, get(get_whoami))
@@ -108,8 +107,8 @@ async fn main() -> Result<()> {
                 .route(FAVORITE_PATH, put(put_favorite).delete(delete_favorite))
                 .route(USER_PROGRESS_PATH, put(put_progress))
                 // file
-                .route(GET_PAGE_PATH, get(get_page))
-                .route(GET_COVER_PATH, get(get_cover))
+                .route(GET_PAGE_FILE_PATH, get(get_page_file))
+                .route(GET_COVER_FILE_PATH, get(get_cover_file))
                 // misc
                 .route(GET_SCANNING_PROGRESS_PATH, get(get_scanning_progress))
                 // middleware
