@@ -17,6 +17,7 @@ use crate::{
 #[derive(serde::Deserialize)]
 pub struct PutProgressQuery {
     title_id: i64,
+    chapter_id: i64,
     page_id: i64,
     percent: i16,
 }
@@ -44,14 +45,16 @@ pub async fn put_progress(
     Query(query): Query<PutProgressQuery>,
 ) -> Result<Response, InternalErr> {
     sqlx::query!(
-        "INSERT INTO progresses (user_id, title_id, page_id, percent, last_read_at)
-        VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id, title_id) DO
+        "INSERT INTO progresses (user_id, title_id, chapter_id, page_id, percent, last_read_at)
+        VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (user_id, title_id) DO
         UPDATE
-        SET page_id = EXCLUDED.page_id,
+        SET chapter_id = EXCLUDED.chapter_id,
+            page_id = EXCLUDED.page_id,
             percent = EXCLUDED.percent,
             last_read_at = EXCLUDED.last_read_at",
         user_id.as_ref(),
         query.title_id,
+        query.chapter_id,
         query.page_id,
         query.percent,
         chrono::Utc::now()
