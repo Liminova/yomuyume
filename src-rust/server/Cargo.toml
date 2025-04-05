@@ -14,7 +14,7 @@ anyhow = "1.0.89"
 argon2 = "0.5.3"
 async-channel = "2.3.1"
 axum = "0.8.1"
-axum-extra = { version = "0.10.0", features = ["cookie"] }
+axum-extra = { version = "0.10.0", features = ["cookie", "query"] }
 axum-macros = "0.5.0"
 blurhash = "0.2.3"
 chrono = { version = "0.4.30", features = ["serde"] }
