@@ -3,7 +3,7 @@ import { useRoute } from "nuxt/app";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 
 import { definePageMeta } from "#imports";
-import ItemCard from "~/components/ItemCard.vue";
+import TitleCard from "~/components/title/TitleCard.vue";
 import { useContentSearchTitle } from "~/composables/api/content";
 import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
 
@@ -12,8 +12,10 @@ definePageMeta({ layout: "nav-drawer" });
 const imagePerRow = ref(5);
 const spaceBetween = ref(16);
 
-const searchTitle = useContentSearchTitle();
-searchTitle.mutate({ category_ids: [useRoute().params.id as string] });
+const searchResultsInf = useContentSearchTitle({
+	category_ids: [useRoute().params.id as string],
+});
+const searchResults = computed(() => searchResultsInf.data.value?.pages.flatMap(page => page.data ?? []) ?? []);
 
 const observer = new ResizeObserver(() => {
 	const breakPoint = getSwiperBreakpoint();
@@ -31,15 +33,12 @@ onMounted(() => {
 onUnmounted(() => {
 	observer.disconnect();
 });
-
-const showSomething = computed(() => searchTitle.data.value?.data && searchTitle.data.value.data.length > 0);
-const showNothing = computed(() => searchTitle.data.value?.data === undefined || searchTitle.data.value.data.length === 0);
 </script>
 
 <template>
 	<div>
 		<div
-			v-if="showSomething"
+			v-if="searchResults.length !== 0"
 			ref="imageContainerRef"
 			class="my-3 grid px-6 lg:mt-0 lg:pl-0 lg:pr-3"
 			:style="{
@@ -47,14 +46,15 @@ const showNothing = computed(() => searchTitle.data.value?.data === undefined ||
 				gap: `${spaceBetween}px`,
 			}">
 			<NuxtLink
-				v-for="title in searchTitle.data?.value?.data"
+				v-for="title in searchResults"
 				:key="title.id"
-				:to="`${title.is_series ? 'series' : 'oneshot'}/${title.id}`">
-				<ItemCard :title="title" />
+				:to="`/title/${title.id}`">
+				<TitleCard :title="title" />
 			</NuxtLink>
 		</div>
+
 		<div
-			v-if="showNothing"
+			v-if="searchResults.length === 0"
 			class="w-full py-10 text-center">
 			This category is empty.
 		</div>
