@@ -50,13 +50,13 @@ pub(super) const VERSION_NAMES: [&str; 31] = [
     "Unfinished Dream of All Living Ghost",
 ];
 
+pub const SESSION_ID_COOKIE_NAME: &str = "session-id";
+pub const SESSION_SECRET_COOKIE_NAME: &str = "session-secret";
+
 pub const LOGOUT_PATH: &str = "/api/auth/logout";
 pub const LOGIN_PATH: &str = "/api/auth/login";
 pub const REGISTER_PATH: &str = "/api/auth/register";
 pub const FORGOT_PATH: &str = "/api/auth/forgot";
-
-pub const SESSION_ID_COOKIE_NAME: &str = "session-id";
-pub const SESSION_SECRET_COOKIE_NAME: &str = "session-secret";
 
 pub const GET_CATEGORIES_PATH: &str = "/api/content/categories";
 pub const GET_CHAPTER_PATH: &str = "/api/content/chapter/{chapter_id}";
