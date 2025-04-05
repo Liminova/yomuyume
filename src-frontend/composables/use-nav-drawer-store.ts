@@ -29,7 +29,7 @@ export const useNavDrawerStore = defineStore("nav-drawer-store", () => {
 	const route = useRoute();
 	const screenSize = useScreenSize();
 	watchEffect(() => {
-		if (route.path.startsWith("/oneshot") || screenSize.width < 1024) {
+		if (route.path.startsWith("/title") || screenSize.width < 1024) {
 			kind.value = DrawerKind.OffScreen;
 			return;
 		}
