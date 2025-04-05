@@ -109,7 +109,7 @@ export interface SearchQuery {
 
 	offset?: number;
 	limit?: number;
-	order_by?: "title" | "release_date" | "update_date" | "author";
+	order_by?: "title" | "release" | "date_updated" | "author" | "progress_last_read_at";
 	is_ascending?: boolean;
 }
 
