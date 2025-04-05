@@ -12,34 +12,38 @@ use axum::{
     response::{IntoResponse, Response},
     Extension, Json,
 };
+use axum_extra::extract::Query;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::{is_jxl, parse_tags, structs::BaseTitleResponse};
 
 #[derive(Debug, ToSchema, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
 pub enum InnerSearchRequestOrderBy {
-    #[serde(rename = "title")]
     #[default]
     Title,
-    #[serde(rename = "release_date")]
-    ReleaseDate,
-    #[serde(rename = "update_date")]
-    UpdateDate,
+    Release,
+    DateUpdated,
+    Author,
+    ProgressLastReadAt,
 }
 
 impl AsRef<str> for InnerSearchRequestOrderBy {
     fn as_ref(&self) -> &str {
+        use InnerSearchRequestOrderBy as O;
         match self {
-            InnerSearchRequestOrderBy::Title => "title",
-            InnerSearchRequestOrderBy::ReleaseDate => "release_date",
-            InnerSearchRequestOrderBy::UpdateDate => "update_date",
+            O::Title => "title",
+            O::Release => "release",
+            O::DateUpdated => "date_updated",
+            O::Author => "author",
+            O::ProgressLastReadAt => "progress_last_read_at",
         }
     }
 }
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
-pub struct SearchRequest {
+pub struct SearchQuery {
     pub term: Option<String>,
 
     pub category_ids: Option<Vec<String>>,
@@ -54,8 +58,6 @@ pub struct SearchRequest {
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct InnerTitleSearchResponse {
-    pub is_series: bool,
-
     #[serde(flatten)]
     pub base: BaseTitleResponse,
 }
@@ -69,24 +71,39 @@ pub struct SearchResponse {
 }
 
 /// Search title
-#[utoipa::path(post, path = SEARCH_PATH, responses(
-    (status = 200, description = "Search success", body = SearchResponse),
-    (status = 204, description = "Search success, but none were found", body = SearchResponse),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String)
-), security(("session-id" = [], "session-secret" = [])))]
-pub async fn post_search(
+#[utoipa::path(
+    get,
+    path = SEARCH_PATH,
+    responses(
+        (status = 200, description = "Search success", body = SearchResponse),
+        (status = 204, description = "Search success, but none were found", body = SearchResponse),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String)
+    ),
+    params(
+        ("limit" = Option<i64>, Query, description = "Limit"),
+        ("offset" = Option<i64>, Query, description = "Offset"),
+        ("order_by" = Option<InnerSearchRequestOrderBy>, Query, description = "Order by"),
+        ("is_ascending" = Option<bool>, Query, description = "Is ascending"),
+        ("term" = Option<String>, Query, description = "Term"),
+        ("category_ids" = Option<Vec<String>>, Query, description = "Category ids"),
+        ("tag_ids" = Option<Vec<String>>, Query, description = "Tag ids"),
+        ("release_year" = Option<i64>, Query, description = "Release year"),
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
+pub async fn get_search(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,
-    Json(request_body): Json<SearchRequest>,
+    Query(query): Query<SearchQuery>,
 ) -> Result<Response, InternalErr> {
-    let limit = request_body.limit.unwrap_or(10);
-    let offset = request_body.offset.unwrap_or(0);
-    let order_by = request_body.order_by.unwrap_or_default();
-    let is_ascending = request_body.is_ascending.unwrap_or(true);
+    let limit = query.limit.unwrap_or(10);
+    let offset = query.offset.unwrap_or(0);
+    let order_by = query.order_by.unwrap_or_default();
+    let is_ascending = query.is_ascending.unwrap_or(true);
 
     let title_ids: Option<Vec<i64>> = None;
-    let category_ids = request_body
+    let category_ids = query
         .category_ids
         .map(|ids| {
             ids.into_iter()
@@ -94,7 +111,7 @@ pub async fn post_search(
                 .collect()
         })
         .filter(|ids: &Vec<i64>| !ids.is_empty());
-    let tag_ids = request_body
+    let tag_ids = query
         .tag_ids
         .map(|ids| {
             ids.into_iter()
@@ -102,7 +119,7 @@ pub async fn post_search(
                 .collect()
         })
         .filter(|ids: &Vec<i64>| !ids.is_empty());
-    let release_year = request_body.release_year.map(|year| year as i32);
+    let release_year = query.release_year.map(|year| year as i32);
 
     let data = sqlx::query!(
         r#"SELECT t.id AS id,
@@ -112,7 +129,6 @@ pub async fn post_search(
             t.author AS author,
             t.description AS "description?",
             t.release AS release,
-            t.is_series AS is_series,
             t.cover_path AS cover_path,
             t.cover_blurhash AS cover_blurhash,
             t.cover_width AS cover_width,
@@ -146,10 +162,14 @@ pub async fn post_search(
                 WHERE title_id = t.id
                     AND user_id = $1
             ) AS "is_bookmark!",
-            pr.page AS "page_read?"
+            pr.chapter_id AS "progress_chapter_id?",
+            pr.page_id AS "progress_page_id?",
+            pr.percent AS "progress_percent?",
+            pr.last_read_at AS "progress_last_read_at?"
         FROM titles t
             LEFT JOIN categories c ON c.id = t.category_id
-            LEFT JOIN oneshots_pages p ON p.title_id = t.id
+            LEFT JOIN chapters ch ON ch.title_id = t.id
+            LEFT JOIN pages p ON p.chapter_id = ch.id
             LEFT JOIN titles_tags tt ON tt.title_id = t.id
             LEFT JOIN tags tg ON tg.id = tt.tag_id
             LEFT JOIN progresses pr ON (
@@ -190,7 +210,8 @@ pub async fn post_search(
             )
         GROUP BY t.id,
             c.id,
-            pr.page
+            pr.title_id,
+            pr.user_id
         ORDER BY CASE
                 WHEN $6 THEN $7
             END ASC,
@@ -216,7 +237,6 @@ pub async fn post_search(
     })?
     .into_iter()
     .map(|r| InnerTitleSearchResponse {
-        is_series: r.is_series,
         base: BaseTitleResponse {
             id: r.id.to_string(),
             title: r.title,
@@ -236,7 +256,11 @@ pub async fn post_search(
 
             is_favorite: r.is_favorite,
             is_bookmark: r.is_bookmark,
-            page_read: r.page_read.filter(|i| *i != 0),
+
+            progress_page_id: r.progress_page_id.map(|id| id.to_string()),
+            progress_chapter_id: r.progress_chapter_id.map(|id| id.to_string()),
+            progress_percent: r.progress_percent,
+            progress_last_read_at: r.progress_last_read_at.map(|d| d.to_rfc3339()),
         },
     })
     .collect::<Vec<_>>();
