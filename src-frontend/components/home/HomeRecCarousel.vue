@@ -7,14 +7,14 @@ import { onMounted, onUnmounted, ref } from "vue";
 
 import Button from "~/components/ui/Button.vue";
 import { Carousel, type CarouselApi, CarouselContent, CarouselItem } from "~/components/ui/carousel";
-import { useContentActiveSearchTitle } from "~/composables/api/content";
+import { useContentSearchTitle } from "~/composables/api/content";
 import { cn } from "~/lib/utils";
 
 import Toggle from "../Toggle.vue";
 import HomeRecCard from "./HomeRecCarouselCard.vue";
 
 const carouselRef = ref<InstanceType<typeof Carousel> | null>(null);
-const titles = useContentActiveSearchTitle({});
+const titles = useContentSearchTitle();
 
 const isNextSlideBarActive = ref(true);
 const nextSlideBar = ref<HTMLElement | null>(null);
@@ -75,7 +75,7 @@ onUnmounted(() => {
 		})]">
 		<CarouselContent>
 			<CarouselItem
-				v-for="(title) in titles.data.value?.data"
+				v-for="(title) in titles.data.value?.pages.flatMap((page) => page.data ?? [])"
 				:key="`rec${title.id}`">
 				<HomeRecCard
 					:title="title" />

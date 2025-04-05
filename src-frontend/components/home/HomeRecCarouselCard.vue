@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { NuxtLink } from "#components";
 import Image from "~/components/image";
-import { GET_COVER_PATH } from "~/composables/api/common";
+import { GET_COVER_FILE_PATH } from "~/composables/api/common";
 import type { InnerSearchResponseTitle } from "~/composables/api/content";
 
 const props = defineProps<{ title: InnerSearchResponseTitle }>();
@@ -9,7 +9,7 @@ const props = defineProps<{ title: InnerSearchResponseTitle }>();
 
 <template>
 	<NuxtLink
-		:to="`/${props.title.is_series ? 'series' : 'oneshot'}/${props.title.id}`"
+		:to="`/title/${props.title.id}`"
 		class="relative flex flex-row justify-center overflow-hidden rounded-3xl bg-black/50 max-sm:aspect-[10/12] sm:static">
 		<!-- Background -->
 		<div class="absolute z-[-1] hidden size-full overflow-hidden object-cover px-2 sm:block">
@@ -17,7 +17,7 @@ const props = defineProps<{ title: InnerSearchResponseTitle }>();
 				:id="props.title.id"
 				class="size-full rounded-3xl object-cover"
 				:draggable="false"
-				:src="GET_COVER_PATH(props.title.id)"
+				:src="GET_COVER_FILE_PATH(props.title.id)"
 				:blurhash="props.title.cover_blurhash"
 				:width="props.title.cover_width"
 				:height="props.title.cover_height"
@@ -30,7 +30,7 @@ const props = defineProps<{ title: InnerSearchResponseTitle }>();
 				:id="props.title.id"
 				class="size-full overflow-hidden object-cover sm:aspect-[10/16] lg:rounded-2xl"
 				:draggable="false"
-				:src="GET_COVER_PATH(props.title.id)"
+				:src="GET_COVER_FILE_PATH(props.title.id)"
 				:blurhash="props.title.cover_blurhash"
 				:width="props.title.cover_width"
 				:height="props.title.cover_height"
