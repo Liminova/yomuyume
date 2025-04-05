@@ -6,7 +6,7 @@ export default defineNuxtRouteMiddleware(async (to, _) => {
 	const loggedIn = await isLoggedIn();
 	const atAuthRoute = to.path === "/auth/login";
 	if (!loggedIn && !atAuthRoute) {
-		return navigateTo("/auth");
+		return navigateTo("/auth/login");
 	}
 	if (loggedIn && atAuthRoute) {
 		return navigateTo("/");
