@@ -23,7 +23,7 @@ export default defineNuxtConfig({
 			autoprefixer: {},
 		},
 	},
-	css: ["~/assets/css/index.css"],
+	css: ["assets/css/index.css"],
 	modules: ["@pinia/nuxt", "@vite-pwa/nuxt"],
 	experimental: {
 		viewTransition: true,
