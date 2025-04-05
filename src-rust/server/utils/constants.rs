@@ -53,6 +53,8 @@ pub(super) const VERSION_NAMES: [&str; 31] = [
 pub const SESSION_ID_COOKIE_NAME: &str = "session-id";
 pub const SESSION_SECRET_COOKIE_NAME: &str = "session-secret";
 
+// START: API paths - DO NOT MODIFY THIS LINE
+
 pub const LOGOUT_PATH: &str = "/api/auth/logout";
 pub const LOGIN_PATH: &str = "/api/auth/login";
 pub const REGISTER_PATH: &str = "/api/auth/register";
@@ -78,3 +80,5 @@ pub const GET_SCANNING_PROGRESS_PATH: &str = "/api/admin/scanning_progress";
 pub const LIVE_CONFIG_PATH: &str = "/api/admin/live_config";
 
 pub const GET_STATUS_PATH: &str = "/api/status";
+
+// END: API paths - DO NOT MODIFY THIS LINE
