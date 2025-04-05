@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
 import { useMutation, useQuery } from "@tanstack/vue-query";
-import { toast } from "vue-sonner";
 
 import { BOOKMARK_PATH, FAVORITE_PATH, NewYomuyumeRequest, USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH } from "./common";
 
@@ -15,13 +14,10 @@ export interface SensitiveRequest {
 
 export function useUserSensitiveAction() {
 	return useMutation({
-		mutationFn: async (body: SensitiveRequest) => NewYomuyumeRequest(USER_SENSITIVE_PATH, {
-			method: "POST",
-			body: JSON.stringify(body),
-		}),
-		onError(error) {
-			toast.error("Can't perform sensitive action", {
-				description: error.message,
+		async mutationFn(body: SensitiveRequest) {
+			return NewYomuyumeRequest(USER_SENSITIVE_PATH, {
+				method: "POST",
+				body: JSON.stringify(body),
 			});
 		},
 	});
@@ -29,58 +25,42 @@ export function useUserSensitiveAction() {
 
 export function useUserFavorite(method: "PUT" | "DELETE") {
 	return useMutation({
-		mutationFn: async (titleID: string) => NewYomuyumeRequest(FAVORITE_PATH(titleID), { method }),
-		onError(error) {
-			toast.error(`Can't ${method === "PUT" ? "add" : "remove"} from favorites`, {
-				description: error.message,
-			});
-		},
-		onSuccess() {
-			toast.success(`${method === "PUT" ? "Added to" : "Removed from"} favorites`);
+		async mutationFn(titleId: string) {
+			return NewYomuyumeRequest(FAVORITE_PATH(titleId), { method });
 		},
 	});
 }
 
 export function useUserBookmark(method: "PUT" | "DELETE") {
 	return useMutation({
-		mutationFn: async (titleID: string) => NewYomuyumeRequest(BOOKMARK_PATH(titleID), { method }),
-		onError(error) {
-			toast.error(`Can't ${method === "PUT" ? "add" : "remove"} from bookmarks`, {
-				description: error.message,
-			});
-		},
-		onSuccess() {
-			toast.success(`${method === "PUT" ? "Added to" : "Removed from"} bookmarks`);
+		async mutationFn(titleId: string) {
+			return NewYomuyumeRequest(BOOKMARK_PATH(titleId), { method });
 		},
 	});
 }
 
 export function useUserModifyInfo() {
 	return useMutation({
-		mutationFn: async (body: { username?: string; email?: string }) => NewYomuyumeRequest(USER_MODIFY_PATH, {
-			method: "POST",
-			body: JSON.stringify(body),
-		}),
-		onError(error) {
-			toast.error("Can't modify user info", {
-				description: error.message,
+		async mutationFn(body: { username?: string; email?: string }) {
+			return NewYomuyumeRequest(USER_MODIFY_PATH, {
+				method: "POST",
+				body: JSON.stringify(body),
 			});
-		},
-		onSuccess() {
-			toast.success("User info modified successfully");
 		},
 	});
 }
 
 export function useUserSetProgress() {
 	return useMutation({
-		mutationFn: async (query: { titleID: string; page: number }) => NewYomuyumeRequest(USER_PROGRESS_PATH(query.titleID, query.page), {
-			method: "PUT",
-		}),
-		onError(error) {
-			toast.error("Can't set progress", {
-				description: error.message,
-			});
+		async mutationFn(query: {
+			title_id: string;
+			chapter_id: string;
+			page_id: string;
+			percent: number;
+		}) {
+			return NewYomuyumeRequest(USER_PROGRESS_PATH, {
+				method: "PUT",
+			}, query);
 		},
 	});
 }
@@ -98,6 +78,8 @@ export interface WhoAmIResponseBody {
 export function useUserWhoAmI() {
 	return useQuery({
 		queryKey: ["whoami"],
-		queryFn: async ({ signal }) => NewYomuyumeRequest<WhoAmIResponseBody>(WHOAMI_PATH, { signal }),
+		async queryFn({ signal }) {
+			return NewYomuyumeRequest<WhoAmIResponseBody>(WHOAMI_PATH, { signal });
+		},
 	});
 }

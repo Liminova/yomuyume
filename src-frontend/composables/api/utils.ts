@@ -12,7 +12,9 @@ export interface ScanningProgressResponse {
 export function useGetLibraryScanningProgress() {
 	return useQuery({
 		queryKey: ["scanning_progress"],
-		queryFn: async ({ signal }): Promise<ScanningProgressResponse> => NewYomuyumeRequest<ScanningProgressResponse>(GET_SCANNING_PROGRESS_PATH, { signal }),
+		async queryFn({ signal }) {
+			return NewYomuyumeRequest<ScanningProgressResponse>(GET_SCANNING_PROGRESS_PATH, { signal });
+		},
 	});
 }
 
@@ -24,16 +26,20 @@ export interface ServerStatusResponse {
 export function useGetServerStatus() {
 	return useQuery({
 		queryKey: ["status"],
-		queryFn: async ({ signal }): Promise<ServerStatusResponse> => NewYomuyumeRequest<ServerStatusResponse>(GET_STATUS_PATH, { signal }),
+		async queryFn({ signal }) {
+			return NewYomuyumeRequest<ServerStatusResponse>(GET_STATUS_PATH, { signal });
+		},
 	});
 }
 
 export function usePostServerStatus() {
 	return useMutation({
-		mutationFn: async (body: { echo: string }): Promise<ServerStatusResponse> => NewYomuyumeRequest(GET_STATUS_PATH, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(body),
-		}),
+		async mutationFn(body: { echo: string }) {
+			return NewYomuyumeRequest<ServerStatusResponse>(GET_STATUS_PATH, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			});
+		},
 	});
 }

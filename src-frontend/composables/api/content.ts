@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import { toast } from "vue-sonner";
+import { useInfiniteQuery, useQuery } from "@tanstack/vue-query";
 
-import { GET_CATEGORIES_PATH, GET_CHAPTER_PATH, GET_ONESHOT_PATH, GET_SERIES_PATH, GET_TAGS_PATH, NewYomuyumeRequest, SEARCH_PATH } from "./common";
+import { GET_CATEGORIES_PATH, GET_PAGES_PATH, GET_TAGS_PATH, GET_TITLE_PATH, NewYomuyumeRequest, SEARCH_PATH } from "./common";
 
 export interface CategoriesResponseBodyInner {
 	id: string;
@@ -21,7 +20,9 @@ export type GetCategoriesResponseBody = Array<{ id: string; name?: string; descr
 export function useGetCategories() {
 	return useQuery({
 		queryKey: ["categories"],
-		queryFn: async ({ signal }) => NewYomuyumeRequest<GetCategoriesResponseBody>(GET_CATEGORIES_PATH, { signal }),
+		async queryFn({ signal }) {
+			return NewYomuyumeRequest<GetCategoriesResponseBody>(GET_CATEGORIES_PATH, { signal });
+		},
 	});
 }
 
@@ -58,8 +59,10 @@ export interface BaseTitleResponse {
 
 	is_favorite: boolean;
 	is_bookmark: boolean;
-	/// Null if the value is 0 or haven't read
-	page_read?: number;
+
+	progress_page_id?: number;
+	progress_percent?: number;
+	progress_last_read_at?: string;
 }
 
 export interface BasePageResponse {
@@ -71,17 +74,6 @@ export interface BasePageResponse {
 	description?: string;
 }
 
-export interface OneshotResponse extends BaseTitleResponse {
-	pages?: BasePageResponse[];
-}
-
-export function useContentGetOneshot(id: string) {
-	return useQuery({
-		queryKey: ["title", id],
-		queryFn: async ({ signal }) => NewYomuyumeRequest<OneshotResponse>(GET_ONESHOT_PATH(id), { signal }),
-	});
-}
-
 export interface SeriesResponse extends BaseTitleResponse {
 	chapters?: Array<{
 		id: string;
@@ -90,29 +82,25 @@ export interface SeriesResponse extends BaseTitleResponse {
 	}>;
 }
 
-export function useContentGetSeries(id: string) {
+export function useContentGetTitle(titleId: string) {
 	return useQuery({
-		queryKey: ["title", id],
-		queryFn: async ({ signal }) => NewYomuyumeRequest<SeriesResponse>(GET_SERIES_PATH(id), { signal }),
+		queryKey: ["title", titleId],
+		async queryFn({ signal }) {
+			return NewYomuyumeRequest<SeriesResponse>(GET_TITLE_PATH(titleId), { signal });
+		},
 	});
 }
 
-export interface ChapterResponse extends BaseTitleResponse {
-	id: string;
-	number: number;
-	description?: string;
-
-	pages?: BasePageResponse[];
-}
-
-export function useContentGetChapter(id: string) {
+export function useContentGetPages(chapterId: string) {
 	return useQuery({
-		queryKey: ["title", id],
-		queryFn: async ({ signal }) => NewYomuyumeRequest<ChapterResponse>(GET_CHAPTER_PATH(id), { signal }),
+		queryKey: ["pages", chapterId],
+		async queryFn({ signal }) {
+			return NewYomuyumeRequest<BasePageResponse[]>(GET_PAGES_PATH(chapterId), { signal });
+		},
 	});
 }
 
-export interface SearchRequest {
+export interface SearchQuery {
 	term?: string;
 
 	category_ids?: string[];
@@ -121,7 +109,7 @@ export interface SearchRequest {
 
 	offset?: number;
 	limit?: number;
-	order_by?: string;
+	order_by?: "title" | "release_date" | "update_date" | "author";
 	is_ascending?: boolean;
 }
 
@@ -135,39 +123,38 @@ export interface SearchResponse {
 	limit: number;
 }
 
-export function useContentSearchTitle() {
-	const queryClient = useQueryClient();
+export function useContentSearchTitle(query?: SearchQuery) {
+	const limit = query?.limit ?? 10;
 
-	return useMutation({
-		mutationFn: async (body: SearchRequest) => NewYomuyumeRequest<SearchResponse>(SEARCH_PATH, {
-			method: "POST",
-			body: JSON.stringify(body),
-		}),
-		onSuccess(data, variables) {
-			queryClient.setQueryData(["search", variables], data);
-		},
-		onError(error) {
-			toast.error("Can't perform search", {
-				description: error.message,
+	return useInfiniteQuery({
+		queryKey: ["search", query],
+		async queryFn({ pageParam = 0, signal }) {
+			return NewYomuyumeRequest<SearchResponse>(SEARCH_PATH, {
+				method: "POST",
+				signal,
+			}, {
+				...query,
+				offset: pageParam,
+				limit,
 			});
 		},
-	});
-}
-
-export function useContentActiveSearchTitle(body: SearchRequest) {
-	return useQuery({
-		queryKey: ["search", body],
-		queryFn: async ({ signal }) => NewYomuyumeRequest<SearchResponse>(SEARCH_PATH, {
-			method: "POST",
-			body: JSON.stringify(body),
-			signal,
-		}),
+		initialPageParam: query?.offset ?? 0,
+		getNextPageParam(lastPage) {
+			if (lastPage.data === undefined || lastPage.data.length === 0) { return null; }
+			return lastPage.offset + limit;
+		},
+		getPreviousPageParam(firstPage) {
+			if (firstPage.offset === 0) { return null; }
+			return firstPage.offset - limit;
+		},
 	});
 }
 
 export function useContentGetTags() {
 	return useQuery({
 		queryKey: ["tags"],
-		queryFn: async ({ signal }) => NewYomuyumeRequest<TitleTag[]>(GET_TAGS_PATH, { signal }),
+		async queryFn({ signal }) {
+			return NewYomuyumeRequest<TitleTag[]>(GET_TAGS_PATH, { signal });
+		},
 	});
 }
