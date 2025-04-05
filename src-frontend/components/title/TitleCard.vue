@@ -1,27 +1,21 @@
 <script setup lang="ts">
-import { computed } from "vue";
-
 import { NuxtLink } from "#components";
 import Image from "~/components/image";
-import { GET_COVER_PATH } from "~/composables/api/common";
+import { GET_COVER_FILE_PATH } from "~/composables/api/common";
 import type { InnerSearchResponseTitle } from "~/composables/api/content";
 
 const props = defineProps<{ title: InnerSearchResponseTitle }>();
-
-const progress = computed(() => {
-	return props.title.page_read;
-});
 </script>
 
 <template>
 	<NuxtLink
 		class="flex flex-col items-start justify-center"
-		:to="`/${props.title.is_series ? 'series' : 'oneshot'}/${props.title.id}`">
+		:to="`/title/${props.title.id}`">
 		<div class="img-cover group relative w-full overflow-hidden rounded-xl">
 			<Image
 				:id="title.id"
 				emit-when-in-view
-				:src="GET_COVER_PATH(title.id)"
+				:src="GET_COVER_FILE_PATH(title.id)"
 				:blurhash="title.cover_blurhash"
 				:width="title.cover_width"
 				:height="title.cover_height"
@@ -35,7 +29,7 @@ const progress = computed(() => {
 				class="absolute bottom-0 w-full" /> -->
 
 			<i
-				v-show="progress === 1"
+				v-show="title.progress_percent === 100"
 				class="fa-solid fa-circle-check absolute right-2 top-1 text-xl text-[--md-sys-color-on-secondary-fixed-variant]" />
 		</div>
 		<div>
