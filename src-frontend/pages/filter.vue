@@ -10,7 +10,7 @@ import {
 	FilterSortOrder,
 	FilterType,
 } from "~/components/filter/FilterType";
-import ItemCard from "~/components/ItemCard.vue";
+import TitleCard from "~/components/title/TitleCard.vue";
 import Toggle from "~/components/Toggle.vue";
 import Input from "~/components/ui/Input.vue";
 import { type InnerSearchResponseTitle, useGetCategories } from "~/composables/api/content";
@@ -198,7 +198,7 @@ function chipCategoryHandler(eventTarget: HTMLElement): void {
 				:key="title.id"
 				:to="`${title.is_series ? 'series' : 'oneshot'}/${title.id}`">
 				>
-				<ItemCard :title="title" />
+				<TitleCard :title="title" />
 			</NuxtLink>
 		</div>
 	</div>
