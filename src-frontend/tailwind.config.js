@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-	content: ["./src/*.vue"],
+	content: ["app.vue", "components/**/*.vue", "layouts/**/*.vue", "pages/**/*.vue"],
 	darkMode: ["class"],
 	safelist: ["dark"],
 	prefix: "",
