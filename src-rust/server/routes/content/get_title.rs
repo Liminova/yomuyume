@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     extract::{Extension, Path, State},
     http::StatusCode,
-    response::{IntoResponse, Redirect, Response},
+    response::{IntoResponse, Response},
     Json,
 };
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use super::{is_jxl, parse_tags, structs::BaseTitleResponse};
 use crate::{
     routes::errors::InternalErr,
     structs::ids::UserID,
-    utils::{app_state::AppState, constants::GET_SERIES_PATH},
+    utils::{app_state::AppState, constants::GET_TITLE_PATH},
 };
 
 #[skip_serializing_none]
@@ -27,22 +27,29 @@ pub struct InnerSeriesResponseChapter {
 
 #[skip_serializing_none]
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
-pub struct SeriesResponse {
+pub struct TitleResponse {
     #[serde(flatten)]
     base: BaseTitleResponse,
 
     chapters: Option<Vec<InnerSeriesResponseChapter>>,
 }
 
-/// Series info & chapters
-#[utoipa::path(get, path = GET_SERIES_PATH, responses(
-    (status = 200, description = "Fetch series success", body = SeriesResponse),
-    (status = 303, description = "Title is an oneshot, redirect to the correct endpoint"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 404, description = "No series found for the given id"),
-    (status = 500, description = "Internal server error", body = String)
-), security(("session-id" = [], "session-secret" = [])))]
-pub async fn get_series(
+/// Get title's info & chapters
+#[utoipa::path(
+    get,
+    path = GET_TITLE_PATH,
+    responses(
+        (status = 200, description = "Fetch series success", body = TitleResponse),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 404, description = "No series found for the given id"),
+        (status = 500, description = "Internal server error", body = String)
+    ),
+    params(
+        ("title_id" = i64, Path, description = "Title ID")
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
+pub async fn get_title(
     State(app_state): State<Arc<AppState>>,
     Path(title_id): Path<i64>,
     Extension(user_id): Extension<UserID>,
@@ -53,7 +60,6 @@ pub async fn get_series(
             t.author AS author,
             t.description AS "description?",
             t.release AS release,
-            t.is_series AS is_series,
             t.cover_path AS cover_path,
             t.cover_blurhash AS cover_blurhash,
             t.cover_width AS cover_width,
@@ -96,7 +102,10 @@ pub async fn get_series(
                 WHERE title_id = $1
                     AND user_id = $2
             ) AS "is_bookmark!",
-            pr.page AS "page_read?"
+            pr.chapter_id AS "progress_chapter_id?",
+            pr.page_id AS "progress_page_id?",
+            pr.percent AS "progress_percent?",
+            pr.last_read_at AS "progress_last_read_at?"
         FROM titles t
             LEFT JOIN categories c ON c.id = t.category_id
             LEFT JOIN titles_tags tt ON tt.title_id = t.id
@@ -109,7 +118,9 @@ pub async fn get_series(
         WHERE t.id = $1
         GROUP BY t.id,
             c.name,
-            pr.page"#,
+            pr.title_id,
+            pr.user_id,
+            ch.id"#,
         title_id,
         user_id.as_ref()
     )
@@ -123,15 +134,7 @@ pub async fn get_series(
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    if !r.is_series {
-        return Ok((
-            StatusCode::SEE_OTHER,
-            Redirect::to(format!("/api/content/oneshot/{title_id}").as_str()),
-        )
-            .into_response());
-    }
-
-    let body = SeriesResponse {
+    let body = TitleResponse {
         base: BaseTitleResponse {
             id: title_id.to_string(),
             title: r.title,
@@ -152,10 +155,15 @@ pub async fn get_series(
 
             is_favorite: r.is_favorite,
             is_bookmark: r.is_bookmark,
-            page_read: r.page_read.filter(|i| *i != 0),
+
+            progress_page_id: r.progress_page_id.map(|id| id.to_string()),
+            progress_chapter_id: r.progress_chapter_id.map(|id| id.to_string()),
+            progress_percent: r.progress_percent,
+            progress_last_read_at: r.progress_last_read_at.map(|d| d.to_rfc3339()),
         },
         chapters: r.chapters.map(|rs| {
-            rs.into_iter()
+            let mut chapters = rs
+                .into_iter()
                 .filter_map(|r| {
                     let chapter = r.as_object()?;
 
@@ -168,7 +176,13 @@ pub async fn get_series(
                             .map(|s| s.to_string()),
                     })
                 })
-                .collect()
+                .collect::<Vec<_>>();
+
+            // sort & dedup by number
+            chapters.sort_by(|a, b| a.number.cmp(&b.number));
+            chapters.dedup_by(|a, b| a.number == b.number);
+
+            chapters
         }),
     };
 
