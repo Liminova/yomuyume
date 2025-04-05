@@ -23,12 +23,17 @@ pub struct InnerTagResponse {
 type TagsResponse = Vec<InnerTagResponse>;
 
 /// Get all tags
-#[utoipa::path(get, path = GET_TAGS_PATH, responses(
-    (status = 200, description = "Get tags success", body = TagsResponse),
-    (status = 204, description = "No tag found"),
-    (status = 401, description = "Unauthorized", body = String),
-    (status = 500, description = "Internal server error", body = String),
-), security(("session-id" = [], "session-secret" = [])))]
+#[utoipa::path(
+    get,
+    path = GET_TAGS_PATH,
+    responses(
+        (status = 200, description = "Get tags success", body = TagsResponse),
+        (status = 204, description = "No tag found"),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    ),
+    security(("session-id" = [], "session-secret" = [])))
+]
 pub async fn get_tags(State(app_state): State<Arc<AppState>>) -> Result<Response, InternalErr> {
     let data = sqlx::query!("SELECT id, name FROM tags")
         .fetch_all(&app_state.pool)
