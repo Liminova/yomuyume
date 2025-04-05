@@ -98,11 +98,13 @@ DROP TABLE IF EXISTS progresses CASCADE;
 CREATE TABLE IF NOT EXISTS progresses (
     user_id BIGINT NOT NULL,
     title_id BIGINT NOT NULL,
+    chapter_id BIGINT NOT NULL,
     page_id BIGINT NOT NULL,
     percent SMALLINT NOT NULL,
     last_read_at TIMESTAMP WITH TIME ZONE,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (chapter_id) REFERENCES chapters (id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (page_id) REFERENCES pages (id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "pk-progresses-user_id-title_id" PRIMARY KEY (user_id, title_id)
 );
