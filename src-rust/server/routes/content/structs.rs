@@ -4,17 +4,6 @@ use utoipa::ToSchema;
 
 #[skip_serializing_none]
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
-pub struct BasePageResponse {
-    pub id: String,
-    pub blurhash: Option<String>,
-    pub width: Option<i32>,
-    pub height: Option<i32>,
-    pub jxl: bool,
-    pub description: Option<String>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct BaseTitleResponse {
     pub id: String,
@@ -34,6 +23,7 @@ pub struct BaseTitleResponse {
     pub cover_height: Option<i32>,
     pub cover_jxl: Option<bool>,
 
+    /// RFC3339 date
     pub date_updated: Option<String>,
 
     /// ID, Name
@@ -45,6 +35,10 @@ pub struct BaseTitleResponse {
 
     pub is_favorite: bool,
     pub is_bookmark: bool,
-    /// Null if the value is 0 or haven't read
-    pub page_read: Option<i32>,
+
+    pub progress_page_id: Option<String>,
+    pub progress_chapter_id: Option<String>,
+    pub progress_percent: Option<i16>,
+    /// RFC3339 date
+    pub progress_last_read_at: Option<String>,
 }
