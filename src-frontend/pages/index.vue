@@ -1,17 +1,28 @@
 <script setup lang="ts">
 import { register } from "swiper/element/bundle";
+import { computed } from "vue";
 
 import { definePageMeta } from "#imports";
 import CarouselWrapper from "~/components/home/HomeOldCarouselWrapper.vue";
 import HomeRec from "~/components/home/HomeRecCarousel.vue";
-import ItemCard from "~/components/ItemCard.vue";
-import { useContentActiveSearchTitle } from "~/composables/api/content";
+import TitleCard from "~/components/title/TitleCard.vue";
+import { useContentSearchTitle } from "~/composables/api/content";
 
 definePageMeta({ layout: "nav-drawer", middleware: ["auth"] });
-
 register();
 
-const titles = useContentActiveSearchTitle({});
+const recentlyUpdatedInf = useContentSearchTitle({
+	order_by: "date_updated",
+	is_ascending: true,
+});
+const recentlyUpdated = computed(() => recentlyUpdatedInf.data.value?.pages.flatMap(page => page.data ?? []) ?? []);
+
+const continueReadingInf = useContentSearchTitle({
+	order_by: "progress_last_read_at",
+	is_ascending: false,
+});
+const continueReading = computed(() => continueReadingInf.data.value?.pages.flatMap(page => page.data ?? []) ?? []);
+
 </script>
 
 <template>
@@ -24,38 +35,24 @@ const titles = useContentActiveSearchTitle({});
 		</div>
 		<CarouselWrapper>
 			<swiper-slide
-				v-for="title in titles.data.value?.data"
-				:key="`up${title.id}`">
-				<ItemCard
-					:key="`up${title.id}`"
+				v-for="title in recentlyUpdated"
+				:key="`a${title.id}`">
+				<TitleCard
+					:key="`a${title.id}`"
 					:title="title" />
 			</swiper-slide>
 		</CarouselWrapper>
 
 		<div
 			class="w-fit origin-left text-3xl font-bold transition-transform">
-			Newly added
+			Continue reading
 		</div>
 		<CarouselWrapper>
 			<swiper-slide
-				v-for="title in titles.data.value?.data"
-				:key="`new${title.id}`">
-				<ItemCard
-					:key="`new${title.id}`"
-					:title="title" />
-			</swiper-slide>
-		</CarouselWrapper>
-
-		<div
-			class="w-fit origin-left text-3xl font-bold transition-transform">
-			Completed stories
-		</div>
-		<CarouselWrapper>
-			<swiper-slide
-				v-for="title in titles.data.value?.data"
-				:key="`done${title.id}`">
-				<ItemCard
-					:key="`done${title.id}`"
+				v-for="title in continueReading"
+				:key="`b${title.id}`">
+				<TitleCard
+					:key="`b${title.id}`"
 					:title="title" />
 			</swiper-slide>
 		</CarouselWrapper>
