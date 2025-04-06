@@ -47,6 +47,7 @@ export async function useJpegXLDecoder(
 	queue.set(payload.id, [outputWebpURL]);
 
 	const worker = await pool.getWorker();
+	// eslint-disable-next-line require-atomic-updates
 	worker.onmessage = async (event: MessageEvent<WorkerOutput>): Promise<void> => {
 		pool.returnWorker(worker);
 		if (event.data.type === "pong") { return; }

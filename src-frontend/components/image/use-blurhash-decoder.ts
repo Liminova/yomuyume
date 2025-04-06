@@ -51,6 +51,7 @@ export async function useBlurhashDecoder(
 	queue.set(payload.id, [outputImgURL]);
 
 	const worker = await pool.getWorker();
+	// eslint-disable-next-line require-atomic-updates
 	worker.onmessage = async (event: MessageEvent<WorkerOutput>): Promise<void> => {
 		pool.returnWorker(worker);
 		if (event.data.type === "pong") { return; }
