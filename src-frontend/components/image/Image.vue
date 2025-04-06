@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { useIntersectionObserver } from "@vueuse/core";
-import { ref, useTemplateRef, watchEffect } from "vue";
+import { onMounted, onUnmounted, ref, watchEffect } from "vue";
 import { toast } from "vue-sonner";
 
 import { cn } from "~/lib/utils";
@@ -16,7 +15,7 @@ const props = withDefaults(defineProps<{
 	draggable?: boolean;
 	emitWhenInView?: boolean;
 
-	src?: string;
+	src: string;
 	blurhash?: string;
 	width?: number;
 	height?: number;
@@ -26,60 +25,47 @@ const props = withDefaults(defineProps<{
 	draggable: false,
 	emitWhenInView: false,
 
-	src: undefined,
 	blurhash: undefined,
-	width: undefined,
-	height: undefined,
+	width: 0,
+	height: 0,
 	isJxl: false,
 });
 
-enum LoadState {
-	NotLoaded = "not-loaded",
-	Loading = "loading",
-	Loaded = "loaded",
-}
-
-const imageLoadState = ref(LoadState.NotLoaded);
-const blurhashLoadState = ref(LoadState.NotLoaded);
-const showBlurhash = ref(true);
+const showBlurhash = ref(props.blurhash !== undefined);
+const imageLoaded = ref(false);
 
 const blurhashImgURL = ref<string | null>(null);
 const realImgURL = ref<string | null>(null);
 const error = ref<string | null>(null);
 
-const container = useTemplateRef<HTMLElement>("container");
-useIntersectionObserver(container, ([entry]) => {
-	if (!entry.isIntersecting) { return; }
+if (props.blurhash && props.width > 0 && props.height > 0) {
+	void useBlurhashDecoder({
+		id: props.id,
+		blurhash: props.blurhash,
+		width: props.width,
+		height: props.height,
+	}, blurhashImgURL, error);
+}
 
-	if (props.emitWhenInView) { emit("in-view"); }
+if (props.isJxl && !isJxlNative) {
+	void useJpegXLDecoder({
+		id: props.id,
+		url: props.src,
+	}, realImgURL, error);
+} else {
+	realImgURL.value = props.src;
+}
 
-	if (props.blurhash
-		&& blurhashLoadState.value === LoadState.NotLoaded
-		&& props.width !== undefined
-		&& props.height !== undefined
-		&& Number(props.width) > 0
-		&& Number(props.height) > 0) {
-		blurhashLoadState.value = LoadState.Loading;
-		void useBlurhashDecoder({
-			id: props.id,
-			blurhash: props.blurhash,
-			width: props.width,
-			height: props.height,
-		}, blurhashImgURL, error);
-	}
-
-	if (props.src && imageLoadState.value === LoadState.NotLoaded) {
-		imageLoadState.value = LoadState.Loading;
-		if (props.isJxl && !isJxlNative) {
-			void useJpegXLDecoder({
-				id: props.id,
-				url: props.src,
-			}, realImgURL, error);
-		} else {
-			realImgURL.value = props.src;
-		}
-	}
+// emit signal when in view
+const container = ref<HTMLElement>();
+const observer = new IntersectionObserver(([entry]) => {
+	if (entry.isIntersecting) { emit("in-view"); }
+}, { rootMargin: "0px 0px -100px 0px" });
+onMounted(() => {
+	if (!container.value || !props.emitWhenInView) { return; }
+	observer.observe(container.value);
 });
+onUnmounted(() => { observer.disconnect(); });
 
 watchEffect(() => {
 	if (!error.value) { return; }
@@ -96,24 +82,22 @@ watchEffect(() => {
 			v-if="blurhashImgURL && showBlurhash"
 			loading="lazy"
 			:class="cn(
-				imageLoadState === LoadState.Loaded ? 'absolute left-0 top-0' : 'static',
+				imageLoaded && 'absolute left-0 top-0',
 				props.class
 			)"
 			:src="blurhashImgURL"
-			:draggable="props.draggable"
-			@load="blurhashLoadState = LoadState.Loaded">
+			:draggable="props.draggable">
 
 		<!-- Actual image -->
 		<img
 			loading="lazy"
 			:class="cn('transition-opacity',
-				imageLoadState !== LoadState.Loaded ? 'absolute left-0 top-0 ' : 'static',
-				imageLoadState === LoadState.Loaded ? 'opacity-100' : 'opacity-0',
+				!imageLoaded && 'opacity-0 absolute left-0 top-0',
 				props.class
 			)"
 			:src="realImgURL === null ? undefined : realImgURL"
 			:draggable="props.draggable"
-			@load="imageLoadState = LoadState.Loaded"
+			@load="imageLoaded = true"
 			@transitionend="showBlurhash = false">
 	</div>
 </template>
