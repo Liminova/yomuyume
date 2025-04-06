@@ -26,9 +26,11 @@ self.onmessage = async (event: MessageEvent<BlurhashWorkerInput>): Promise<void>
 
 	try {
 		await setPageInDB({
-			id,
-			data: decode(blurhash, smallWidth, smallHeight),
-		}, StoreName.BLURHASH);
+			page: {
+				id,
+				data: decode(blurhash, smallWidth, smallHeight),
+			}, type: StoreName.BLURHASH,
+		});
 
 		self.postMessage({ type: "done" } satisfies WorkerOutput);
 	} catch (error) {

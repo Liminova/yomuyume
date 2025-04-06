@@ -25,9 +25,11 @@ self.onmessage = async (event: MessageEvent<JpegXLWorkerInput>): Promise<void> =
 		const jxlBuf = await jxlRaw.arrayBuffer();
 
 		await setPageInDB({
-			id: event.data.payload.id,
-			data: decode(new Uint8Array(jxlBuf)),
-		}, StoreName.JPEGXL);
+			page: {
+				id: event.data.payload.id,
+				data: decode(new Uint8Array(jxlBuf)),
+			}, type: StoreName.JPEGXL,
+		});
 
 		self.postMessage({ type: "done" } satisfies WorkerOutput);
 	} catch (error) {
