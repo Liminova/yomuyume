@@ -11,15 +11,11 @@ interface JpegXLInput {
 }
 export type JpegXLWorkerInput = WorkerInputWrapper<JpegXLInput>;
 
-const processing = new Set<PageID>();
-const waitlists = new Map<PageID, Array<Ref<DecodedImgURL | null>>>();
-
-const pool = new WorkerPool<JpegXLWorkerInput>(() => {
-	return new Worker(
-		new URL("./worker/jxl.ts", import.meta.url),
-		{ type: "module", name: "jpegxl-worker" },
-	);
-});
+const queue = new Map<PageID, Array<Ref<DecodedImgURL | null>>>();
+const pool = new WorkerPool<JpegXLWorkerInput>(() => new Worker(
+	new URL("./worker/jxl.ts", import.meta.url),
+	{ type: "module", name: "jpegxl-worker" },
+));
 
 export async function useJpegXLDecoder(
 	payload: JpegXLInput,
@@ -29,63 +25,48 @@ export async function useJpegXLDecoder(
 	// we won't tell you when it's done because you won't need it
 	onUnmounted(() => {
 		outputWebpURL.value = null;
-		const waitlist = waitlists.get(payload.id);
-		if (waitlist) {
-			const index = waitlist.indexOf(outputWebpURL);
-			if (index !== -1) {
-				waitlist.splice(index, 1);
-			}
-		}
+		const refs = queue.get(payload.id);
+		if (!refs) { return; }
+		queue.set(payload.id, refs.filter(ref => ref !== outputWebpURL));
 	});
 
 	// check in DB first
 	const record = await getPageInDB(payload.id, StoreName.JPEGXL);
 	if (record !== undefined) {
-		const blob = new Blob([record.data], { type: "image/webp" });
-		outputWebpURL.value = URL.createObjectURL(blob);
+		outputWebpURL.value = URL.createObjectURL(new Blob([record.data], { type: "image/webp" }));
 		return;
 	}
 
 	// it's decoding and we'll tell you when it's done
-	const waitlist = waitlists.get(payload.id);
-	if (waitlist) { waitlist.push(outputWebpURL); }
-	waitlists.set(payload.id, [outputWebpURL]);
-
-	if (processing.has(payload.id)) { return; }
-	processing.add(payload.id);
-
-	let doneFn: ()=> void;
-	const doneSignal = new Promise<void>((resolve) => { doneFn = resolve; });
+	const refs = queue.get(payload.id);
+	if (refs !== undefined) {
+		if (refs.includes(outputWebpURL)) { return; }
+		refs.push(outputWebpURL);
+		return;
+	}
+	queue.set(payload.id, [outputWebpURL]);
 
 	const worker = await pool.getWorker();
 	worker.onmessage = async (event: MessageEvent<WorkerOutput>): Promise<void> => {
-		doneFn();
+		pool.returnWorker(worker);
 		if (event.data.type === "pong") { return; }
 		if (event.data.error !== undefined) {
 			error.value = event.data.error;
 			return;
 		}
 
-		processing.delete(payload.id);
-
-		const waitlist = waitlists.get(payload.id);
-		if (waitlist === undefined) { return; } // no one wants me
+		const refs = queue.get(payload.id);
+		if (refs === undefined) { return; } // no one wants me
 
 		const record = await getPageInDB(payload.id, StoreName.JPEGXL);
 		if (!record) {
 			error.value = "Worker did not save the result to DB";
 			return;
 		}
-		const blob = new Blob([record.data], { type: "image/webp" });
-		for (const ref of waitlist.values()) {
-			ref.value = URL.createObjectURL(blob);
+		const url = URL.createObjectURL(new Blob([record.data], { type: "image/webp" }));
+		for (const ref of refs) {
+			ref.value = url;
 		}
 	};
-	worker.inner.postMessage({
-		type: "work",
-		payload,
-	} satisfies JpegXLWorkerInput);
-
-	await doneSignal;
-	pool.returnWorker(worker);
+	worker.inner.postMessage({ type: "work", payload } satisfies JpegXLWorkerInput);
 }

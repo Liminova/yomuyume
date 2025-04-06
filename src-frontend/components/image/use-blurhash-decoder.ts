@@ -13,15 +13,13 @@ interface BlurhashInput {
 }
 export type BlurhashWorkerInput = WorkerInputWrapper<BlurhashInput>;
 
+const queue = new Map<PageID, Array<Ref<DecodedImgURL | null>>>();
 const pool = new WorkerPool<BlurhashInput>(() => {
 	return new Worker(
 		new URL("./worker/blurhash.ts", import.meta.url),
 		{ type: "module", name: "blurhash-worker" },
 	);
 });
-
-const processing = new Set<PageID>();
-const waitlists = new Map<PageID, Array<Ref<DecodedImgURL | null>>>();
 
 export async function useBlurhashDecoder(
 	payload: BlurhashInput,
@@ -31,63 +29,49 @@ export async function useBlurhashDecoder(
 	// we won't tell you when it's done because you won't need it
 	onUnmounted(() => {
 		outputImgURL.value = null;
-		const waitlist = waitlists.get(payload.id);
-		if (waitlist) {
-			const index = waitlist.indexOf(outputImgURL);
-			if (index !== -1) {
-				waitlist.splice(index, 1);
-			}
-		}
+		const refs = queue.get(payload.id);
+		if (!refs) { return; }
+		queue.set(payload.id, refs.filter(ref => ref !== outputImgURL));
 	});
 
 	// check in DB first
 	const record = await getPageInDB(payload.id, StoreName.BLURHASH);
 	if (record) {
-		const blob = new Blob([record.data], { type: "image/webp" });
-		outputImgURL.value = URL.createObjectURL(blob);
+		outputImgURL.value = URL.createObjectURL(new Blob([record.data], { type: "image/webp" }));
 		return;
 	}
 
 	// it's decoding and we'll tell you when it's done
-	const waitlist = waitlists.get(payload.id);
-	if (waitlist) { waitlist.push(outputImgURL); }
-	waitlists.set(payload.id, [outputImgURL]);
-
-	if (processing.has(payload.id)) { return; }
-	processing.add(payload.id);
-
-	let doneFn: ()=> void;
-	const doneSignal = new Promise<void>((resolve) => { doneFn = resolve; });
+	const refs = queue.get(payload.id);
+	if (refs !== undefined) {
+		if (refs.includes(outputImgURL)) { return; }
+		refs.push(outputImgURL);
+		return;
+	}
+	queue.set(payload.id, [outputImgURL]);
 
 	const worker = await pool.getWorker();
 	worker.onmessage = async (event: MessageEvent<WorkerOutput>): Promise<void> => {
-		doneFn();
+		pool.returnWorker(worker);
 		if (event.data.type === "pong") { return; }
 		if (event.data.error !== undefined) {
 			error.value = event.data.error;
 			return;
 		}
 
-		processing.delete(payload.id);
-
-		const waitlist = waitlists.get(payload.id);
-		if (waitlist === undefined) { return; } // no one wants me
+		const refs = queue.get(payload.id);
+		if (refs === undefined) { return; } // no one wants me
 
 		const record = await getPageInDB(payload.id, StoreName.BLURHASH);
 		if (!record) {
 			error.value = "Worker did not save the result to DB";
 			return;
 		}
+		const url = URL.createObjectURL(new Blob([record.data], { type: "image/webp" }));
 		const blob = new Blob([record.data], { type: "image/webp" });
-		for (const ref of waitlist.values()) {
-			ref.value = URL.createObjectURL(blob);
+		for (const ref of refs) {
+			ref.value = url;
 		}
 	};
-	worker.inner.postMessage({
-		type: "work",
-		payload,
-	} satisfies BlurhashWorkerInput);
-
-	await doneSignal;
-	pool.returnWorker(worker);
+	worker.inner.postMessage({ type: "work", payload } satisfies BlurhashWorkerInput);
 }
