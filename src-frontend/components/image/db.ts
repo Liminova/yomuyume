@@ -30,16 +30,17 @@ function initDB(): Promise<IDBDatabase> {
 
 		const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-		request.onerror = (event) => {
-			reject(new Error("Failed to open database"));
+		request.onerror = (event): void => {
+			// @ts-expect-error idk
+			reject(new Error(`Failed to open database: ${event.target?.error}`));
 		};
 
-		request.onsuccess = (event) => {
+		request.onsuccess = (event): void => {
 			db = (event.target as IDBOpenDBRequest).result;
 			resolve(db);
 		};
 
-		request.onupgradeneeded = (event) => {
+		request.onupgradeneeded = (event): void => {
 			const db = (event.target as IDBOpenDBRequest).result;
 			const oldVersion = event.oldVersion;
 			const newVersion = event.newVersion;
@@ -89,11 +90,11 @@ export async function getPageInDB(
 		const store = transaction.objectStore(type);
 		const request = store.get(id);
 
-		request.onerror = () => {
+		request.onerror = (): void => {
 			reject(new Error(`Failed to get item with id ${id} from ${type}`));
 		};
 
-		request.onsuccess = () => {
+		request.onsuccess = (): void => {
 			resolve(request.result as JpegXLInDB | BlurHashInDB | undefined);
 		};
 	});
@@ -104,7 +105,7 @@ export async function setPageInDB(
 ): Promise<void> {
 	await dbInitPromise;
 
-	return new Promise((resolve, reject) => {
+	return new Promise((resolve, reject): void => {
 		if (!db) {
 			reject(new Error("Database not initialized"));
 			return;
@@ -114,11 +115,11 @@ export async function setPageInDB(
 		const store = transaction.objectStore(type);
 		const request = store.put(page);
 
-		request.onerror = () => {
+		request.onerror = (): void => {
 			reject(new Error(`Failed to store item with id ${page.id} in ${type}`));
 		};
 
-		request.onsuccess = () => {
+		request.onsuccess = (): void => {
 			resolve();
 		};
 	});
