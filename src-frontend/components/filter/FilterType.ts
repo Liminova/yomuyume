@@ -21,7 +21,6 @@ export const FilterSortOrder: FilterTypePosibleVal = {
 	Descending: { name: "descending | oldest", icon: "arrow-up-z-a" },
 };
 
-/* eslint-disable no-unused-vars */
 export enum FilterType {
 	ReadingStatus = "reading-status",
 	SortResult = "sort-result",

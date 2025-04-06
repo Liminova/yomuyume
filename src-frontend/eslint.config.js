@@ -13,10 +13,10 @@ export default [
 	{
 		name: "yomuyume/specific",
 		rules: {
-			"tailwindcss/no-custom-classname": "off",
-			"no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-			"class-methods-use-this": "off",
-			"@typescript-eslint/class-methods-use-this": "off",
+			"tailwindcss/no-custom-classname": 0,
+			"no-unused-vars": 0,
+			"class-methods-use-this": 0,
+			"@typescript-eslint/class-methods-use-this": 0,
 		}
 	},
 

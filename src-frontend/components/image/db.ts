@@ -9,9 +9,9 @@ export interface BlurHashInDB {
 }
 
 export enum StoreName {
-	// eslint-disable-next-line no-unused-vars
+
 	BLURHASH = "blurhash",
-	// eslint-disable-next-line no-unused-vars
+
 	JPEGXL = "jpegxl",
 }
 

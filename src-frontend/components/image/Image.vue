@@ -33,13 +33,11 @@ const props = withDefaults(defineProps<{
 	isJxl: false,
 });
 
-/* eslint-disable no-unused-vars */
 enum LoadState {
 	NotLoaded = "not-loaded",
 	Loading = "loading",
 	Loaded = "loaded",
 }
-/* eslint-enable no-unused-vars */
 
 const imageLoadState = ref(LoadState.NotLoaded);
 const blurhashLoadState = ref(LoadState.NotLoaded);

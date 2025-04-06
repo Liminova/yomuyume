@@ -19,7 +19,7 @@ export class WorkerPool<I> {
 	private readonly newWorkerFn: ()=> Worker;
 	private semaphore: number;
 	private readonly pool: MyWorker[] = [];
-	// eslint-disable-next-line no-unused-vars
+
 	private readonly queue: Array<(worker: MyWorker)=> void> = [];
 
 	public constructor(newWorkerFn: ()=> Worker, maxConcurrentWorker = 4) {

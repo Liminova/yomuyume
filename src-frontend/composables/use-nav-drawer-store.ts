@@ -5,8 +5,6 @@ import { onMounted, onUnmounted, ref, watchEffect } from "vue";
 
 import { useScreenSize } from "./use-screen-size";
 
-/* eslint-disable no-unused-vars */
-
 export enum DrawerState {
 	Expanded = "expanded",
 	Collapsed = "collapsed",
@@ -16,8 +14,6 @@ export enum DrawerKind {
 	AlwaysVisible = "always-visible", // desktop
 	OffScreen = "off-screen", // mobile
 }
-
-/* eslint-enable no-unused-vars */
 
 export const useNavDrawerStore = defineStore("nav-drawer-store", () => {
 	const isDrawerExpanded = ref(true);
