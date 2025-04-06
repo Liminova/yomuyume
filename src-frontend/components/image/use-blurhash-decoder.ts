@@ -68,7 +68,6 @@ export async function useBlurhashDecoder(
 			return;
 		}
 		const url = URL.createObjectURL(new Blob([record.data], { type: "image/webp" }));
-		const blob = new Blob([record.data], { type: "image/webp" });
 		for (const ref of refs) {
 			ref.value = url;
 		}
