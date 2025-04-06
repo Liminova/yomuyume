@@ -23,7 +23,6 @@
 		"clsx": "^2.1.1",
 		"embla-carousel-autoplay": "^8.6.0",
 		"embla-carousel-vue": "^8.6.0",
-		"idb": "^8.0.2",
 		"lucide-vue-next": "^0.479.0",
 		"nuxt": "^3.16.2",
 		"pinia": "^3.0.1",
