@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from "nuxt/app";
-import { onBeforeMount, ref } from "vue";
+import { ref, watchEffect } from "vue";
 
 import { definePageMeta } from "#imports";
 import TitleInteractionArea from "~/components/title/TitleInteractionArea.vue";
@@ -20,9 +20,9 @@ function setActiveChapter(chapterId: string): void {
 	void router.push({ query: { chapterId } });
 }
 
-onBeforeMount(() => {
+watchEffect(() => {
 	if (title.data.value?.chapters?.length === 1) {
-		setActiveChapter(title.data.value.chapters[0].id);
+		activeChapterId.value = title.data.value.chapters[0].id;
 	}
 });
 </script>
