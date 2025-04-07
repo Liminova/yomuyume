@@ -111,14 +111,13 @@ export interface SearchQuery {
 	limit?: number;
 	order_by?: "title" | "release" | "date_updated" | "author" | "progress_last_read_at";
 	is_ascending?: boolean;
-}
 
-export interface InnerSearchResponseTitle extends BaseTitleResponse {
-	is_series: boolean;
+	is_bookmarked?: boolean;
+	is_favorite?: boolean;
 }
 
 export interface SearchResponse {
-	data?: InnerSearchResponseTitle[];
+	data?: BaseTitleResponse[];
 	offset: number;
 	limit: number;
 }
