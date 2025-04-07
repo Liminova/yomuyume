@@ -102,33 +102,27 @@ impl Modify for SecurityAddon {
         file::get_cover_file,
     ),
     components(schemas(
-        // Admin
         admin::SetLiveConfigRequest,
         admin::GetLiveConfigResponse,
 
-        // Auth
         auth::LoginRequest,
         auth::RegisterRequest,
         auth::ForgotRequest,
 
-        // User
         user::ModifyRequest,
         user::WhoAmIResponse,
         user::SensitiveRequest,
         user::SensitiveRequestMode,
         user::SensitiveRequestPurpose,
 
-        // Content
         content::InnerCategoriesResponse,
         content::TitleResponse,
-        content::InnerTitleSearchResponse,
         content::SearchResponse,
         content::InnerSearchRequestOrderBy,
         content::BaseTitleResponse,
         content::BasePageResponse,
         content::InnerTagResponse,
 
-        // Utils
         utils::StatusRequest,
         utils::StatusResponse,
         utils::ScanningProgressResponse,
