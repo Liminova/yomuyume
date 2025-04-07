@@ -23,7 +23,6 @@ pub enum HandleDirectoryChapterErr {
 
 pub fn handle_directory_chapter(
     chapter_path: AbsolutePath,
-    // scanned_chapter_info: ScannedChapterInfo,
     backup_volume_number: i32,
     nomedia_support: bool,
 ) -> Result<ChapterInfo, HandleDirectoryChapterErr> {
