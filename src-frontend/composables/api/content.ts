@@ -114,6 +114,7 @@ export interface SearchQuery {
 
 	is_bookmarked?: boolean;
 	is_favorite?: boolean;
+	is_reading?: boolean;
 }
 
 export interface SearchResponse {
