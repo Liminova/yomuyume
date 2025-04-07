@@ -113,11 +113,11 @@ impl ItemsInArchiveUtils for Vec<ItemInArchive> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ArchiveFileError {
-    #[error("`{0:?}` points to nothing")]
+    #[error("{0:?} points to nothing")]
     NotExists(PathBuf),
-    #[error("`{0:?}` is not a file")]
+    #[error("{0:?} is not a file")]
     NotAFile(PathBuf),
-    #[error("`{0:?}` is not an archive")]
+    #[error("{0:?} is not an archive")]
     NotAnArchive(PathBuf),
     #[error("can't spawn 7zz process: {0:?}")]
     CantSpawn7z(anyhow::Error),
