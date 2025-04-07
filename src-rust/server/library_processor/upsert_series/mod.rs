@@ -298,7 +298,7 @@ pub async fn upsert_series(
         }
 
         let upserted_chapters = sqlx::query!(
-            "INSERT INTO chapters (id, title_id, path, number, description, is_dir)
+            r#"INSERT INTO chapters (id, title_id, path, number, description, is_dir)
             SELECT id,
                 $1,
                 path,
@@ -317,7 +317,7 @@ pub async fn upsert_series(
                 description = EXCLUDED.description,
                 is_dir = EXCLUDED.is_dir
             RETURNING id,
-                path",
+                path as "path!""#,
             title_id,
             &chapter_ids,
             &chapter_paths,
