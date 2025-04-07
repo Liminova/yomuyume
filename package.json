@@ -1,0 +1,5 @@
+{
+	"devDependencies": {
+		"@tanstack/vue-query-devtools": "^5.72.0"
+	}
+}
