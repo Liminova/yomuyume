@@ -13,7 +13,7 @@ import {
 import TitleCard from "~/components/title/TitleCard.vue";
 import Toggle from "~/components/Toggle.vue";
 import Input from "~/components/ui/Input.vue";
-import { type InnerSearchResponseTitle, useGetCategories } from "~/composables/api/content";
+import { type BaseTitleResponse, useGetCategories } from "~/composables/api/content";
 import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
 
 definePageMeta({ layout: "nav-drawer", middleware: ["auth"] });
@@ -45,8 +45,8 @@ const spaceBetween = ref(16);
 
 // Results =====================================================================
 
-const filteredTitles = ref<InnerSearchResponseTitle[]>([]); /** found titles */
-const filteredTitlesToDisplay = ref<InnerSearchResponseTitle[]>([]);
+const filteredTitles = ref<BaseTitleResponse[]>([]); /** found titles */
+const filteredTitlesToDisplay = ref<BaseTitleResponse[]>([]);
 
 function fetchMoreResult(): void {
 	const howFarFromBottom = document.body.getBoundingClientRect().bottom - window.innerHeight;
@@ -196,7 +196,7 @@ function chipCategoryHandler(eventTarget: HTMLElement): void {
 			<NuxtLink
 				v-for="title in filteredTitlesToDisplay"
 				:key="title.id"
-				:to="`${title.is_series ? 'series' : 'oneshot'}/${title.id}`">
+				:to="`title/${title.id}`">
 				>
 				<TitleCard :title="title" />
 			</NuxtLink>
