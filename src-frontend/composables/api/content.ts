@@ -150,6 +150,10 @@ export function useContentSearchTitle(query?: SearchQuery) {
 	});
 }
 
+export const FavoriteTitlesQuery: SearchQuery = { is_favorite: true } as const;
+export const BookmarkedTitlesQuery: SearchQuery = { is_bookmarked: true } as const;
+export const ReadingTitlesQuery: SearchQuery = { is_reading: true, order_by: "progress_last_read_at", is_ascending: true } as const;
+
 export function useContentGetTags() {
 	return useQuery({
 		queryKey: ["tags"],
