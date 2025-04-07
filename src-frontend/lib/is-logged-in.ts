@@ -1,19 +1,19 @@
+import { useQueryClient } from "@tanstack/vue-query";
+
 import { NewYomuyumeRequest, WHOAMI_PATH } from "~/composables/api/common";
 
 export async function isLoggedIn(): Promise<boolean> {
-	return new Promise<boolean>(resolve => NewYomuyumeRequest(WHOAMI_PATH)
-		.then(() => {
-			resolve(true);
-		})
-		.catch((e: unknown) => {
-			if (typeof e === "object"
-				&& e !== null
-				&& "message" in e
-				&& typeof e.message === "string"
-				&& e.message.includes("[401]")) {
-				resolve(false);
+	const whoAmI = await useQueryClient().ensureQueryData({
+		queryKey: ["whoami"],
+		async queryFn({ signal }) {
+			try {
+				await NewYomuyumeRequest(WHOAMI_PATH, { signal });
+			} catch (e) {
+				if ((e as { message: string }).message.includes("[401]")) { return null; }
+				throw e;
 			}
-			throw e;
-		}),
-	);
+		},
+	});
+
+	return whoAmI !== null;
 }
