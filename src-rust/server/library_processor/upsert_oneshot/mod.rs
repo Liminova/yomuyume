@@ -177,13 +177,13 @@ pub async fn upsert_oneshot(
                 0,
                 '',
                 NULL,
-                TRUE
+                $3
             ) ON CONFLICT (title_id, path) DO
         UPDATE
         SET number = 0,
-            description = '',
-            path = '',
-            is_dir = TRUE
+            description = NULL,
+            path = NULL,
+            is_dir = EXCLUDED.is_dir
         RETURNING id"#,
         app_state
             .id_generator
@@ -191,6 +191,7 @@ pub async fn upsert_oneshot(
             .await
             .map_err(UpsertTitleErr::GenTitleID)?,
         title_id,
+        title.is_dir,
     )
     .fetch_one(&mut *txn)
     .await
