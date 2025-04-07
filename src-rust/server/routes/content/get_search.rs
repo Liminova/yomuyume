@@ -54,17 +54,14 @@ pub struct SearchQuery {
     pub limit: Option<i64>,
     pub order_by: Option<InnerSearchRequestOrderBy>,
     pub is_ascending: Option<bool>,
-}
 
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
-pub struct InnerTitleSearchResponse {
-    #[serde(flatten)]
-    pub base: BaseTitleResponse,
+    pub is_bookmarked: Option<bool>,
+    pub is_favorite: Option<bool>,
 }
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct SearchResponse {
-    pub data: Option<Vec<InnerTitleSearchResponse>>,
+    pub data: Vec<BaseTitleResponse>,
 
     pub offset: i64,
     pub limit: i64,
@@ -100,9 +97,7 @@ pub async fn get_search(
     let limit = query.limit.unwrap_or(10);
     let offset = query.offset.unwrap_or(0);
     let order_by = query.order_by.unwrap_or_default();
-    let is_ascending = query.is_ascending.unwrap_or(true);
 
-    let title_ids: Option<Vec<i64>> = None;
     let category_ids = query
         .category_ids
         .map(|ids| {
@@ -119,7 +114,6 @@ pub async fn get_search(
                 .collect()
         })
         .filter(|ids: &Vec<i64>| !ids.is_empty());
-    let release_year = query.release_year.map(|year| year as i32);
 
     let data = sqlx::query!(
         r#"SELECT t.id AS id,
@@ -177,54 +171,67 @@ pub async fn get_search(
                 AND pr.user_id = $1
             )
         WHERE (
-                -- title ids
-                $2::bigint [] IS NULL
-                OR t.id IN (
-                    SELECT title_id
-                    FROM UNNEST($2::bigint []) AS t(title_id)
-                )
-            )
-            AND (
                 -- category ids
-                $3::bigint [] IS NULL
+                $2::bigint [] IS NULL
                 OR c.id IN (
                     SELECT category_id
-                    FROM UNNEST($3::bigint []) AS c(category_id)
+                    FROM UNNEST($2::bigint []) AS c(category_id)
                 )
             )
             AND (
                 -- tag ids
-                $4::bigint [] IS NULL
+                $3::bigint [] IS NULL
                 OR tg.id IN (
                     SELECT tag_id
-                    FROM UNNEST($4::bigint []) AS tg(tag_id)
+                    FROM UNNEST($3::bigint []) AS tg(tag_id)
                 )
             )
             AND (
                 -- release year
-                $5::int IS NULL
+                $4::int IS NULL
                 OR EXTRACT(
                     YEAR
                     FROM t.release
+                ) = $4
+            )
+            AND (
+                -- is bookmarked
+                $5::bool IS NULL
+                OR EXISTS(
+                    SELECT 1
+                    FROM bookmarks
+                    WHERE title_id = t.id
+                        AND user_id = $1
                 ) = $5
+            )
+            AND (
+                -- is favorite
+                $6::bool IS NULL
+                OR EXISTS(
+                    SELECT 1
+                    FROM favorites
+                    WHERE title_id = t.id
+                        AND user_id = $1
+                ) = $6
             )
         GROUP BY t.id,
             c.id,
             pr.title_id,
             pr.user_id
         ORDER BY CASE
-                WHEN $6 THEN $7
+                WHEN $7 THEN $8
             END ASC,
             CASE
-                WHEN NOT $6 THEN $7
+                WHEN NOT $7 THEN $8
             END DESC
-        LIMIT $8 OFFSET $9"#,
+        LIMIT $9 OFFSET $10"#,
         user_id.as_ref(),
-        title_ids.as_deref(),
         category_ids.as_deref(),
         tag_ids.as_deref(),
-        release_year,
-        is_ascending,
+        query.release_year.map(|year| year as i32),
+        query.is_bookmarked,
+        query.is_favorite,
+        query.is_ascending.unwrap_or(true),
         order_by.as_ref(),
         limit,
         offset,
@@ -236,39 +243,37 @@ pub async fn get_search(
         InternalErr::DB(e)
     })?
     .into_iter()
-    .map(|r| InnerTitleSearchResponse {
-        base: BaseTitleResponse {
-            id: r.id.to_string(),
-            title: r.title,
-            author: r.author,
-            category_id: r.category_id.map(|i| i.to_string()),
-            description: r.description,
-            release: r.release.map(|d| d.format("%Y-%m-%d").to_string()),
+    .map(|r| BaseTitleResponse {
+        id: r.id.to_string(),
+        title: r.title,
+        author: r.author,
+        category_id: r.category_id.map(|i| i.to_string()),
+        description: r.description,
+        release: r.release.map(|d| d.format("%Y-%m-%d").to_string()),
 
-            cover_blurhash: r.cover_blurhash,
-            cover_width: r.cover_width,
-            cover_height: r.cover_height,
-            cover_jxl: r.cover_path.map(is_jxl),
-            date_updated: r.date_updated.map(|d| d.to_rfc3339()),
-            tags: r.tags.and_then(parse_tags),
-            favorites: (r.favorites_count != 0).then_some(r.favorites_count),
-            bookmarks: (r.bookmarks_count != 0).then_some(r.bookmarks_count),
+        cover_blurhash: r.cover_blurhash,
+        cover_width: r.cover_width,
+        cover_height: r.cover_height,
+        cover_jxl: r.cover_path.map(is_jxl),
+        date_updated: r.date_updated.map(|d| d.to_rfc3339()),
+        tags: r.tags.and_then(parse_tags),
+        favorites: (r.favorites_count != 0).then_some(r.favorites_count),
+        bookmarks: (r.bookmarks_count != 0).then_some(r.bookmarks_count),
 
-            is_favorite: r.is_favorite,
-            is_bookmark: r.is_bookmark,
+        is_favorite: r.is_favorite,
+        is_bookmark: r.is_bookmark,
 
-            progress_page_id: r.progress_page_id.map(|id| id.to_string()),
-            progress_chapter_id: r.progress_chapter_id.map(|id| id.to_string()),
-            progress_percent: r.progress_percent,
-            progress_last_read_at: r.progress_last_read_at.map(|d| d.to_rfc3339()),
-        },
+        progress_page_id: r.progress_page_id.map(|id| id.to_string()),
+        progress_chapter_id: r.progress_chapter_id.map(|id| id.to_string()),
+        progress_percent: r.progress_percent,
+        progress_last_read_at: r.progress_last_read_at.map(|d| d.to_rfc3339()),
     })
     .collect::<Vec<_>>();
 
     Ok((
         StatusCode::OK,
         Json(SearchResponse {
-            data: if data.is_empty() { None } else { Some(data) },
+            data,
             offset,
             limit,
         }),
