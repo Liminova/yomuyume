@@ -177,11 +177,7 @@ pub async fn get_title(
                     })
                 })
                 .collect::<Vec<_>>();
-
-            // sort & dedup by number
             chapters.sort_by(|a, b| a.number.cmp(&b.number));
-            chapters.dedup_by(|a, b| a.number == b.number);
-
             chapters
         }),
     };
