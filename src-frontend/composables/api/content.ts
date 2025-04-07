@@ -74,7 +74,7 @@ export interface BasePageResponse {
 	description?: string;
 }
 
-export interface SeriesResponse extends BaseTitleResponse {
+export interface TitleResponse extends BaseTitleResponse {
 	chapters?: Array<{
 		id: string;
 		number: number;
@@ -86,7 +86,7 @@ export function useContentGetTitle(titleId: string) {
 	return useQuery({
 		queryKey: ["title", titleId],
 		async queryFn({ signal }) {
-			return NewYomuyumeRequest<SeriesResponse>(GET_TITLE_PATH(titleId), { signal });
+			return NewYomuyumeRequest<TitleResponse>(GET_TITLE_PATH(titleId), { signal });
 		},
 	});
 }
