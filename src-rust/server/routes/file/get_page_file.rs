@@ -33,12 +33,12 @@ pub async fn get_page_file(
     State(app_state): State<Arc<AppState>>,
     Path(page_id): Path<i64>,
 ) -> Result<Response, InternalErr> {
-    let Some((parent_path, page_path, page_filesize, title_is_dir)) = sqlx::query!(
+    let Some((parent_path, page_path, page_filesize, chapter_is_dir)) = sqlx::query!(
         r#"SELECT p.path AS page_path,
                 c.path AS chapter_path,
                 t.path AS title_path,
                 p.filesize AS page_filesize,
-                t.is_dir AS "title_is_dir!"
+                c.is_dir AS "chapter_is_dir!"
             FROM pages p
                 JOIN chapters c ON p.chapter_id = c.id
                 JOIN titles t ON c.title_id = t.id
@@ -52,17 +52,12 @@ pub async fn get_page_file(
         InternalErr::DB(e)
     })?
     .map(|r| {
-        (
-            app_state
-                .config
-                .library_path
-                .as_ref()
-                .join(r.title_path)
-                .join(r.chapter_path),
-            r.page_path,
-            r.page_filesize,
-            r.title_is_dir,
-        )
+        let mut parent_path = app_state.config.library_path.as_ref().join(r.title_path);
+        if let Some(chapter_path) = r.chapter_path {
+            parent_path = parent_path.join(chapter_path);
+        }
+
+        (parent_path, r.page_path, r.page_filesize, r.chapter_is_dir)
     }) else {
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
@@ -76,10 +71,10 @@ pub async fn get_page_file(
         },
     )];
 
-    let body = if title_is_dir {
+    let body = if chapter_is_dir {
         let file_path = parent_path.join(page_path);
-        let file = File::open(file_path).await.map_err(|e| {
-            tracing::error!("{e}");
+        let file = File::open(&file_path).await.map_err(|e| {
+            tracing::error!(file_path = ?file_path, "{e}");
             InternalErr::IO(e)
         })?;
         let stream = ReaderStream::new(file);
