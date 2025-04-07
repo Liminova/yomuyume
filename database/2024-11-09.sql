@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS chapters (
     description TEXT,
     is_dir BOOLEAN NOT NULL,
     FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "uc-chapters-title_id-path" UNIQUE (title_id, path)
+    CONSTRAINT "uc-chapters-title_id-path" UNIQUE NULLS NOT DISTINCT (title_id, path)
 );
 DROP TABLE IF EXISTS pages CASCADE;
 CREATE TABLE IF NOT EXISTS pages (
