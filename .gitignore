@@ -9,6 +9,7 @@ src-frontend/dist
 # Node dependencies
 src-frontend/node_modules
 .pnpm-store
+node_modules
 
 # Logs
 logs
