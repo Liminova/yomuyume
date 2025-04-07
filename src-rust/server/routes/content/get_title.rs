@@ -120,7 +120,7 @@ pub async fn get_title(
             c.name,
             pr.title_id,
             pr.user_id,
-            ch.id"#,
+            ch.title_id"#,
         title_id,
         user_id.as_ref()
     )
