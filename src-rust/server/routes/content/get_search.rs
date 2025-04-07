@@ -57,6 +57,7 @@ pub struct SearchQuery {
 
     pub is_bookmarked: Option<bool>,
     pub is_favorite: Option<bool>,
+    pub is_reading: Option<bool>,
 }
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
@@ -214,23 +215,34 @@ pub async fn get_search(
                         AND user_id = $1
                 ) = $6
             )
+            AND (
+                -- is reading
+                $7::bool IS NULL
+                OR EXISTS(
+                    SELECT 1
+                    FROM progresses
+                    WHERE title_id = t.id
+                        AND user_id = $1
+                ) = $7
+            )
         GROUP BY t.id,
             c.id,
             pr.title_id,
             pr.user_id
         ORDER BY CASE
-                WHEN $7 THEN $8
+                WHEN $8 THEN $9
             END ASC,
             CASE
-                WHEN NOT $7 THEN $8
+                WHEN NOT $8 THEN $9
             END DESC
-        LIMIT $9 OFFSET $10"#,
+        LIMIT $10 OFFSET $11"#,
         user_id.as_ref(),
         category_ids.as_deref(),
         tag_ids.as_deref(),
         query.release_year.map(|year| year as i32),
         query.is_bookmarked,
         query.is_favorite,
+        query.is_reading,
         query.is_ascending.unwrap_or(true),
         order_by.as_ref(),
         limit,
