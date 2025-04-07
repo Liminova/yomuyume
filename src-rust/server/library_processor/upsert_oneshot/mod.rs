@@ -176,7 +176,7 @@ pub async fn upsert_oneshot(
                 $2,
                 0,
                 '',
-                '',
+                NULL,
                 TRUE
             ) ON CONFLICT (title_id, path) DO
         UPDATE
