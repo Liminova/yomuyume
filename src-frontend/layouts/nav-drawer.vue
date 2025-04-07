@@ -42,8 +42,8 @@ const navDrawerStore = useNavDrawerStore();
 						<Library />
 					</Entry>
 					<Entry
-						name="Advanced Search"
-						to="/library">
+						name="Search"
+						to="/search">
 						<Filter />
 					</Entry>
 
