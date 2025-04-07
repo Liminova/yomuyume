@@ -69,6 +69,8 @@ watchEffect(() => {
 		<!-- Pages -->
 		<TitlePagesArea
 			v-if="activeChapterId"
+			:title-id="titleId"
+			:chapter-ids="title.data.value?.chapters ?? []"
 			:chapter-id="activeChapterId" />
 	</div>
 </template>
