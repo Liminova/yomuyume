@@ -1,11 +1,10 @@
 <script setup lang="ts">
 
-import { watchEffect } from "vue";
 import { toast } from "vue-sonner";
 
 import Image from "~/components/image/Image.vue";
 import { GET_PAGE_FILE_PATH } from "~/composables/api/common";
-import { type BaseTitleResponse, type TitleResponse, useContentGetPages } from "~/composables/api/content";
+import { useContentGetPages } from "~/composables/api/content";
 import { useUserSetProgress } from "~/composables/api/user";
 
 const props = defineProps<{
@@ -43,13 +42,6 @@ function handleImageEmitInview(pageId: string): void {
 		},
 	});
 }
-
-watchEffect(() => {
-	if (!pages.error.value) { return; }
-	toast.error("Can't load pages", {
-		description: pages.error.value,
-	});
-});
 </script>
 
 <template>
