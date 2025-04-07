@@ -161,8 +161,8 @@ pub async fn get_title(
             progress_percent: r.progress_percent,
             progress_last_read_at: r.progress_last_read_at.map(|d| d.to_rfc3339()),
         },
-        chapters: r.chapters.map(|rs| {
-            let mut chapters = rs
+        chapters: r.chapters.map(|records| {
+            let mut chapters = records
                 .into_iter()
                 .filter_map(|r| {
                     let chapter = r.as_object()?;
