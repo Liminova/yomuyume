@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-import { useMutation, useQuery } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 
 import { BOOKMARK_PATH, FAVORITE_PATH, NewYomuyumeRequest, USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH } from "./common";
+import { BookmarkedTitlesQuery, FavoriteTitlesQuery } from "./content";
 
 export interface SensitiveRequest {
 	password: string;
@@ -24,17 +25,25 @@ export function useUserSensitiveAction() {
 }
 
 export function useUserFavorite(method: "PUT" | "DELETE") {
+	const queryClient = useQueryClient();
 	return useMutation({
 		async mutationFn(titleId: string) {
 			return NewYomuyumeRequest(FAVORITE_PATH(titleId), { method });
+		},
+		onSuccess() {
+			void queryClient.invalidateQueries({ queryKey: ["search", FavoriteTitlesQuery] });
 		},
 	});
 }
 
 export function useUserBookmark(method: "PUT" | "DELETE") {
+	const queryClient = useQueryClient();
 	return useMutation({
 		async mutationFn(titleId: string) {
 			return NewYomuyumeRequest(BOOKMARK_PATH(titleId), { method });
+		},
+		onSuccess() {
+			void queryClient.invalidateQueries({ queryKey: ["search", BookmarkedTitlesQuery] });
 		},
 	});
 }
