@@ -177,6 +177,8 @@ pub async fn get_title(
                     })
                 })
                 .collect::<Vec<_>>();
+            chapters.sort_by(|a, b| a.id.cmp(&b.id));
+            chapters.dedup_by(|a, b| a.id == b.id);
             chapters.sort_by(|a, b| a.number.cmp(&b.number));
             chapters
         }),
