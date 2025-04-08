@@ -62,7 +62,7 @@ pub struct SearchQuery {
 
 #[derive(Debug, ToSchema, Serialize, Deserialize)]
 pub struct SearchResponse {
-    pub data: Vec<BaseTitleResponse>,
+    pub data: Option<Vec<BaseTitleResponse>>,
 
     pub offset: i64,
     pub limit: i64,
@@ -285,7 +285,7 @@ pub async fn get_search(
     Ok((
         StatusCode::OK,
         Json(SearchResponse {
-            data,
+            data: if data.is_empty() { None } else { Some(data) },
             offset,
             limit,
         }),
