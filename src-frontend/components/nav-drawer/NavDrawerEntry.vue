@@ -3,7 +3,7 @@ import { type NuxtLinkProps, useRoute } from "nuxt/app";
 import { computed } from "vue";
 
 import { NuxtLink } from "#components";
-import { useNavDrawerStore } from "~/composables/use-nav-drawer-store";
+import { useDrawerStore } from "~/composables/use-drawer-store";
 
 const props = withDefaults(defineProps<{
 	name: string;
@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{
 	count: undefined,
 });
 
-const navDrawerStore = useNavDrawerStore();
+const navDrawerStore = useDrawerStore();
 
 const active = computed(() => useRoute().path === props.to);
 
@@ -29,15 +29,15 @@ if (window.innerWidth <= 1024) {
 			:to="props.to"
 			class="peer"
 			:class="{
-				'xl:rounded-[1.75rem]': navDrawerStore.isDrawerExpanded,
-				'xl:rounded-2xl': !navDrawerStore.isDrawerExpanded,
+				'xl:rounded-[1.75rem]': navDrawerStore.expanded,
+				'xl:rounded-2xl': !navDrawerStore.expanded,
 			}">
 			<div
 				:name="props.name"
 				class="relative grid h-14 items-center gap-3 self-center pl-4 pr-6 max-xl:grid-cols-[1.5rem_1fr_1.5rem] max-xl:rounded-[1.75rem]"
 				:class="{
-					'lg:grid-cols-[1.5rem_1fr_1.5rem] lg:rounded-[1.75rem]': navDrawerStore.isDrawerExpanded,
-					'lg:grid-cols-[1.5rem_0fr_0fr] lg:rounded-2xl': !navDrawerStore.isDrawerExpanded,
+					'lg:grid-cols-[1.5rem_1fr_1.5rem] lg:rounded-[1.75rem]': navDrawerStore.expanded,
+					'lg:grid-cols-[1.5rem_0fr_0fr] lg:rounded-2xl': !navDrawerStore.expanded,
 					'bg-primary-foreground': active,
 					'hover:bg-muted': !active,
 				}"
@@ -68,7 +68,7 @@ if (window.innerWidth <= 1024) {
 		<!-- Bubble when hover on small nav -->
 		<div
 			class="pointer-events-none absolute left-[68px] top-0 flex h-full scale-90 items-center justify-center opacity-0 peer-hover:scale-100 peer-hover:opacity-100"
-			:class="navDrawerStore.isDrawerExpanded ? 'hidden' : ''"
+			:class="navDrawerStore.expanded ? 'hidden' : ''"
 			:style="{
 				transition:
 					'opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1)',

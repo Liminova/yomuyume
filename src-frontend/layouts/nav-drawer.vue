@@ -4,10 +4,10 @@ import { Book, Bookmark, Filter, Heart, House, Library, Settings } from "lucide-
 import Entry from "~/components/nav-drawer/NavDrawerEntry.vue";
 import TopBar from "~/components/nav-drawer/NavDrawerTopBar.vue";
 import Toggle from "~/components/Toggle.vue";
-import { useNavDrawerStore } from "~/composables/use-nav-drawer-store";
+import { useDrawerStore } from "~/composables/use-drawer-store";
 
 const props = defineProps<{ class?: string }>();
-const navDrawerStore = useNavDrawerStore();
+const navDrawerStore = useDrawerStore();
 </script>
 
 <template>
@@ -16,8 +16,8 @@ const navDrawerStore = useNavDrawerStore();
 		<div
 			class="fixed left-0 top-[var(--topbar-height)] z-10 grid h-[calc(100dvh-var(--topbar-height))] grid-cols-[320px] duration-300"
 			:class="{
-				'max-lg:h-[calc(100dvh-var(--topbar-height))] lg:grid-cols-[320px]': navDrawerStore.isDrawerExpanded,
-				'max-lg:translate-x-[-320px] lg:grid-cols-[80px]': !navDrawerStore.isDrawerExpanded,
+				'max-lg:h-[calc(100dvh-var(--topbar-height))] lg:grid-cols-[320px]': navDrawerStore.expanded,
+				'max-lg:translate-x-[-320px] lg:grid-cols-[80px]': !navDrawerStore.expanded,
 			}"
 			:style="{
 				'transition-property': 'grid-template-columns, transform',
@@ -27,7 +27,7 @@ const navDrawerStore = useNavDrawerStore();
 				class="left-0 top-0 flex size-full flex-col justify-start rounded-br-3xl bg-background shadow-2xl transition-colors lg:rounded-none lg:shadow-none">
 				<div class="nav-entry-parent mx-3">
 					<Toggle
-						:show="navDrawerStore.isDrawerExpanded"
+						:show="navDrawerStore.expanded"
 						class="mx-4 my-2 text-sm font-medium text-muted-foreground/80">
 						Main
 					</Toggle>
@@ -48,11 +48,11 @@ const navDrawerStore = useNavDrawerStore();
 					</Entry>
 
 					<Toggle
-						:show="navDrawerStore.isDrawerExpanded"
+						:show="navDrawerStore.expanded"
 						class="mx-4 my-2 text-sm font-medium text-muted-foreground/80">
 						Quick access
 					</Toggle>
-					<Toggle :show="!navDrawerStore.isDrawerExpanded">
+					<Toggle :show="!navDrawerStore.expanded">
 						<hr class="my-2">
 					</Toggle>
 					<Entry
@@ -72,11 +72,11 @@ const navDrawerStore = useNavDrawerStore();
 					</Entry>
 
 					<Toggle
-						:show="navDrawerStore.isDrawerExpanded"
+						:show="navDrawerStore.expanded"
 						class="mx-4 my-2 text-sm font-medium text-muted-foreground/80">
 						Other
 					</Toggle>
-					<Toggle :show="!navDrawerStore.isDrawerExpanded">
+					<Toggle :show="!navDrawerStore.expanded">
 						<hr class="my-2">
 					</Toggle>
 					<Entry
@@ -97,8 +97,8 @@ const navDrawerStore = useNavDrawerStore();
 		<div
 			class="duration-300 lg:min-w-0"
 			:class="{
-				'lg:ml-[320px] lg:max-w-[calc(100vw-320px)]': navDrawerStore.isDrawerExpanded,
-				'lg:ml-[80px] lg:max-w-[calc(100vw-80px)]': !navDrawerStore.isDrawerExpanded,
+				'lg:ml-[320px] lg:max-w-[calc(100vw-320px)]': navDrawerStore.expanded,
+				'lg:ml-[80px] lg:max-w-[calc(100vw-80px)]': !navDrawerStore.expanded,
 			}"
 			:style="{
 				'transition-property': 'max-width, margin-left',

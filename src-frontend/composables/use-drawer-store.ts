@@ -1,56 +1,61 @@
 import { useDebounceFn } from "@vueuse/core";
-import { useRoute } from "nuxt/app";
-import { defineStore } from "pinia";
-import { onMounted, onUnmounted, ref, watchEffect } from "vue";
+import { useRoute, useState } from "nuxt/app";
+import { onMounted, onUnmounted, type Ref, watchEffect } from "vue";
 
 import { useScreenSize } from "./use-screen-size";
-
-export enum DrawerState {
-	Expanded = "expanded",
-	Collapsed = "collapsed",
-}
 
 export enum DrawerKind {
 	AlwaysVisible = "always-visible", // desktop
 	OffScreen = "off-screen", // mobile
 }
 
-export const useNavDrawerStore = defineStore("nav-drawer-store", () => {
-	const isDrawerExpanded = ref(true);
-	const isTopBarVisible = ref(true);
+export interface DrawerStore {
+	kind: DrawerKind;
+	expanded: boolean;
+	topBarVisible: boolean;
+}
 
-	const kind = ref<DrawerKind>(DrawerKind.AlwaysVisible);
-	const state = ref<DrawerState>(DrawerState.Expanded);
+export function useDrawerStore(): Ref<DrawerStore> {
+	return useState<DrawerStore>("drawer-store", () => ({
+		kind: DrawerKind.AlwaysVisible,
+		expanded: true,
+		topBarVisible: true,
+	}));
+}
 
-	const route = useRoute();
+/** Run this function once in `app.vue` */
+export function useDrawerStoreWatcher(): void {
+	const drawerStore = useDrawerStore();
 	const screenSize = useScreenSize();
+	const route = useRoute();
+
 	watchEffect(() => {
-		if (route.path.startsWith("/title") || screenSize.width < 1024) {
-			kind.value = DrawerKind.OffScreen;
+		if (route.path.startsWith("/title") || screenSize.value.width < 1024) {
+			drawerStore.value.kind = DrawerKind.OffScreen;
 			return;
 		}
-		kind.value = DrawerKind.AlwaysVisible;
+		drawerStore.value.kind = DrawerKind.AlwaysVisible;
 	});
 
 	const controller = new AbortController();
 	onMounted(() => {
 		if (window.innerWidth < 1280) {
-			isDrawerExpanded.value = false;
+			drawerStore.value.expanded = false;
 		}
 
 		// auto show/hide top bar on scroll
 		let prevScrollPos = -document.body.getBoundingClientRect().top;
 		function toggleTopBar(): void {
 			if (window.innerWidth >= 1024) {
-				isTopBarVisible.value = true;
+				drawerStore.value.topBarVisible = true;
 				return;
 			}
 			const currentScrollPos = -document.body.getBoundingClientRect().top;
 			if (prevScrollPos > currentScrollPos || currentScrollPos < 100) {
-				isTopBarVisible.value = true;
+				drawerStore.value.topBarVisible = true;
 			} else {
-				isTopBarVisible.value = false;
-				isDrawerExpanded.value = false;
+				drawerStore.value.topBarVisible = false;
+				drawerStore.value.expanded = false;
 			}
 			prevScrollPos = currentScrollPos;
 		}
@@ -63,11 +68,4 @@ export const useNavDrawerStore = defineStore("nav-drawer-store", () => {
 	onUnmounted(() => {
 		controller.abort();
 	});
-
-	return {
-		navDrawerStyle: kind,
-		navDrawerState: state,
-		isDrawerExpanded,
-		isTopBarVisible,
-	};
-});
+}

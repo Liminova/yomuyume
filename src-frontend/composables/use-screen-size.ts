@@ -1,13 +1,24 @@
-import { defineStore } from "pinia";
-import { onMounted, onUnmounted, ref } from "vue";
+import { useState } from "nuxt/app";
+import { getCurrentScope, onMounted, onUnmounted, type Ref } from "vue";
 
-export const useScreenSize = defineStore("screen-size-store", () => {
-	const width = ref(window.innerWidth);
-	const height = ref(window.innerHeight);
+export interface ScreenSizeState {
+	width: number;
+	height: number;
+}
+
+export function useScreenSize(): Ref<ScreenSizeState, ScreenSizeState> {
+	if (!getCurrentScope()) {
+		throw new Error("useScreenSize must be used within a component");
+	}
+
+	const states = useState<ScreenSizeState>("screen-size", () => ({
+		width: window.innerWidth,
+		height: window.innerHeight,
+	}));
 
 	const observer = new ResizeObserver(() => {
-		width.value = window.innerWidth;
-		height.value = window.innerHeight;
+		states.value.width = window.innerWidth;
+		states.value.height = window.innerHeight;
 	});
 
 	onMounted(() => {
@@ -18,5 +29,5 @@ export const useScreenSize = defineStore("screen-size-store", () => {
 		observer.disconnect();
 	});
 
-	return { width, height };
-});
+	return states;
+}

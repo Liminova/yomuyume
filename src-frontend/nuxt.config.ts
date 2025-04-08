@@ -24,7 +24,7 @@ export default defineNuxtConfig({
 		},
 	},
 	css: ["assets/css/index.css"],
-	modules: ["@pinia/nuxt", "@vite-pwa/nuxt"],
+	modules: ["@vite-pwa/nuxt"],
 	experimental: {
 		viewTransition: true,
 		typedPages: true,
