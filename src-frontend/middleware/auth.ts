@@ -1,14 +1,22 @@
-import { defineNuxtRouteMiddleware, navigateTo } from "nuxt/app";
+import { defineNuxtRouteMiddleware, navigateTo, useNuxtData } from "nuxt/app";
 
-import { isLoggedIn } from "~/lib/is-logged-in";
+import { useUserWhoAmI, type WhoAmIResponseBody } from "~/composables/api/user";
 
 export default defineNuxtRouteMiddleware(async (to, _) => {
-	const loggedIn = await isLoggedIn();
+	const { error, refresh } = useUserWhoAmI();
+	const { data } = useNuxtData<WhoAmIResponseBody>("whoami");
+
+	if (!data.value && !error.value) {
+		await refresh();
+	}
+
+	const unauthorized = error.value?.statusCode === 401;
 	const atAuthRoute = to.path === "/auth/login";
-	if (!loggedIn && !atAuthRoute) {
+
+	if (unauthorized && !atAuthRoute) {
 		return navigateTo("/auth/login");
 	}
-	if (loggedIn && atAuthRoute) {
+	if (!unauthorized && atAuthRoute) {
 		return navigateTo("/");
 	}
 });

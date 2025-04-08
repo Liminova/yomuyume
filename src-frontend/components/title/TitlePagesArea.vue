@@ -37,7 +37,7 @@ function handleImageEmitInview(pageId: string): void {
 	}, {
 		onError: (error) => {
 			toast.error("Failed to update progress", {
-				description: error.message,
+				description: `${error}`,
 			});
 		},
 	});
@@ -46,7 +46,7 @@ function handleImageEmitInview(pageId: string): void {
 
 <template>
 	<div
-		v-if="pages.isError">
+		v-if="pages.status.value === 'error'">
 		{{ pages.error.value }}
 	</div>
 	<div

@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-import { useMutation, useQuery } from "@tanstack/vue-query";
+import { useFetch } from "nuxt/app";
 
+import { useMutation } from "../use-mutation";
 import { GET_SCANNING_PROGRESS_PATH, GET_STATUS_PATH, NewYomuyumeRequest } from "./common";
 
 export interface ScanningProgressResponse {
@@ -10,11 +11,9 @@ export interface ScanningProgressResponse {
 }
 
 export function useGetLibraryScanningProgress() {
-	return useQuery({
-		queryKey: ["scanning_progress"],
-		async queryFn({ signal }) {
-			return NewYomuyumeRequest<ScanningProgressResponse>(GET_SCANNING_PROGRESS_PATH, { signal });
-		},
+	return useFetch<ScanningProgressResponse>(GET_SCANNING_PROGRESS_PATH, {
+		credentials: "same-origin",
+		key: "scanning_progress",
 	});
 }
 
@@ -24,11 +23,9 @@ export interface ServerStatusResponse {
 }
 
 export function useGetServerStatus() {
-	return useQuery({
-		queryKey: ["status"],
-		async queryFn({ signal }) {
-			return NewYomuyumeRequest<ServerStatusResponse>(GET_STATUS_PATH, { signal });
-		},
+	return useFetch<ServerStatusResponse>(GET_STATUS_PATH, {
+		credentials: "same-origin",
+		key: "status",
 	});
 }
 

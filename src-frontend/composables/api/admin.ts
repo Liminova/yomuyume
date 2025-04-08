@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-import { useMutation, useQuery } from "@tanstack/vue-query";
+import { useFetch } from "nuxt/app";
 
-import { LIVE_CONFIG_PATH, NewYomuyumeRequest } from "./common";
+import { useMutation } from "../use-mutation";
+import { LIVE_CONFIG_PATH } from "./common";
 
 export function useAdminSetLiveConfig() {
 	return useMutation({
@@ -13,8 +14,10 @@ export function useAdminSetLiveConfig() {
 			rescan_enabled?: boolean;
 			rescan_interval_in_minutes?: number;
 		}) {
-			return NewYomuyumeRequest(LIVE_CONFIG_PATH, {
+			return $fetch(LIVE_CONFIG_PATH, {
 				method: "POST",
+				credentials: "same-origin",
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
 		},
@@ -22,16 +25,15 @@ export function useAdminSetLiveConfig() {
 }
 
 export function useAdminGetLiveConfig() {
-	return useQuery({
-		queryKey: ["live_config"],
-		async queryFn({ signal }) {
-			return NewYomuyumeRequest<{
-				nomedia_support: boolean;
-				komga_oneshot_support: boolean;
-				komga_recycle_support: boolean;
-				rescan_enabled: boolean;
-				rescan_interval_in_minutes: number;
-			}>(LIVE_CONFIG_PATH, { signal });
-		},
+	return useFetch<{
+		nomedia_support: boolean;
+		komga_oneshot_support: boolean;
+		komga_recycle_support: boolean;
+		rescan_enabled: boolean;
+		rescan_interval_in_minutes: number;
+	}>(LIVE_CONFIG_PATH, {
+		credentials: "same-origin",
+		headers: { "Content-Type": "application/json" },
+		key: "live_config",
 	});
 }

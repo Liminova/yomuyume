@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import { clearNuxtData, useFetch } from "nuxt/app";
 
+import { useMutation } from "../use-mutation";
 import { BOOKMARK_PATH, FAVORITE_PATH, NewYomuyumeRequest, USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH } from "./common";
 import { BookmarkedTitlesQuery, FavoriteTitlesQuery } from "./content";
 
@@ -25,25 +26,23 @@ export function useUserSensitiveAction() {
 }
 
 export function useUserFavorite(method: "PUT" | "DELETE") {
-	const queryClient = useQueryClient();
 	return useMutation({
 		async mutationFn(titleId: string) {
 			return NewYomuyumeRequest(FAVORITE_PATH(titleId), { method });
 		},
 		onSuccess() {
-			void queryClient.invalidateQueries({ queryKey: ["search", FavoriteTitlesQuery] });
+			clearNuxtData(`search-${JSON.stringify(FavoriteTitlesQuery)}`);
 		},
 	});
 }
 
 export function useUserBookmark(method: "PUT" | "DELETE") {
-	const queryClient = useQueryClient();
 	return useMutation({
 		async mutationFn(titleId: string) {
 			return NewYomuyumeRequest(BOOKMARK_PATH(titleId), { method });
 		},
 		onSuccess() {
-			void queryClient.invalidateQueries({ queryKey: ["search", BookmarkedTitlesQuery] });
+			clearNuxtData(`search-${JSON.stringify(BookmarkedTitlesQuery)}`);
 		},
 	});
 }
@@ -85,10 +84,9 @@ export interface WhoAmIResponseBody {
 }
 
 export function useUserWhoAmI() {
-	return useQuery({
-		queryKey: ["whoami"],
-		async queryFn({ signal }) {
-			return NewYomuyumeRequest<WhoAmIResponseBody>(WHOAMI_PATH, { signal });
-		},
+	return useFetch<WhoAmIResponseBody>(WHOAMI_PATH, {
+		credentials: "same-origin",
+		key: "whoami",
+		immediate: false,
 	});
 }

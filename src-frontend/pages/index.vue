@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { register } from "swiper/element/bundle";
-import { computed } from "vue";
 
 import { definePageMeta } from "#imports";
 import CarouselWrapper from "~/components/home/HomeOldCarouselWrapper.vue";
@@ -11,18 +10,15 @@ import { useContentSearchTitle } from "~/composables/api/content";
 definePageMeta({ layout: "nav-drawer", middleware: ["auth"] });
 register();
 
-const recentlyUpdatedInf = useContentSearchTitle({
+const recentlyUpdated = useContentSearchTitle({
 	order_by: "date_updated",
 	is_ascending: true,
 });
-const recentlyUpdated = computed(() => recentlyUpdatedInf.data.value?.pages.flatMap(page => page.data ?? []) ?? []);
 
-const continueReadingInf = useContentSearchTitle({
+const continueReading = useContentSearchTitle({
 	order_by: "progress_last_read_at",
 	is_ascending: false,
 });
-const continueReading = computed(() => continueReadingInf.data.value?.pages.flatMap(page => page.data ?? []) ?? []);
-
 </script>
 
 <template>
@@ -35,7 +31,7 @@ const continueReading = computed(() => continueReadingInf.data.value?.pages.flat
 		</div>
 		<CarouselWrapper>
 			<swiper-slide
-				v-for="title in recentlyUpdated"
+				v-for="title in recentlyUpdated.flattened.value"
 				:key="`a${title.id}`">
 				<TitleCard
 					:key="`a${title.id}`"
@@ -49,7 +45,7 @@ const continueReading = computed(() => continueReadingInf.data.value?.pages.flat
 		</div>
 		<CarouselWrapper>
 			<swiper-slide
-				v-for="title in continueReading"
+				v-for="title in continueReading.flattened.value"
 				:key="`b${title.id}`">
 				<TitleCard
 					:key="`b${title.id}`"

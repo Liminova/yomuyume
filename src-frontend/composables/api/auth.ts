@@ -1,26 +1,36 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { clearNuxtData } from "nuxt/app";
 
-import { FORGOT_PATH, LOGIN_PATH, LOGOUT_PATH, NewYomuyumeRequest, REGISTER_PATH } from "./common";
+import { useMutation } from "../use-mutation";
+import { FORGOT_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH } from "./common";
+import { useUserWhoAmI } from "./user";
 
 export function useAuthLogin() {
+	const { refresh } = useUserWhoAmI();
+
 	return useMutation({
 		async mutationFn(body: { login: string; password: string }) {
-			return NewYomuyumeRequest(LOGIN_PATH, {
+			return $fetch(LOGIN_PATH, {
 				method: "POST",
+				credentials: "same-origin",
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
+		},
+		async onSuccess() {
+			await refresh();
 		},
 	});
 }
 
 export function useAuthLogout() {
-	const queryClient = useQueryClient();
 	return useMutation({
 		async mutationFn() {
-			await NewYomuyumeRequest(LOGOUT_PATH);
-			queryClient.setQueryData(["whoami"], null);
+			await $fetch(LOGOUT_PATH, {
+				credentials: "same-origin",
+			});
+			clearNuxtData("whoami");
 		},
 	});
 }
@@ -28,8 +38,9 @@ export function useAuthLogout() {
 export function useAuthRegister() {
 	return useMutation({
 		async mutationFn(body: { username: string; email: string; password: string }) {
-			return NewYomuyumeRequest(REGISTER_PATH, {
+			return $fetch(REGISTER_PATH, {
 				method: "POST",
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
 		},
@@ -39,8 +50,9 @@ export function useAuthRegister() {
 export function useAuthForgot() {
 	return useMutation({
 		async mutationFn(body: { email: string; code?: string; new_password?: string }) {
-			return NewYomuyumeRequest(FORGOT_PATH, {
+			return $fetch(FORGOT_PATH, {
 				method: "POST",
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
 		},

@@ -3,7 +3,7 @@
 
 import Autoplay from "embla-carousel-autoplay";
 import { ArrowLeft, ArrowRight } from "lucide-vue-next";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 
 import Button from "~/components/ui/Button.vue";
 import { Carousel, type CarouselApi, CarouselContent, CarouselItem } from "~/components/ui/carousel";
@@ -14,8 +14,7 @@ import Toggle from "../Toggle.vue";
 import HomeRecCard from "./HomeRecCarouselCard.vue";
 
 const carouselRef = ref<InstanceType<typeof Carousel> | null>(null);
-const titlesInf = useContentSearchTitle();
-const titles = computed(() => titlesInf.data.value?.pages.flatMap(page => page.data ?? []) ?? []);
+const titles = useContentSearchTitle({ limit: 5 });
 
 const isNextSlideBarActive = ref(true);
 const nextSlideBar = ref<HTMLElement | null>(null);
@@ -76,7 +75,7 @@ onUnmounted(() => {
 		})]">
 		<CarouselContent>
 			<CarouselItem
-				v-for="title in titles"
+				v-for="title in titles.flattened.value"
 				:key="`rec${title.id}`">
 				<HomeRecCard
 					:title="title" />

@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
 
-import { useInfiniteQuery, useQuery } from "@tanstack/vue-query";
+import { useFetch } from "nuxt/app";
 
-import { GET_CATEGORIES_PATH, GET_PAGES_PATH, GET_TAGS_PATH, GET_TITLE_PATH, NewYomuyumeRequest, SEARCH_PATH } from "./common";
+import { useInfiniteQuery } from "../use-infinite-query";
+import { GET_CATEGORIES_PATH, GET_PAGES_PATH, GET_TAGS_PATH, GET_TITLE_PATH, SEARCH_PATH } from "./common";
 
 export interface CategoriesResponseBodyInner {
 	id: string;
@@ -18,11 +19,9 @@ export interface CategoriesResponseBodyInner {
 export type GetCategoriesResponseBody = Array<{ id: string; name?: string; description?: string }>;
 
 export function useGetCategories() {
-	return useQuery({
-		queryKey: ["categories"],
-		async queryFn({ signal }) {
-			return NewYomuyumeRequest<GetCategoriesResponseBody>(GET_CATEGORIES_PATH, { signal });
-		},
+	return useFetch(GET_CATEGORIES_PATH, {
+		credentials: "same-origin",
+		key: "categories",
 	});
 }
 
@@ -83,20 +82,16 @@ export interface TitleResponse extends BaseTitleResponse {
 }
 
 export function useContentGetTitle(titleId: string) {
-	return useQuery({
-		queryKey: ["title", titleId],
-		async queryFn({ signal }) {
-			return NewYomuyumeRequest<TitleResponse>(GET_TITLE_PATH(titleId), { signal });
-		},
+	return useFetch<TitleResponse>(GET_TITLE_PATH(titleId), {
+		credentials: "same-origin",
+		key: `title-${titleId}`,
 	});
 }
 
 export function useContentGetPages(chapterId: string) {
-	return useQuery({
-		queryKey: ["pages", chapterId],
-		async queryFn({ signal }) {
-			return NewYomuyumeRequest<BasePageResponse[]>(GET_PAGES_PATH(chapterId), { signal });
-		},
+	return useFetch<BasePageResponse[]>(GET_PAGES_PATH(chapterId), {
+		credentials: "same-origin",
+		key: `pages-${chapterId}`,
 	});
 }
 
@@ -127,15 +122,16 @@ export function useContentSearchTitle(query?: SearchQuery) {
 	const limit = query?.limit ?? 10;
 
 	return useInfiniteQuery({
-		queryKey: ["search", query],
+		queryKey: `search-${JSON.stringify(query)}`,
 		async queryFn({ pageParam = 0, signal }) {
-			return NewYomuyumeRequest<SearchResponse>(SEARCH_PATH, {
+			return $fetch<SearchResponse>(SEARCH_PATH, {
 				method: "POST",
 				signal,
-			}, {
-				...query,
-				offset: pageParam,
-				limit,
+				query: {
+					...query,
+					offset: pageParam,
+					limit,
+				},
 			});
 		},
 		initialPageParam: query?.offset ?? 0,
@@ -143,9 +139,8 @@ export function useContentSearchTitle(query?: SearchQuery) {
 			if (lastPage.data === undefined || lastPage.data.length === 0) { return null; }
 			return lastPage.offset + limit;
 		},
-		getPreviousPageParam(firstPage) {
-			if (firstPage.offset === 0) { return null; }
-			return firstPage.offset - limit;
+		flattened(pages) {
+			return pages.flatMap(page => page.data.data ?? []);
 		},
 	});
 }
@@ -155,10 +150,8 @@ export const BookmarkedTitlesQuery: SearchQuery = { is_bookmarked: true } as con
 export const ReadingTitlesQuery: SearchQuery = { is_reading: true, order_by: "progress_last_read_at", is_ascending: true } as const;
 
 export function useContentGetTags() {
-	return useQuery({
-		queryKey: ["tags"],
-		async queryFn({ signal }) {
-			return NewYomuyumeRequest<TitleTag[]>(GET_TAGS_PATH, { signal });
-		},
+	return useFetch<TitleTag[]>(GET_TAGS_PATH, {
+		credentials: "same-origin",
+		key: "tags",
 	});
 }
