@@ -5,9 +5,14 @@ import type { WorkerOutput } from "./pool";
 
 declare const self: Worker;
 
-await init();
+let initialized = false;
 
 self.onmessage = async (event: MessageEvent<BlurhashWorkerInput>): Promise<void> => {
+	if (!initialized) {
+		await init();
+		initialized = true;
+	}
+
 	if (event.data.type === "ping") {
 		self.postMessage({ type: "pong" } satisfies WorkerOutput);
 		return;
