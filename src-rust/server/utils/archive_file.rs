@@ -24,7 +24,7 @@ use crate::{
     utils::constants::SUPPORTED_ARCHIVE_FORMATS,
 };
 
-const SEVEN_ZIP_BIN: &[u8] = include_bytes!("../../../.devcontainer/7zz");
+const SEVEN_ZIP_BIN: &[u8] = include_bytes!("7zz");
 
 #[derive(Debug, Clone, Eq)]
 pub struct ItemInArchive {
