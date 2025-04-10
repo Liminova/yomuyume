@@ -121,7 +121,7 @@ lint-c: gen-api-paths
 
 # lint the rust codes
 lint-s: _ensure_client_dist_dir_for_dev
-    cargo fmt && cargo clippy
+    cargo check && cargo fmt && cargo clippy
 
 # start the client dev server
 dev-c: gen-api-paths
