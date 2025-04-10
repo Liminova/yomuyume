@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/explicit-function-return-type */
-
 import { clearNuxtData } from "nuxt/app";
 
 import { useMutation } from "../use-mutation";

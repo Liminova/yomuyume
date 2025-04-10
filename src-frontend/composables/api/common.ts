@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types */
-
 // START: API paths - DO NOT MODIFY THIS LINE
 
 export const LOGOUT_PATH = "/api/auth/logout";
