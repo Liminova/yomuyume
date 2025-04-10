@@ -115,15 +115,6 @@ _ensure_client_dist_dir_for_dev:
         with open("{{ client_dist_dir_abs }}/index.html", "w") as f:
             f.write("<!DOCTYPE html><html><head><title>Hello World!</title></head><body>Hello World!</body></html>")
 
-    # make sure `src-rust/server/build.rs` contains client_dist_dir twice
-    with open("{{ build_rs_file }}", "r") as f:
-        count = 0
-        for line in f:
-            if "{{ client_dist_dir }}" in line:
-                count += 1
-        if count != 2:
-            raise Exception("\"{{ build_rs_file }}\" should contains \"{{ client_dist_dir }}\" twice, one for the build process, another one for importing into \"main.rs\"")
-
 # lint the client codes
 lint-c: gen-api-paths
     cd {{ client_dir_abs }} && pnpm eslint --fix --cache .
