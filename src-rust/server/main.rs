@@ -135,43 +135,39 @@ async fn main() -> Result<()> {
                 return (
                     StatusCode::OK,
                     [(header::CONTENT_TYPE, "text/html")],
-                    FRONTEND_SPA_DIR
-                        .get_file("index.html")
-                        .map(|file| file.contents())
-                        .map_or_else(Body::empty, Body::from),
+                    get_spa_asset(b"index.html"),
                 )
                     .into_response();
             }
 
-            let Some(body) = FRONTEND_SPA_DIR
-                .get_file({
-                    if FRONTEND_SPA_IMPLICIT_INDEX_HTML.contains(request_path) {
+            let body = get_spa_asset(
+                {
+                    if SPA_IMPLICIT_INDEX_HTML.contains(&request_path) {
                         format!("{request_path}/index.html")
                     } else {
                         request_path.to_string()
                     }
-                })
-                .map(|file| file.contents())
-                .map(Body::from)
-            else {
+                }
+                .as_bytes(),
+            );
+
+            if body.is_empty() {
                 return (
                     StatusCode::NOT_FOUND,
                     [(header::CONTENT_TYPE, "text/html")],
-                    FRONTEND_SPA_DIR
-                        .get_file("404.html")
-                        .map(|file| file.contents())
+                    Some(get_spa_asset(b"404.html"))
+                        .filter(|b| !b.is_empty())
                         .map_or_else(Body::empty, Body::from),
                 )
                     .into_response();
-            };
+            }
 
             let header = [(
                 header::CONTENT_TYPE,
                 request_path
                     .split('.')
                     .next_back()
-                    .and_then(|ext| FRONTEND_SPA_MIME_TYPES.get(ext))
-                    .unwrap_or(&"text/plain")
+                    .map_or("text/plain", |ext| get_mime_type(ext.as_bytes()))
                     .to_string(),
             )];
 

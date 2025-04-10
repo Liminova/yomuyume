@@ -1,66 +1,81 @@
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{hash_map::Entry, HashMap, VecDeque},
     env,
-    fs::File,
+    fs::{DirEntry, File},
     io::{BufWriter, Write},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
-use include_dir::{include_dir, Dir};
-
-static FRONTEND_SPA: Dir = include_dir!("src-frontend/.output/public");
+const SPA_DIST_DIR: &str = "../../src-frontend/.output/public";
 
 fn main() {
-    let mut spa_implicit_index_html = phf_codegen::Set::new();
-    let mut spa_dirs = FRONTEND_SPA
-        .entries()
-        .iter()
-        .filter_map(|entry| entry.as_dir())
-        .collect::<VecDeque<_>>();
+    let mut spa_implicit_index_html = Vec::new();
+    let mut spa_mime_type = HashMap::new();
 
-    let mut mime_types = phf_codegen::Map::new();
-    let mut added_mime_types = HashSet::new();
+    let mut spa_files = Vec::new();
+    let mut spa_dirs = VecDeque::new();
 
-    while let Some(dir) = spa_dirs.pop_front() {
-        for entry in dir.entries().iter() {
-            if let Some(dir) = entry.as_dir() {
+    let mut handle_file = |dir: &DirEntry| {
+        if dir.file_type().unwrap().is_dir() {
+            return;
+        }
+
+        let fpath = dir.path();
+        let fext = fpath
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .unwrap_or_default()
+            .to_string();
+
+        // if !spa_mime_type.contains_key(&fext) {
+        if let Entry::Vacant(e) = spa_mime_type.entry(fext.clone()) {
+            match fext.as_str() {
+                "html" => e.insert("text/html"),
+                "css" => e.insert("text/css"),
+                "js" => e.insert("application/javascript"),
+                "json" => e.insert("application/json"),
+                "png" => e.insert("image/png"),
+                "jpg" => e.insert("image/jpeg"),
+                "jpeg" => e.insert("image/jpeg"),
+                "gif" => e.insert("image/gif"),
+                "webp" => e.insert("image/webp"),
+                "ico" => e.insert("image/x-icon"),
+                "wasm" => e.insert("application/wasm"),
+                "woff2" => e.insert("font/woff2"),
+                "ttf" => e.insert("font/ttf"),
+                "xml" => e.insert("application/xml"),
+                "svg" => e.insert("image/svg+xml"),
+                "" => e.insert("text/plain"),
+
+                _ => panic!("unhandled file extension \"{}\" in build.rs", fext),
+            };
+        }
+
+        if fpath.ends_with("index.html") {
+            let mut tmp = fpath.clone();
+            tmp.pop();
+            spa_implicit_index_html.push(tmp.to_string_lossy().to_string());
+        }
+
+        spa_files.push(fpath);
+    };
+
+    for dir in Path::new(SPA_DIST_DIR).read_dir().unwrap() {
+        let dir = dir.unwrap();
+        if dir.file_type().unwrap().is_dir() {
+            spa_dirs.push_back(dir);
+        } else {
+            handle_file(&dir);
+        }
+    }
+
+    while let Some(dir_) = spa_dirs.pop_front() {
+        for dir in dir_.path().read_dir().unwrap() {
+            let dir = dir.unwrap();
+            if dir.file_type().unwrap().is_dir() {
                 spa_dirs.push_back(dir);
-            } else if let Some(file) = entry.as_file() {
-                let fpath = file.path().to_string_lossy().to_string();
-                let fpath_ = PathBuf::from(fpath.clone());
-                let fext = fpath_
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .unwrap_or_default();
-                if added_mime_types.insert(fext.to_string()) {
-                    match fext {
-                        "html" => mime_types.entry("html", "\"text/html\""),
-                        "css" => mime_types.entry("css", "\"text/css\""),
-                        "js" => mime_types.entry("js", "\"application/javascript\""),
-                        "json" => mime_types.entry("json", "\"application/json\""),
-                        "png" => mime_types.entry("png", "\"image/png\""),
-                        "jpg" => mime_types.entry("jpg", "\"image/jpeg\""),
-                        "jpeg" => mime_types.entry("jpeg", "\"image/jpeg\""),
-                        "gif" => mime_types.entry("gif", "\"image/gif\""),
-                        "webp" => mime_types.entry("webp", "\"image/webp\""),
-                        "ico" => mime_types.entry("ico", "\"image/x-icon\""),
-                        "wasm" => mime_types.entry("wasm", "\"application/wasm\""),
-                        "woff2" => mime_types.entry("woff2", "\"font/woff2\""),
-                        "ttf" => mime_types.entry("ttf", "\"font/ttf\""),
-                        "xml" => mime_types.entry("xml", "\"application/xml\""),
-                        "svg" => mime_types.entry("svg", "\"image/svg+xml\""),
-                        "" => mime_types.entry("", "\"text/plain\""),
-
-                        _ => panic!("unhandled file extension \"{}\" in build.rs", fext),
-                    };
-                }
-
-                if fpath.ends_with("index.html") {
-                    spa_implicit_index_html
-                        .entry(fpath.trim_end_matches("/index.html").to_string());
-                }
             } else {
-                panic!("unexpected entry type in frontend build directory")
+                handle_file(&dir);
             }
         }
     }
@@ -68,13 +83,73 @@ fn main() {
     let codegen_path = Path::new(&env::var("OUT_DIR").unwrap()).join("spa.rs");
     let mut codegen_file = BufWriter::new(File::create(&codegen_path).unwrap());
 
-    writeln!(
-        &mut codegen_file,
-        r#"const FRONTEND_SPA_DIR: include_dir::Dir = include_dir::include_dir!("src-frontend/.output/public");
-const FRONTEND_SPA_MIME_TYPES: phf::Map<&'static str, &'static str> = {};
-const FRONTEND_SPA_IMPLICIT_INDEX_HTML: phf::Set<&'static str> = {};"#,
-        mime_types.build(),
-        spa_implicit_index_html.build()
-    )
-    .unwrap();
+    let mut spa_implicit_index_html = spa_implicit_index_html
+        .into_iter()
+        .map(|p| {
+            p.trim_start_matches(SPA_DIST_DIR)
+                .trim_start_matches("/")
+                .to_string()
+        })
+        .filter(|p| !p.is_empty())
+        .map(|p| format!(r#""{p}""#))
+        .collect::<Vec<_>>();
+    spa_implicit_index_html.sort();
+    spa_implicit_index_html.dedup();
+
+    let mut spa_mime_type = spa_mime_type
+        .into_iter()
+        .filter(|(ext, _)| ext.as_str() != "")
+        .collect::<Vec<_>>();
+    spa_mime_type.sort_by(|a, b| a.0.cmp(&b.0));
+    spa_mime_type.dedup_by(|a, b| a.0 == b.0);
+    let spa_mime_type = spa_mime_type
+        .into_iter()
+        .map(|(ext, mime_type)| format!(r#"b"{ext}" => "{mime_type}","#))
+        .collect::<Vec<_>>()
+        .join("\n        ");
+
+    spa_files.sort();
+    spa_files.dedup();
+    let spa_files = spa_files
+        .into_iter()
+        .map(|path| {
+            format!(
+                "b\"{}\" => include_bytes!(\"../../../{}\"),",
+                path.to_string_lossy()
+                    .trim_start_matches(SPA_DIST_DIR)
+                    .trim_start_matches("/"),
+                path.to_string_lossy()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n        ");
+
+    let new_content = format!(
+        r#"
+const SPA_IMPLICIT_INDEX_HTML: [&str; {}] = [{}];
+
+const fn get_mime_type(ext: &[u8]) -> &'static str {{
+    match ext {{
+        {}
+        _ => "text/plain",
+    }}
+}}
+
+const fn get_spa_asset(path: &[u8]) -> &'static [u8] {{
+    #[allow(clippy::match_same_arms)]
+    match path {{
+        {}
+        _ => &[],
+    }}
+}}"#,
+        spa_implicit_index_html.len(),
+        spa_implicit_index_html.join(", "),
+        spa_mime_type,
+        spa_files
+    );
+
+    let old_content = std::fs::read_to_string(&codegen_path).unwrap_or_default();
+    if new_content != old_content {
+        writeln!(&mut codegen_file, "{new_content}").unwrap();
+    }
 }
