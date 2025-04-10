@@ -4,9 +4,9 @@ import { toast } from "vue-sonner";
 
 import { cn } from "~/lib/utils";
 
-import { isJxlNative } from "./is-jxl-native";
-import { useBlurhashDecoder } from "./use-blurhash-decoder";
-import { useJpegXLDecoder } from "./use-jpegxl-decoder";
+import { decodeBlurhash } from "./decode-blurhash";
+import { decodeJpegXL } from "./decode-jpegxl";
+import { useIsJxlNative } from "./is-jxl-native";
 
 const emit = defineEmits(["in-view"]);
 const props = withDefaults(defineProps<{
@@ -39,7 +39,7 @@ const realImgURL = ref<string | null>(null);
 const error = ref<string | null>(null);
 
 if (props.blurhash && props.width > 0 && props.height > 0) {
-	void useBlurhashDecoder({
+	decodeBlurhash({
 		id: props.id,
 		blurhash: props.blurhash,
 		width: props.width,
@@ -47,8 +47,8 @@ if (props.blurhash && props.width > 0 && props.height > 0) {
 	}, blurhashImgURL, error);
 }
 
-if (props.isJxl && !isJxlNative) {
-	void useJpegXLDecoder({
+if (props.isJxl && useIsJxlNative().value !== true) {
+	decodeJpegXL({
 		id: props.id,
 		url: props.src,
 	}, realImgURL, error);
