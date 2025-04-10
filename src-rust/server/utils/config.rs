@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use super::constants::VERSION_NAMES;
 use crate::structs::absolute_path::AbsolutePath;
 
 #[derive(Debug, Clone)]
@@ -85,7 +84,7 @@ impl Config {
             format!(
                 "{} - {}",
                 semver,
-                VERSION_NAMES[(semver.major + semver.minor - 1) as usize]
+                super::constants::VERSION_NAMES[(semver.major + semver.minor - 1) as usize]
             )
         } else {
             tracing::warn!(
