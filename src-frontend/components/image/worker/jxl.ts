@@ -1,16 +1,27 @@
 import { setPageInDB, StoreName } from "../db";
+import type { JpegXLWorkerInput } from "../decode-jpegxl";
 import init, { decode } from "../jxl-webp-wasm";
-import type { JpegXLWorkerInput } from "../use-jpegxl-decoder";
 import type { WorkerOutput } from "./pool";
 
 declare const self: Worker;
 
-let initialized = false;
+let inited = false;
+let initing = false;
+const waitInitQueue: Array<(value: void | PromiseLike<void>)=> void> = [];
 
 self.onmessage = async (event: MessageEvent<JpegXLWorkerInput>): Promise<void> => {
-	if (!initialized) {
-		await init();
-		initialized = true;
+	if (!inited) {
+		if (initing) {
+			await new Promise<void>(resolve => waitInitQueue.push(resolve));
+		} else {
+			initing = true;
+			await init();
+			// eslint-disable-next-line require-atomic-updates
+			inited = true;
+			while (waitInitQueue.length > 0) {
+				waitInitQueue.shift()?.();
+			}
+		}
 	}
 
 	if (event.data.type === "ping") {

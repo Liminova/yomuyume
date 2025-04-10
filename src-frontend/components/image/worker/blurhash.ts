@@ -1,16 +1,27 @@
 import init, { decode } from "../blurhash-webp-wasm/blurhash_webp_wasm";
 import { setPageInDB, StoreName } from "../db";
-import type { BlurhashWorkerInput } from "../use-blurhash-decoder";
+import type { BlurhashWorkerInput } from "../decode-blurhash";
 import type { WorkerOutput } from "./pool";
 
 declare const self: Worker;
 
-let initialized = false;
+let inited = false;
+let initing = false;
+const waitInitQueue: Array<(value: void | PromiseLike<void>)=> void> = [];
 
 self.onmessage = async (event: MessageEvent<BlurhashWorkerInput>): Promise<void> => {
-	if (!initialized) {
-		await init();
-		initialized = true;
+	if (!inited) {
+		if (initing) {
+			await new Promise<void>(resolve => waitInitQueue.push(resolve));
+		} else {
+			initing = true;
+			await init();
+			// eslint-disable-next-line require-atomic-updates
+			inited = true;
+			while (waitInitQueue.length > 0) {
+				waitInitQueue.shift()?.();
+			}
+		}
 	}
 
 	if (event.data.type === "ping") {
