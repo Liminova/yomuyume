@@ -16,7 +16,7 @@ export function useTheme(): Ref<"dark" | "light"> {
 }
 
 /** Run this function once in `app.vue` */
-export function useThemeWatcher(): void {
+export function initTheme(): void {
 	const theme = useTheme();
 	localStorage.setItem("theme", theme.value);
 	watchEffect(() => {

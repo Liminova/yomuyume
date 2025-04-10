@@ -24,7 +24,7 @@ export function useDrawerStore(): Ref<DrawerStore> {
 }
 
 /** Run this function once in `app.vue` */
-export function useDrawerStoreWatcher(): void {
+export function initDrawerStore(): void {
 	const drawerStore = useDrawerStore();
 	const screenSize = useScreenSize();
 	const route = useRoute();
