@@ -1,5 +1,5 @@
-pub const SUPPORTED_ARCHIVE_FORMATS: &[&str] = &["zip", "cbz", "rar", "cbr", "7z"];
-pub const SUPPORTED_IMAGE_FORMATS: &[&str] = &[
+pub const SUPPORTED_ARCHIVE_FORMATS: [&str; 5] = ["zip", "cbz", "rar", "cbr", "7z"];
+pub const SUPPORTED_IMAGE_FORMATS: [&str; 10] = [
     "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp", "jxl",
 ];
 
