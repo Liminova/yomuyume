@@ -39,3 +39,7 @@ docker-compose.yml
 *.jxl
 
 Main.session.sql
+7zz
+
+src-frontend/components/image/blurhash-webp-wasm/
+src-frontend/components/image/jxl-webp-wasm/
