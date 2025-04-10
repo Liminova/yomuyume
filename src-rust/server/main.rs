@@ -12,7 +12,8 @@
     clippy::too_many_lines,
     clippy::too_many_arguments,
     clippy::trivially_copy_pass_by_ref,
-    clippy::inefficient_to_string
+    clippy::inefficient_to_string,
+    clippy::unreadable_literal
 )]
 
 mod library_processor;
@@ -26,7 +27,11 @@ use std::{net::SocketAddr, time::Duration};
 use anyhow::Result;
 use app_state::AppState;
 use axum::{
+    body::Body,
+    extract::Request,
+    http::{header, StatusCode},
     middleware::from_fn_with_state as apply,
+    response::IntoResponse,
     routing::{get, post, put},
     Router,
 };
@@ -62,6 +67,8 @@ use crate::{
     },
     utils::app_state,
 };
+
+include!(concat!(env!("OUT_DIR"), "/spa.rs"));
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -116,6 +123,60 @@ async fn main() -> Result<()> {
         )
         .route(GET_STATUS_PATH, get(get_status).post(post_status))
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
+        .fallback(|req: Request<Body>| async move {
+            let request_path = req
+                .uri()
+                .path()
+                .trim_start_matches('/')
+                .trim_end_matches('/');
+
+            // index.html
+            if request_path.is_empty() {
+                return (
+                    StatusCode::OK,
+                    [(header::CONTENT_TYPE, "text/html")],
+                    FRONTEND_SPA_DIR
+                        .get_file("index.html")
+                        .map(|file| file.contents())
+                        .map_or_else(Body::empty, Body::from),
+                )
+                    .into_response();
+            }
+
+            let Some(body) = FRONTEND_SPA_DIR
+                .get_file({
+                    if FRONTEND_SPA_IMPLICIT_INDEX_HTML.contains(request_path) {
+                        format!("{request_path}/index.html")
+                    } else {
+                        request_path.to_string()
+                    }
+                })
+                .map(|file| file.contents())
+                .map(Body::from)
+            else {
+                return (
+                    StatusCode::NOT_FOUND,
+                    [(header::CONTENT_TYPE, "text/html")],
+                    FRONTEND_SPA_DIR
+                        .get_file("404.html")
+                        .map(|file| file.contents())
+                        .map_or_else(Body::empty, Body::from),
+                )
+                    .into_response();
+            };
+
+            let header = [(
+                header::CONTENT_TYPE,
+                request_path
+                    .split('.')
+                    .next_back()
+                    .and_then(|ext| FRONTEND_SPA_MIME_TYPES.get(ext))
+                    .unwrap_or(&"text/plain")
+                    .to_string(),
+            )];
+
+            (StatusCode::OK, header, body).into_response()
+        })
         .layer(TraceLayer::new_for_http())
         .with_state(app_state.clone());
 
