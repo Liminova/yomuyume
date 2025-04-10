@@ -1,5 +1,5 @@
 import path from "node:path";
-
+import { VitePWA } from "vite-plugin-pwa";
 import wasm from "vite-plugin-wasm";
 
 export default defineNuxtConfig({
@@ -36,7 +36,10 @@ export default defineNuxtConfig({
 			},
 		},
 		build: { target: "esnext" },
-		plugins: [wasm()],
+		plugins: [wasm(), VitePWA({
+			registerType: "autoUpdate",
+			injectRegister: "auto",
+		})],
 	},
 	ssr: false,
 	imports: { scan: false, autoImport: false },
