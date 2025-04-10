@@ -47,7 +47,7 @@ if (props.blurhash && props.width > 0 && props.height > 0) {
 	}, blurhashImgURL, error);
 }
 
-if (props.isJxl && useIsJxlNative().value !== true) {
+if (props.isJxl && !useIsJxlNative().value) {
 	decodeJpegXL({
 		id: props.id,
 		url: props.src,
