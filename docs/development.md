@@ -1,156 +1,22 @@
 # Development
 
-## Environment
-Highly recommended to use vscode + devcontainer.
+## Reverse proxy
+Since we rely on `HttpOnly` cookies for auth, the backend APIs and frontend SPA must be served under the same origin (domain + port) and over HTTPS on the browser.
 
-## Non-rust-or-js dependencies
-- [dav1d](https://code.videolan.org/videolan/dav1d) for the [image](https://crates.io/crates/image) crate to decode `avif` images and encode in blurhash.
-- [7zz](https://www.7-zip.org/download.html) CLI for interacting with archive files.
+In production, this is a non-issue since the backend serves both. In development they're 2 separate servers, thus relying on a reverse proxy to re-route them to be under the same origin.
 
-Automatically handled by the `.devcontainer/postinstall.sh` script if you use the devcontainer.
+Install or get the [latest caddy](https://github.com/caddyserver/caddy/releases/latest) binary and run `caddy run -c Caddyfile`
 
-## Architectures
+## Database
+It's highly recommended to use `sqlx::query!` and `sqlx::query_as!` macros exclusively to interact with the database since it
+- uses prepared statements under the hood, avoids SQL injections,
+- verifies SQL syntactic and semantics at compilation, reducing runtime errors (though not all).
 
-<details>
-  <summary>Development</summary>
+## Docker in Docker
+If `dockerd` inside the devcontainer can't start for whatever reason related to the `iptables` executable, change it from `legacy` to `nft` by executing
 
-```mermaid
-flowchart TD
-  caddy["`**caddy server**<br>_apply cert, rewrite headers_`"]
-  server["`**rust server**<br>_serve the APIs_`"]
-  client["`**nitro server**<br>_serve the nuxt client_`"]
-  db["`**postgres database**`"]
-
-  browser <-- <b>https:\/\/</b>localhost:5173 --> caddy
-
-  caddy <-- localhost:3001 --> server
-  caddy <-- localhost:3000 --> client
-  server <-- postgres:5432 --> db
-
-  subgraph db_container["container"]
-    db
-  end
-
-  subgraph devcontainer
-    server
-    client
-    db_container
-  end
-
-  subgraph host_subgraph["host OS"]
-    browser
-    caddy
-    devcontainer
-  end
-
-  style host_subgraph fill:transparent
-  style devcontainer fill:transparent
+```bash
+sudo update-alternatives --config iptables
 ```
-- if you're using wsl, run caddy **on windows, not inside wsl** for it to install the cert into the windows certificate store.
-- the command: `caddy run -c Caddyfile`
-</details>
 
-<details>
-  <summary>Production</summary>
-
-```mermaid
-flowchart LR
-  server["`**rust server**<br>_serve both the APIs<br>and the nuxt client_`"]
-  db["`**postgres<br>database**`"]
-  reverse_proxy["`**reverse proxy<br>_Caddy, NGINX, ..._**`"]
-
-  server <-- postgres:5432 --> db
-  server <-- Yomuyume:8080 --> reverse_proxy
-  reverse_proxy <-- example.com<br>_with TLS_ --> browser
-  server <-- server_ip:8080 --> browser
-
-  subgraph client_os["client OS"]
-    browser
-  end
-  subgraph db_container["container"]
-    db
-  end
-  subgraph server_container["container"]
-    server
-  end
-  subgraph rp_container["container"]
-    reverse_proxy
-  end
-
-  subgraph docker
-    server_container
-    db_container
-    rp_container
-  end
-
-  subgraph server_os["server OS"]
-    reverse_proxy
-    docker
-  end
-
-  style server_os fill:transparent
-  style docker fill:transparent
-  style client_os fill:transparent
-```
-- freely choose where to put the reverse proxy, I just prefer it to be in a container rather than the host OS of the server.
-- skip the reverse proxy entirely and use `your_server_hostname:8080` or `your_server_ip:8080` directly if that's your thing.
-</details>
-
-<details>
-  <summary>Production w/ Cloudflare tunnel</summary>
-
-```mermaid
-  flowchart LR
-    server["`**rust server**<br>_serve both the APIs<br>and the nuxt client_`"]
-    db["`**postgres<br>database**`"]
-    cloudflared["`**cloudflared**`"]
-
-    server <-- postgres:5432 --> db
-    server <-- Yomuyume:8080 --> cloudflared
-    cloudflared <-- secure tunnel --> cloudflare_cdn["`Cloudflare<br>global CDN`"]
-    cloudflare_cdn <-- example.com<br>_with TLS_ --> browser
-
-    subgraph client_os["client OS"]
-      browser
-    end
-    subgraph db_container["container"]
-      db
-    end
-    subgraph server_container["container"]
-      server
-    end
-    subgraph cloudflare_container["container"]
-      cloudflared
-    end
-
-    subgraph docker
-      server_container
-      db_container
-      cloudflare_container
-    end
-
-    subgraph server_os["server OS"]
-      cloudflared
-      docker
-    end
-
-    style server_os fill:transparent
-    style docker fill:transparent
-    style client_os fill:transparent
-```
-- one advantage of this is if you use Cloudflare access to protect applications running on your server, Yomuyume (in the future) can read the authentication headers from Cloudflare and access the app directly without re-login.
-</details>
-
-## Repo structure
-- `.devcontainer/`: everything needed for the development environment
-- `src-rust/benches/`: some micro benchmarks
-- `src-rust/blurhash-webp-wasm/`: some micro benchmarks
-- `src-rust/jxl-webp-wasm/`: some micro benchmarks
-- `src-rust/server/`: the rust server
-- `database/`: schemas, migrations `.sql` files
-- `src-frontend/`: the nuxt spa web client
-
-## Interact with the database
-Using `sqlx::query!()` to achieve compile-time syntactic and semantic checks, but it can only interact with one database inside a Postgres server at a time (there's only one `DATABASE_URL` env var).
-
-As a result, we share the same database for the backend itself and the benchmarks, so try to keep everything in `database/` neat and tidy. `sqltools` allows you to `Run Selected Query` in the context menu, use that.
+and select `/usr/sbin/iptables-nft` (auto mode)
