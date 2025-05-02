@@ -10,97 +10,92 @@ client_dist_dir_abs := justfile_dir() + "/" + client_dist_dir
 default:
     @just --choose
 
-_7z_ver := "2408"
-_7z_location := "src-rust/server/utils/7zz"
-_7z_tar_md5 := "8908df4bec189cd1f314b54724911a36"
-
 install-7z:
-    #!/usr/bin/env bash
-    if [ ! -f "{{ _7z_location }}" ]; then
-        rm -f /tmp/7z.tar.xz {{ _7z_location }}
-        curl -L -o /tmp/7z.tar.xz https://www.7-zip.org/a/7z{{ _7z_ver }}-linux-x64.tar.xz
-        if [ -f /tmp/7z.tar.xz ]; then
-            if [ "$(md5sum /tmp/7z.tar.xz | awk '{print $1}')" = "{{ _7z_tar_md5 }}" ]; then
-                mkdir -p /tmp/7z && tar -xvf /tmp/7z.tar.xz -C /tmp/7z
-                mv /tmp/7z/7zz {{ _7z_location }}
-                rm -rf /tmp/7z2408-linux-x64
-            else
-                echo "7z tarball does not match the expected md5"
-            fi
-        else
-            echo "7z2408-linux-x64.tar.xz not found"
-        fi
-        rm -rf /tmp/7z*
-    fi
+    #!/usr/bin/env zsh
+    ver="2408"
+    curl -L -o /tmp/7z.tar.xz https://www.7-zip.org/a/7z$ver-linux-x64.tar.xz
+    checksum=$(openssl dgst -sha3-512 /tmp/7z.tar.xz | awk '{print $2}')
+    expected="5c0e23cc2575219d5a2962cdf66adfc117454291f80e6786c55267ff1c076e645fb62dbe1d7ab60de9a9de473af602d1e4dbf3cdaaf210379fb84ba1e9eb4996"
 
-dav1d_ver := "1.5.0"
-dav1d_md5 := "dda9e056e8dc95471a1126308c18868d"
+    if [ ! "$checksum" = "$expected" ]; then
+        rm -f /tmp/7z.tar.xz
+        echo "7z tarball checksum failed\nexpected: $expected\ngot: $checksum"
+    else
+        rm -f src-rust/server/utils/7zz
+        tar -xf /tmp/7z.tar.xz -C src-rust/server/utils 7zz
+        [[ -f src-rust/server/utils/7zz ]] || { echo "7z not found"; exit 1; }
+    fi
+    rm -f /tmp/7z.tar.xz
 
 install-dav1d:
     #!/usr/bin/env bash
-    if [ ! -d "/usr/local/lib/dav1d-{{ dav1d_ver }}" ]; then
-        curl -L -o /tmp/dav1d-{{ dav1d_ver }}.tar.gz https://code.videolan.org/videolan/dav1d/-/archive/{{ dav1d_ver }}/dav1d-{{ dav1d_ver }}.tar.gz
-        if [ -f /tmp/dav1d-{{ dav1d_ver }}.tar.gz ]; then
-            if [ "$(md5sum /tmp/dav1d-{{ dav1d_ver }}.tar.gz | awk '{print $1}')" = "{{ dav1d_md5 }}" ]; then
-                sudo mkdir -p /usr/local/lib && sudo tar -xvf /tmp/dav1d-{{ dav1d_ver }}.tar.gz -C /usr/local/lib
-            else
-                echo "dav1d-{{ dav1d_ver }}.tar.gz has been modified"
-            fi
-        else
-            echo "dav1d-{{ dav1d_ver }}.tar.gz not found"
-        fi
-        rm -f /tmp/dav1d-{{ dav1d_ver }}.tar.gz
+    ver="1.5.0"
+    curl -L -o /tmp/dav1d.tar.gz https://code.videolan.org/videolan/dav1d/-/archive/$ver/dav1d-$ver.tar.gz
+    checksum=$(openssl dgst -sha3-512 /tmp/dav1d.tar.gz | awk '{print $2}' | tr -d '\n')
+    expected="eab0a27f56576233b4a23f227df77d761ad566333363ac0f9b8babe83990f672a49fa4d7dc79f4596e78bf2f91465081e2ce289dc6b0f5a2e9d120e0c1504291"
+
+    if [ ! "$checksum" = "$expected" ]; then
+        rm -f /tmp/dav1d.tar.gz
+        echo "dav1d tarball checksum failed"
+        exit 1
+    else
+        sudo rm -rf /usr/local/lib/dav1d-$ver
+        sudo tar -xf /tmp/dav1d.tar.gz -C /usr/local/lib
+        rm -f /tmp/dav1d.tar.gz
     fi
 
     # build dav1d
-    if [ ! -d /usr/local/lib/dav1d-{{ dav1d_ver }}/build ]; then
-        cd /usr/local/lib/dav1d-{{ dav1d_ver }}
+    if [ ! -d /usr/local/lib/dav1d-$ver/build ]; then
+        cd /usr/local/lib/dav1d-$ver
         sudo mkdir build && cd build
         sudo meson setup --default-library=static ..
         sudo ninja
     fi
 
     # install dav1d
-    cd /usr/local/lib/dav1d-{{ dav1d_ver }}/build && sudo ninja install
-
-mold_ver := "2.37.1"
-mold_md5 := "208254dc893403f418b3ab700a199faa"
+    cd /usr/local/lib/dav1d-$ver/build && sudo ninja install
 
 install-mold:
     #!/usr/bin/env bash
-    if [ ! -d /usr/local/cargo/mold-{{ mold_ver }}-x86_64-linux ]; then
-        cd /usr/local/cargo
-        curl -L -o mold.tar.gz https://github.com/rui314/mold/releases/download/v{{ mold_ver }}/mold-{{ mold_ver }}-x86_64-linux.tar.gz
-        if [ "$(md5sum mold.tar.gz | awk '{print $1}')" = "{{ mold_md5 }}" ]; then
-            tar -xvf mold.tar.gz
-            rm -f mold.tar.gz
-        else
-            echo "mold tarball does not match the expected md5"
-        fi
+    ver="2.37.1"
+    curl -L -o /tmp/mold.tar.gz https://github.com/rui314/mold/releases/download/v$ver/mold-$ver-x86_64-linux.tar.gz
+    checksum=$(openssl dgst -sha3-512 /tmp/mold.tar.gz | awk '{print $2}' | tr -d '\n')
+    expected="bab38238011b77430fae4509d62cb7f175845afe6a81e83a10be16570d149fad440d179f93e0d464405749af58ea3581a17e94f7650d88043b359235db1a5545"
+
+    if [ ! "$checksum" = "$expected" ]; then
+        rm -f /tmp/mold.tar.gz
+        echo "mold tarball checksum failed\nexpected: $expected\ngot: $checksum"
+        exit 1
+    else
+        sudo rm -rf /usr/local/cargo/mold-$ver-x86_64-linux
+        sudo tar -xf /tmp/mold.tar.gz -C /usr/local/cargo
+        rm -f /tmp/mold.tar.gz
     fi
 
     # configure cargo to use mold
     rm -f /usr/local/cargo/config.toml
-    printf "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/usr/local/cargo/mold-{{ mold_ver }}-x86_64-linux/bin/mold\"]" > /usr/local/cargo/config.toml
+    printf "[target.x86_64-unknown-linux-gnu]\nlinker = \"clang\"\nrustflags = [\"-C\", \"link-arg=-fuse-ld=/usr/local/cargo/mold-$ver-x86_64-linux/bin/mold\"]" > /usr/local/cargo/config.toml
+    echo "cargo config: \n$(cat /usr/local/cargo/config.toml)"
 
 wasmpack_ver := "0.13.1"
 wasmpack_md5 := "60e58da7aac6ea343fa2500dd92ae061"
 
 install-wasmpack:
     #!/usr/bin/env bash
-    if [ ! -f /usr/local/bin/wasm-pack ]; then
-        curl -L -o /tmp/wasm-pack.tar.gz https://github.com/rustwasm/wasm-pack/releases/download/v{{ wasmpack_ver }}/wasm-pack-v{{ wasmpack_ver }}-x86_64-unknown-linux-musl.tar.gz
-        if [ -f /tmp/wasm-pack.tar.gz ]; then
-            if [ "$(md5sum /tmp/wasm-pack.tar.gz | awk '{print $1}')" = "{{ wasmpack_md5 }}" ]; then
-                tar -xvf /tmp/wasm-pack.tar.gz -C /tmp
-                sudo mv /tmp/wasm-pack-v{{ wasmpack_ver }}-x86_64-unknown-linux-musl/wasm-pack /usr/local/bin
-            else
-                echo "wasm-pack tarball does not match the expected md5"
-            fi
-        else
-            echo "wasm-pack.tar.gz not found"
-        fi
-        rm -rf /tmp/wasm-pack*
+    ver="0.13.1"
+    curl -L -o /tmp/wasm-pack.tar.gz https://github.com/rustwasm/wasm-pack/releases/download/v$ver/wasm-pack-v$ver-x86_64-unknown-linux-musl.tar.gz
+    checksum=$(openssl dgst -sha3-512 /tmp/wasm-pack.tar.gz | awk '{print $2}' | tr -d '\n')
+    expected="e229a8e8c626fbb65bc7b4bb623b4557d80150ae33bacefa81dd2086a5f13c411642f3e5a18614cc81d40e0d759ba275643f07fea4ce6f59015402e8d9669c32"
+
+    if [ ! "$checksum" = "$expected" ]; then
+        rm -f /tmp/wasm-pack.tar.gz
+        echo "wasm-pack tarball checksum failed\nexpected: $expected\ngot: $checksum"
+        exit 1
+    else
+        sudo rm -rf /usr/local/bin/wasm-pack
+        sudo tar -xf /tmp/wasm-pack.tar.gz -C /usr/local/bin --strip-components=1 wasm-pack-v$ver-x86_64-unknown-linux-musl/wasm-pack
+        rm -f /tmp/wasm-pack.tar.gz
+        [[ -f /usr/local/bin/wasm-pack ]] || { echo "wasm-pack not found"; exit 1; }
     fi
 
 install-frontend-deps:
@@ -135,26 +130,29 @@ dev-s: _ensure_client_dist_dir_for_dev
 build-c:
     #!/usr/bin/env zsh
     cd {{ client_dir_abs }} && pnpm nuxt generate
-    # cp .nuxt/dist/client/manifest.webmanifest .output/public/manifest.webmanifest
-
-bh_wsm_dist := client_dir_abs / "components/image/blurhash-webp-wasm"
-bh_wsm_src := rust_dir / "blurhash-webp-wasm"
-jxl_wsm_dist := client_dir_abs / "components/image/jxl-webp-wasm"
-jxl_wsm_src := rust_dir / "jxl-webp-wasm"
+    if [ -f .nuxt/dist/client/manifest.webmanifest ]; then
+        cp .nuxt/dist/client/manifest.webmanifest {{ client_dist_dir_abs }}/manifest.webmanifest
+    fi
 
 _build_blurhash_wasm:
     #!/usr/bin/env zsh
-    rm -rf {{ bh_wsm_dist }}
-    cd {{ bh_wsm_src }}
-    wasm-pack build --target web --out-dir {{ bh_wsm_dist }}
-    rm {{ bh_wsm_dist }}/.gitignore
+    src="{{ rust_dir }}/blurhash-webp-wasm"
+    dist="{{ client_dir_abs }}/components/image/blurhash-webp-wasm"
+
+    rm -rf "$dist"
+    cd "$src"
+    wasm-pack build --target web --out-dir "$dist"
+    rm "$dist/.gitignore"
 
 _build_jxl_wasm:
     #!/usr/bin/env zsh
-    rm -rf {{ jxl_wsm_dist }}
-    cd {{ jxl_wsm_src }}
-    wasm-pack build --target web --out-dir {{ jxl_wsm_dist }}
-    rm {{ jxl_wsm_dist }}/.gitignore
+    src="{{ rust_dir }}/jxl-webp-wasm"
+    dist="{{ client_dir_abs }}/components/image/jxl-webp-wasm"
+
+    rm -rf "$dist"
+    cd "$src"
+    wasm-pack build --target web --out-dir "$dist"
+    rm "$dist/.gitignore"
 
 # build the wasm packages
 build-w:
