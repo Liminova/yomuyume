@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS session_tokens (
     id BIGINT PRIMARY KEY,
     session_secret TEXT NOT NULL,
     user_id BIGINT NOT NULL,
-    last_used_at TIMESTAMP WITH TIME ZONE,
+    last_used_at TIMESTAMP WITH TIME ZONE NOT NULL,
     user_agent TEXT,
     ip_address TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
