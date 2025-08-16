@@ -1,13 +1,13 @@
 # Nuxt dev/build outputs
-src-frontend/.output
-src-frontend/.data
-src-frontend/.nuxt
-src-frontend/.nitro
-src-frontend/.cache
-src-frontend/dist
+client/.output
+client/.data
+client/.nuxt
+client/.nitro
+client/.cache
+client/dist
 
 # Node dependencies
-src-frontend/node_modules
+client/node_modules
 .pnpm-store
 node_modules
 
@@ -30,16 +30,9 @@ target
 .eslintcache
 *.db
 
-.vscode
 docker-compose.yml
-.devcontainer/dav1d*
-.devcontainer/7zz
-*.zip
+!.devcontainer/docker-compose.yml
 /library
-*.jxl
 
 Main.session.sql
 7zz
-
-src-frontend/components/image/blurhash-webp-wasm/
-src-frontend/components/image/jxl-webp-wasm/
