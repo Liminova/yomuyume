@@ -1,22 +1,24 @@
 <script setup lang="ts">
-import { useDebounceFn } from "@vueuse/core";
-import { onMounted, onUnmounted, ref } from "vue";
-
-import { definePageMeta } from "#imports";
-import ChipSection from "~/components/filter/ChipSection.vue";
+import { definePageMeta } from '#imports'
+import { useDebounceFn } from '@vueuse/core'
+import { onMounted, onUnmounted, ref } from 'vue'
+import Toggle from '~/components/Toggle.vue'
+import ChipSection from '~/components/filter/ChipSection.vue'
 import {
 	FilterReadingStatus,
 	FilterSortBy,
 	FilterSortOrder,
-	FilterType,
-} from "~/components/filter/FilterType";
-import TitleCard from "~/components/title/TitleCard.vue";
-import Toggle from "~/components/Toggle.vue";
-import Input from "~/components/ui/Input.vue";
-import { type BaseTitleResponse, useGetCategories } from "~/composables/api/content";
-import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
+	FilterType
+} from '~/components/filter/FilterType'
+import TitleCard from '~/components/title/TitleCard.vue'
+import Input from '~/components/ui/Input.vue'
+import {
+	type BaseTitleResponse,
+	useGetCategories
+} from '~/composables/api/content'
+import { getSwiperBreakpoint } from '~/lib/swiper-break-points'
 
-definePageMeta({ layout: "nav-drawer", middleware: ["auth"] });
+definePageMeta({ layout: 'nav-drawer', middleware: ['auth'] })
 
 // Key: category id, Value: category name
 // const categories = ref<Record<string, string>>({});
@@ -35,71 +37,73 @@ definePageMeta({ layout: "nav-drawer", middleware: ["auth"] });
 // 	}
 // })();
 
-const categories = useGetCategories();
+const categories = useGetCategories()
 
 // For the result grid styling =================================================
 
-const imageContainerRef = ref<HTMLElement | null>(null);
-const imagePerRow = ref(5);
-const spaceBetween = ref(16);
+const imageContainerRef = ref<HTMLElement | null>(null)
+const imagePerRow = ref(5)
+const spaceBetween = ref(16)
 
 // Results =====================================================================
 
-const filteredTitles = ref<BaseTitleResponse[]>([]); /** found titles */
-const filteredTitlesToDisplay = ref<BaseTitleResponse[]>([]);
+const filteredTitles = ref<BaseTitleResponse[]>([]) /** found titles */
+const filteredTitlesToDisplay = ref<BaseTitleResponse[]>([])
 
 function fetchMoreResult(): void {
-	const howFarFromBottom = document.body.getBoundingClientRect().bottom - window.innerHeight;
+	const howFarFromBottom =
+		document.body.getBoundingClientRect().bottom - window.innerHeight
 
 	if (howFarFromBottom < 200) {
 		const newTitles = filteredTitles.value.slice(
 			filteredTitlesToDisplay.value.length,
-			filteredTitlesToDisplay.value.length + imagePerRow.value * 3,
-		);
+			filteredTitlesToDisplay.value.length + imagePerRow.value * 3
+		)
 
-		filteredTitlesToDisplay.value = filteredTitlesToDisplay.value.concat(newTitles);
+		filteredTitlesToDisplay.value =
+			filteredTitlesToDisplay.value.concat(newTitles)
 	}
 }
 
 const observer = new ResizeObserver(() => {
-	const breakPoint = getSwiperBreakpoint();
+	const breakPoint = getSwiperBreakpoint()
 
-	imagePerRow.value = breakPoint.slidesPerView;
-	spaceBetween.value = breakPoint.spaceBetween;
-});
+	imagePerRow.value = breakPoint.slidesPerView
+	spaceBetween.value = breakPoint.spaceBetween
+})
 
-const debouncedFetchMoreResult = useDebounceFn(fetchMoreResult);
+const debouncedFetchMoreResult = useDebounceFn(fetchMoreResult)
 
 onMounted(() => {
-	window.addEventListener("scroll", debouncedFetchMoreResult);
+	window.addEventListener('scroll', debouncedFetchMoreResult)
 	if (imageContainerRef.value === null) {
-		return;
+		return
 	}
 
-	observer.observe(imageContainerRef.value);
-});
+	observer.observe(imageContainerRef.value)
+})
 
 onUnmounted(() => {
-	window.removeEventListener("scroll", debouncedFetchMoreResult);
-	observer.disconnect();
-});
+	window.removeEventListener('scroll', debouncedFetchMoreResult)
+	observer.disconnect()
+})
 
 // Chips variables =============================================================
 
-const keywords = ref<string>("");
-const inCategories = ref(new Set<string>());
-const readingStatus = ref<string[]>([]);
-const sortBy = ref("");
-const sortOrder = ref("");
+const keywords = ref<string>('')
+const inCategories = ref(new Set<string>())
+const readingStatus = ref<string[]>([])
+const sortBy = ref('')
+const sortOrder = ref('')
 
 function chipCategoryHandler(eventTarget: HTMLElement): void {
-	const uuid = eventTarget.getAttribute("uuid") ?? "";
-	const selected = eventTarget.getAttribute("selected") === null;
+	const uuid = eventTarget.getAttribute('uuid') ?? ''
+	const selected = eventTarget.getAttribute('selected') === null
 
 	if (selected) {
-		inCategories.value.add(uuid);
+		inCategories.value.add(uuid)
 	} else {
-		inCategories.value.delete(uuid);
+		inCategories.value.delete(uuid)
 	}
 }
 
@@ -137,33 +141,35 @@ function chipCategoryHandler(eventTarget: HTMLElement): void {
 				v-model="keywords"
 				label="filter by keywords"
 				value=""
-				class="my-4 max-w-sm" />
+				class="my-4 max-w-sm"
+			/>
 
 			<ChipSection
 				title="Status"
 				:filter-type="FilterType.ReadingStatus"
 				:filter-type-posible-val="FilterReadingStatus"
 				@add="readingStatus.push($event)"
-				@delete="readingStatus.splice(readingStatus.indexOf($event), 1)" />
+				@delete="readingStatus.splice(readingStatus.indexOf($event), 1)"
+			/>
 
 			<ChipSection
 				title="Sort by"
 				:filter-type="FilterType.SortResult"
 				:filter-type-posible-val="FilterSortBy"
 				is-overwrite
-				@overwrite="sortBy = $event" />
+				@overwrite="sortBy = $event"
+			/>
 
 			<ChipSection
 				title="Sort order"
 				:filter-type="FilterType.SortOrder"
 				:filter-type-posible-val="FilterSortOrder"
 				is-overwrite
-				@overwrite="sortOrder = $event" />
+				@overwrite="sortOrder = $event"
+			/>
 
 			<div class="flex flex-row flex-wrap items-center gap-4">
-				<div class="text-xl font-semibold">
-					in category
-				</div>
+				<div class="text-xl font-semibold">in category</div>
 				<!-- <md-chip-set class="flex-rows flex">
 						<md-filter-chip
 							v-for="{ id, name } in categories.data.value"
@@ -177,26 +183,24 @@ function chipCategoryHandler(eventTarget: HTMLElement): void {
 
 		<!-- Result region -->
 		<Toggle :show="filteredTitles.length > 0">
-			<div class="mb-8 mt-10 text-4xl font-bold">
-				Here's what I found
-			</div>
+			<div class="mb-8 mt-10 text-4xl font-bold">Here's what I found</div>
 		</Toggle>
 		<Toggle :show="filteredTitles.length === 0">
-			<div class="mb-8 mt-10 text-4xl font-bold">
-				Can't find anything
-			</div>
+			<div class="mb-8 mt-10 text-4xl font-bold">Can't find anything</div>
 		</Toggle>
 		<div
 			ref="imageContainerRef"
 			class="grid"
 			:style="{
 				gridTemplateColumns: `repeat(${imagePerRow}, 1fr)`,
-				gap: `${spaceBetween}px`,
-			}">
+				gap: `${spaceBetween}px`
+			}"
+		>
 			<NuxtLink
 				v-for="title in filteredTitlesToDisplay"
 				:key="title.id"
-				:to="`title/${title.id}`">
+				:to="`title/${title.id}`"
+			>
 				>
 				<TitleCard :title="title" />
 			</NuxtLink>

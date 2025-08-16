@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { Toaster, type ToasterProps } from "vue-sonner";
+import { Toaster, type ToasterProps } from 'vue-sonner'
 
-const props = defineProps<ToasterProps>();
+const props = defineProps<ToasterProps>()
 </script>
 
 <template>
@@ -15,7 +15,8 @@ const props = defineProps<ToasterProps>();
 				actionButton:
 					'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
 				cancelButton:
-					'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
-			},
-		}" />
+					'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground'
+			}
+		}"
+	/>
 </template>

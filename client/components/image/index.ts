@@ -1,3 +1,3 @@
-import { default as Image } from "./Image.vue";
+import { default as Image } from './Image.vue'
 
-export default Image;
+export default Image

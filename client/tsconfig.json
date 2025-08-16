@@ -9,6 +9,6 @@
 		"docs",
 		"library",
 		"src-rust",
-		"target",
-	],
+		"target"
+	]
 }

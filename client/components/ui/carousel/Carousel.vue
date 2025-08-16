@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { cn } from "~/lib/utils";
-
-import type { CarouselProps, WithClassAsProps } from "./interface";
-import { createCarouselInject } from "./use-carousel";
+import type { CarouselProps, WithClassAsProps } from './interface'
+import { createCarouselInject } from './use-carousel'
+import { cn } from '~/lib/utils'
 
 const props = withDefaults(defineProps<CarouselProps & WithClassAsProps>(), {
-	orientation: "horizontal",
-});
+	orientation: 'horizontal'
+})
 
 const {
 	carouselApi,
@@ -15,8 +14,8 @@ const {
 	canScrollNext,
 	canScrollPrev,
 	scrollNext,
-	scrollPrev,
-} = createCarouselInject(props);
+	scrollPrev
+} = createCarouselInject(props)
 
 defineExpose({
 	carouselApi,
@@ -25,21 +24,22 @@ defineExpose({
 	canScrollNext,
 	canScrollPrev,
 	scrollNext,
-	scrollPrev,
-});
+	scrollPrev
+})
 
 function onKeyDown(event: KeyboardEvent): void {
-	const prevKey = props.orientation === "vertical" ? "ArrowUp" : "ArrowLeft";
-	const nextKey = props.orientation === "vertical" ? "ArrowDown" : "ArrowRight";
+	const prevKey = props.orientation === 'vertical' ? 'ArrowUp' : 'ArrowLeft'
+	const nextKey =
+		props.orientation === 'vertical' ? 'ArrowDown' : 'ArrowRight'
 
 	if (event.key === prevKey) {
-		event.preventDefault();
-		scrollPrev();
-		return;
+		event.preventDefault()
+		scrollPrev()
+		return
 	}
 	if (event.key === nextKey) {
-		event.preventDefault();
-		scrollNext();
+		event.preventDefault()
+		scrollNext()
 	}
 }
 </script>
@@ -50,7 +50,8 @@ function onKeyDown(event: KeyboardEvent): void {
 		role="region"
 		aria-roledescription="carousel"
 		tabindex="0"
-		@keydown="onKeyDown">
+		@keydown="onKeyDown"
+	>
 		<slot
 			:can-scroll-next
 			:can-scroll-prev
@@ -58,6 +59,7 @@ function onKeyDown(event: KeyboardEvent): void {
 			:carousel-ref
 			:orientation
 			:scroll-next
-			:scroll-prev />
+			:scroll-prev
+		/>
 	</div>
 </template>

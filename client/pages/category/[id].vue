@@ -1,37 +1,38 @@
 <script setup lang="ts">
-import { useRoute } from "nuxt/app";
-import { onMounted, onUnmounted, ref } from "vue";
+import { definePageMeta } from '#imports'
+import { useRoute } from 'nuxt/app'
+import { onMounted, onUnmounted, ref } from 'vue'
+import TitleCard from '~/components/title/TitleCard.vue'
+import { useContentSearchTitle } from '~/composables/api/content'
+import { getSwiperBreakpoint } from '~/lib/swiper-break-points'
 
-import { definePageMeta } from "#imports";
-import TitleCard from "~/components/title/TitleCard.vue";
-import { useContentSearchTitle } from "~/composables/api/content";
-import { getSwiperBreakpoint } from "~/lib/swiper-break-points";
+definePageMeta({ layout: 'nav-drawer' })
 
-definePageMeta({ layout: "nav-drawer" });
-
-const imagePerRow = ref(5);
-const spaceBetween = ref(16);
+const imagePerRow = ref(5)
+const spaceBetween = ref(16)
 
 const searchResults = useContentSearchTitle({
-	category_ids: [useRoute().params.id as string],
-});
+	category_ids: [useRoute().params.id as string]
+})
 
 const observer = new ResizeObserver(() => {
-	const breakPoint = getSwiperBreakpoint();
+	const breakPoint = getSwiperBreakpoint()
 
-	imagePerRow.value = breakPoint.slidesPerView;
-	spaceBetween.value = breakPoint.spaceBetween;
-});
+	imagePerRow.value = breakPoint.slidesPerView
+	spaceBetween.value = breakPoint.spaceBetween
+})
 
-const imageContainerRef = ref<HTMLElement | null>(null);
+const imageContainerRef = ref<HTMLElement | null>(null)
 onMounted(() => {
-	if (imageContainerRef.value === null) { return; }
-	observer.observe(imageContainerRef.value);
-});
+	if (imageContainerRef.value === null) {
+		return
+	}
+	observer.observe(imageContainerRef.value)
+})
 
 onUnmounted(() => {
-	observer.disconnect();
-});
+	observer.disconnect()
+})
 </script>
 
 <template>
@@ -42,19 +43,22 @@ onUnmounted(() => {
 			class="my-3 grid px-6 lg:mt-0 lg:pl-0 lg:pr-3"
 			:style="{
 				gridTemplateColumns: `repeat(${imagePerRow}, 1fr)`,
-				gap: `${spaceBetween}px`,
-			}">
+				gap: `${spaceBetween}px`
+			}"
+		>
 			<NuxtLink
 				v-for="title in searchResults.flattened.value"
 				:key="title.id"
-				:to="`/title/${title.id}`">
+				:to="`/title/${title.id}`"
+			>
 				<TitleCard :title="title" />
 			</NuxtLink>
 		</div>
 
 		<div
 			v-if="searchResults.flattened.value?.length === 0"
-			class="w-full py-10 text-center">
+			class="w-full py-10 text-center"
+		>
 			This category is empty.
 		</div>
 	</div>

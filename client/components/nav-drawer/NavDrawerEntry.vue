@@ -1,25 +1,27 @@
 <script setup lang="ts">
-import { type NuxtLinkProps, useRoute } from "nuxt/app";
-import { computed } from "vue";
+import { NuxtLink } from '#components'
+import { type NuxtLinkProps, useRoute } from 'nuxt/app'
+import { computed } from 'vue'
+import { useDrawerStore } from '~/composables/use-drawer-store'
 
-import { NuxtLink } from "#components";
-import { useDrawerStore } from "~/composables/use-drawer-store";
+const props = withDefaults(
+	defineProps<{
+		name: string
+		to: NuxtLinkProps['to']
+		count?: string
+	}>(),
+	{
+		bgActive: true,
+		count: undefined
+	}
+)
 
-const props = withDefaults(defineProps<{
-	name: string;
-	to: NuxtLinkProps["to"];
-	count?: string;
-}>(), {
-	bgActive: true,
-	count: undefined,
-});
+const navDrawerStore = useDrawerStore()
 
-const navDrawerStore = useDrawerStore();
-
-const active = computed(() => useRoute().path === props.to);
+const active = computed(() => useRoute().path === props.to)
 
 if (window.innerWidth <= 1024) {
-	navDrawerStore.isDrawerExpanded = true;
+	navDrawerStore.isDrawerExpanded = true
 }
 </script>
 
@@ -30,36 +32,46 @@ if (window.innerWidth <= 1024) {
 			class="peer"
 			:class="{
 				'xl:rounded-[1.75rem]': navDrawerStore.expanded,
-				'xl:rounded-2xl': !navDrawerStore.expanded,
-			}">
+				'xl:rounded-2xl': !navDrawerStore.expanded
+			}"
+		>
 			<div
 				:name="props.name"
 				class="relative grid h-14 items-center gap-3 self-center pl-4 pr-6 max-xl:grid-cols-[1.5rem_1fr_1.5rem] max-xl:rounded-[1.75rem]"
 				:class="{
-					'lg:grid-cols-[1.5rem_1fr_1.5rem] lg:rounded-[1.75rem]': navDrawerStore.expanded,
-					'lg:grid-cols-[1.5rem_0fr_0fr] lg:rounded-2xl': !navDrawerStore.expanded,
+					'lg:grid-cols-[1.5rem_1fr_1.5rem] lg:rounded-[1.75rem]':
+						navDrawerStore.expanded,
+					'lg:grid-cols-[1.5rem_0fr_0fr] lg:rounded-2xl':
+						!navDrawerStore.expanded,
 					'bg-primary-foreground': active,
-					'hover:bg-muted': !active,
+					'hover:bg-muted': !active
 				}"
 				:style="{
-					transition: 'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), \
+					transition:
+						'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), \
 					border-radius 300ms cubic-bezier(0.4, 0, 0.2, 1), \
-					grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-				}">
+					grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+				}"
+			>
 				<div
 					class="flex size-6 items-center justify-center"
-					:class="active ? 'text-primary' : 'text-primary'">
+					:class="active ? 'text-primary' : 'text-primary'"
+				>
 					<slot />
 				</div>
 				<div
 					class="min-w-0 overflow-hidden whitespace-nowrap text-sm"
-					:class="active ? 'text-primary font-semibold' : 'text-primary'">
+					:class="
+						active ? 'text-primary font-semibold' : 'text-primary'
+					"
+				>
 					{{ props.name }}
 				</div>
 				<div
 					v-if="props.count"
 					class="min-w-0 overflow-hidden"
-					:class="active ? 'text-primary' : 'text-primary'">
+					:class="active ? 'text-primary' : 'text-primary'"
+				>
 					{{ props.count }}
 				</div>
 			</div>
@@ -71,10 +83,12 @@ if (window.innerWidth <= 1024) {
 			:class="navDrawerStore.expanded ? 'hidden' : ''"
 			:style="{
 				transition:
-					'opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-			}">
+					'opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1)'
+			}"
+		>
 			<div
-				class="whitespace-nowrap rounded-xl bg-primary-foreground px-4 py-3">
+				class="whitespace-nowrap rounded-xl bg-primary-foreground px-4 py-3"
+			>
 				{{ props.name }}
 			</div>
 		</div>

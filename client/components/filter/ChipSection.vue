@@ -1,53 +1,56 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import type { FilterType } from './FilterType'
+import type { FilterTypePosibleVal } from './FilterType.js'
+import { ref } from 'vue'
 
-import type { FilterType } from "./FilterType";
-import type { FilterTypePosibleVal } from "./FilterType.js";
+const props = withDefaults(
+	defineProps<{
+		title: string
+		filterTypePosibleVal: FilterTypePosibleVal
+		filterType: FilterType
+		isOverwrite?: boolean
+		currentStateForOverwrite?: string
+	}>(),
+	{
+		isOverwrite: false,
+		currentStateForOverwrite: ''
+	}
+)
 
-const props = withDefaults(defineProps<{
-	title: string;
-	filterTypePosibleVal: FilterTypePosibleVal;
-	filterType: FilterType;
-	isOverwrite?: boolean;
-	currentStateForOverwrite?: string;
-}>(), {
-	isOverwrite: false,
-	currentStateForOverwrite: "",
-});
+const emit = defineEmits(['add', 'delete', 'overwrite'])
 
-const emit = defineEmits(["add", "delete", "overwrite"]);
-
-const chipSet = ref<HTMLElement | null>(null);
+const chipSet = ref<HTMLElement | null>(null)
 
 function chipHandler(eventTarget: HTMLElement): void {
-	const label = eventTarget.shadowRoot?.querySelector(".label")?.textContent ?? "";
-	const selected = eventTarget.getAttribute("selected") === null;
+	const label =
+		eventTarget.shadowRoot?.querySelector('.label')?.textContent ?? ''
+	const selected = eventTarget.getAttribute('selected') === null
 
 	if (!selected) {
-		emit("delete", label);
-		return;
+		emit('delete', label)
+		return
 	}
 
 	if (props.isOverwrite) {
-		emit("overwrite", label);
+		emit('overwrite', label)
 		if (!chipSet.value) {
-			return;
+			return
 		}
 
-		const chips = chipSet.value.querySelectorAll("md-filter-chip");
+		const chips = chipSet.value.querySelectorAll('md-filter-chip')
 
 		for (const chip of chips) {
 			if (chip === eventTarget) {
-				continue;
+				continue
 			}
 
-			chip.removeAttribute("selected");
+			chip.removeAttribute('selected')
 		}
 
-		return;
+		return
 	}
 
-	emit("add", label);
+	emit('add', label)
 }
 </script>
 

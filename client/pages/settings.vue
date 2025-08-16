@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { definePageMeta } from "#imports";
+import { definePageMeta } from '#imports'
 
-definePageMeta({ layout: "nav-drawer", middleware: ["auth"] });
+definePageMeta({ layout: 'nav-drawer', middleware: ['auth'] })
 </script>
 
 <template>
-	<div>
-		Account Settings
-	</div>
+	<div>Account Settings</div>
 </template>

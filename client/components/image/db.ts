@@ -1,126 +1,132 @@
 export interface JpegXLInDB {
-	id: string;
-	data: Uint8Array;
+	id: string
+	data: Uint8Array
 }
 
 export interface BlurHashInDB {
-	id: string;
-	data: Uint8Array;
+	id: string
+	data: Uint8Array
 }
 
 export enum StoreName {
+	BLURHASH = 'blurhash',
 
-	BLURHASH = "blurhash",
-
-	JPEGXL = "jpegxl",
+	JPEGXL = 'jpegxl'
 }
 
-const DB_NAME = "yomuyume";
-const DB_VERSION = 20250128;
+const DB_NAME = 'yomuyume'
+const DB_VERSION = 20250128
 
-let db: IDBDatabase | null = null;
+let db: IDBDatabase | null = null
 
 // Initialize the database connection
 function initDB(): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
 		if (db) {
-			resolve(db);
-			return;
+			resolve(db)
+			return
 		}
 
-		const request = indexedDB.open(DB_NAME, DB_VERSION);
+		const request = indexedDB.open(DB_NAME, DB_VERSION)
 
 		request.onerror = (event): void => {
 			// @ts-expect-error idk
-			reject(new Error(`Failed to open database: ${event.target?.error}`));
-		};
+			reject(new Error(`Failed to open database: ${event.target?.error}`))
+		}
 
 		request.onsuccess = (event): void => {
-			db = (event.target as IDBOpenDBRequest).result;
-			resolve(db);
-		};
+			db = (event.target as IDBOpenDBRequest).result
+			resolve(db)
+		}
 
 		request.onupgradeneeded = (event): void => {
-			const db = (event.target as IDBOpenDBRequest).result;
-			const oldVersion = event.oldVersion;
-			const newVersion = event.newVersion;
+			const db = (event.target as IDBOpenDBRequest).result
+			const oldVersion = event.oldVersion
+			const newVersion = event.newVersion
 
 			// Remove existing stores if version changed
-			if (newVersion !== null
-				&& db.objectStoreNames.contains(StoreName.BLURHASH)
-				&& db.objectStoreNames.contains(StoreName.JPEGXL)
-				&& oldVersion !== newVersion) {
-				db.deleteObjectStore(StoreName.BLURHASH);
-				db.deleteObjectStore(StoreName.JPEGXL);
+			if (
+				newVersion !== null &&
+				db.objectStoreNames.contains(StoreName.BLURHASH) &&
+				db.objectStoreNames.contains(StoreName.JPEGXL) &&
+				oldVersion !== newVersion
+			) {
+				db.deleteObjectStore(StoreName.BLURHASH)
+				db.deleteObjectStore(StoreName.JPEGXL)
 			}
 
 			// Create stores if they don't exist
 			if (!db.objectStoreNames.contains(StoreName.BLURHASH)) {
 				db.createObjectStore(StoreName.BLURHASH, {
-					keyPath: "id",
-					autoIncrement: false,
-				});
+					keyPath: 'id',
+					autoIncrement: false
+				})
 			}
 			if (!db.objectStoreNames.contains(StoreName.JPEGXL)) {
 				db.createObjectStore(StoreName.JPEGXL, {
-					keyPath: "id",
-					autoIncrement: false,
-				});
+					keyPath: 'id',
+					autoIncrement: false
+				})
 			}
-		};
-	});
+		}
+	})
 }
 
 // Initialize the database connection when the module is imported
-const dbInitPromise = initDB();
+const dbInitPromise = initDB()
 
 export async function getPageInDB(
 	id: string,
-	type: StoreName.JPEGXL | StoreName.BLURHASH,
+	type: StoreName.JPEGXL | StoreName.BLURHASH
 ): Promise<JpegXLInDB | BlurHashInDB | undefined> {
-	await dbInitPromise;
+	await dbInitPromise
 
 	return new Promise((resolve, reject) => {
 		if (!db) {
-			reject(new Error("Database not initialized"));
-			return;
+			reject(new Error('Database not initialized'))
+			return
 		}
 
-		const transaction = db.transaction(type, "readonly");
-		const store = transaction.objectStore(type);
-		const request = store.get(id);
+		const transaction = db.transaction(type, 'readonly')
+		const store = transaction.objectStore(type)
+		const request = store.get(id)
 
 		request.onerror = (): void => {
-			reject(new Error(`Failed to get item with id ${id} from ${type}`));
-		};
+			reject(new Error(`Failed to get item with id ${id} from ${type}`))
+		}
 
 		request.onsuccess = (): void => {
-			resolve(request.result as JpegXLInDB | BlurHashInDB | undefined);
-		};
-	});
+			resolve(request.result as JpegXLInDB | BlurHashInDB | undefined)
+		}
+	})
 }
 
-export async function setPageInDB(
-	{ page, type }: { page: JpegXLInDB; type: StoreName.JPEGXL } | { page: BlurHashInDB; type: StoreName.BLURHASH },
-): Promise<void> {
-	await dbInitPromise;
+export async function setPageInDB({
+	page,
+	type
+}:
+	| { page: JpegXLInDB; type: StoreName.JPEGXL }
+	| { page: BlurHashInDB; type: StoreName.BLURHASH }): Promise<void> {
+	await dbInitPromise
 
 	return new Promise((resolve, reject): void => {
 		if (!db) {
-			reject(new Error("Database not initialized"));
-			return;
+			reject(new Error('Database not initialized'))
+			return
 		}
 
-		const transaction = db.transaction(type, "readwrite");
-		const store = transaction.objectStore(type);
-		const request = store.put(page);
+		const transaction = db.transaction(type, 'readwrite')
+		const store = transaction.objectStore(type)
+		const request = store.put(page)
 
 		request.onerror = (): void => {
-			reject(new Error(`Failed to store item with id ${page.id} in ${type}`));
-		};
+			reject(
+				new Error(`Failed to store item with id ${page.id} in ${type}`)
+			)
+		}
 
 		request.onsuccess = (): void => {
-			resolve();
-		};
-	});
+			resolve()
+		}
+	})
 }

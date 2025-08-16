@@ -1,95 +1,104 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { toast } from "vue-sonner";
+import { definePageMeta, navigateTo } from '#imports'
+import { computed, ref } from 'vue'
+import { toast } from 'vue-sonner'
+import Button from '~/components/ui/Button.vue'
+import Input from '~/components/ui/Input.vue'
+import { useAuthForgot } from '~/composables/api/auth'
 
-import { definePageMeta, navigateTo } from "#imports";
-import Button from "~/components/ui/Button.vue";
-import Input from "~/components/ui/Input.vue";
-import { useAuthForgot } from "~/composables/api/auth";
+definePageMeta({ layout: 'auth', middleware: ['reverse-auth'] })
 
-definePageMeta({ layout: "auth", middleware: ["reverse-auth"] });
-
-const codeSent = ref(false);
-const code = ref("");
-const email = ref("");
-const newPassword = ref("");
-const newPasswordRetype = ref("");
+const codeSent = ref(false)
+const code = ref('')
+const email = ref('')
+const newPassword = ref('')
+const newPasswordRetype = ref('')
 const retypeMatch = computed(() => {
-	if (newPassword.value === "") { return true; }
-	return newPassword.value === newPasswordRetype.value;
-});
+	if (newPassword.value === '') {
+		return true
+	}
+	return newPassword.value === newPasswordRetype.value
+})
 
-const resetPassword = useAuthForgot();
+const resetPassword = useAuthForgot()
 function handleSendRequestResetPassword(): void {
-	resetPassword.mutate({
-		email: email.value,
-	}, {
-		onSuccess() {
-			toast.success("Code sent to your email");
-			codeSent.value = true;
+	resetPassword.mutate(
+		{
+			email: email.value
 		},
-		onError(error) {
-			toast.error("Can't send code", {
-				description: error.message,
-			});
-		},
-	});
+		{
+			onSuccess() {
+				toast.success('Code sent to your email')
+				codeSent.value = true
+			},
+			onError(error) {
+				toast.error("Can't send code", {
+					description: error.message
+				})
+			}
+		}
+	)
 }
 
 function handleConfirmResetPassword(): void {
-	resetPassword.mutate({
-		email: email.value,
-		code: code.value,
-		new_password: newPassword.value,
-	}, {
-		onSuccess() {
-			toast.success("Password reset successfully");
-			void navigateTo("/auth/login");
+	resetPassword.mutate(
+		{
+			email: email.value,
+			code: code.value,
+			new_password: newPassword.value
 		},
-		onError(error) {
-			toast.error("Can't reset password", {
-				description: error.message,
-			});
-		},
-	});
+		{
+			onSuccess() {
+				toast.success('Password reset successfully')
+				void navigateTo('/auth/login')
+			},
+			onError(error) {
+				toast.error("Can't reset password", {
+					description: error.message
+				})
+			}
+		}
+	)
 }
 
-const canSendRequest = computed(() => email.value !== "" && !resetPassword.isPending.value);
+const canSendRequest = computed(
+	() => email.value !== '' && !resetPassword.isPending.value
+)
 </script>
 
 <template>
-	<Toggle
-		:show="!codeSent"
-		class="col-span-2">
+	<Toggle :show="!codeSent" class="col-span-2">
 		<div class="grid w-full grid-cols-[auto,auto] gap-2">
 			<Input
 				v-model="email"
 				label="Email"
-				@keydown.enter="handleSendRequestResetPassword" />
+				@keydown.enter="handleSendRequestResetPassword"
+			/>
 
 			<Button
 				class="z-10 self-center"
 				:disabled="!canSendRequest"
 				variant="link"
-				@click="handleSendRequestResetPassword">
+				@click="handleSendRequestResetPassword"
+			>
 				Send code
 			</Button>
 		</div>
 	</Toggle>
 
-	<Toggle
-		:show="codeSent"
-		class="col-span-2 space-y-3">
+	<Toggle :show="codeSent" class="col-span-2 space-y-3">
 		<Input
 			v-model="code"
 			class="w-full"
 			label="Code sent to your email"
-			:disabled="!codeSent" />
+			:disabled="!codeSent"
+		/>
 		<Input
 			v-model="newPassword"
 			class="w-full"
 			label="New password"
-			:disabled="!codeSent" />
+			:disabled="!codeSent"
+		/>
 		<Input
 			v-model="newPasswordRetype"
 			class="w-full"
@@ -98,11 +107,13 @@ const canSendRequest = computed(() => email.value !== "" && !resetPassword.isPen
 			supporting-text="Passwords do not match"
 			:show-supporting-text="!retypeMatch"
 			:style="retypeMatch ? 'default' : 'destructive'"
-			@keydown.enter="handleConfirmResetPassword" />
+			@keydown.enter="handleConfirmResetPassword"
+		/>
 		<Button
 			class="w-full"
 			:disabled="!codeSent"
-			@click="handleConfirmResetPassword">
+			@click="handleConfirmResetPassword"
+		>
 			Reset password
 		</Button>
 	</Toggle>
@@ -110,7 +121,12 @@ const canSendRequest = computed(() => email.value !== "" && !resetPassword.isPen
 	<Button
 		class="z-10 col-span-2 w-full"
 		variant="outline"
-		@click="() => { void navigateTo('/auth/login'); }">
+		@click="
+			() => {
+				void navigateTo('/auth/login')
+			}
+		"
+	>
 		Back to login
 	</Button>
 </template>

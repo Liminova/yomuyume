@@ -1,48 +1,53 @@
-import path from "node:path";
-import { VitePWA } from "vite-plugin-pwa";
-import wasm from "vite-plugin-wasm";
+import path from 'node:path'
+import { defineNuxtConfig } from 'nuxt/config'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineNuxtConfig({
 	app: {
 		head: {
-			title: "Yomuyume",
+			title: 'Yomuyume',
 			meta: [
-				{ charset: "utf-8" },
-				{ name: "viewport", content: "width=device-width, initial-scale=1" },
-			],
-		},
+				{ charset: 'utf-8' },
+				{
+					name: 'viewport',
+					content: 'width=device-width, initial-scale=1'
+				}
+			]
+		}
 	},
 	vue: {
 		compilerOptions: {
-			isCustomElement: (tag: string) => tag.startsWith("swiper-"),
-		},
+			isCustomElement: (tag: string) => tag.startsWith('swiper-')
+		}
 	},
 	postcss: {
 		plugins: {
 			tailwindcss: {},
-			autoprefixer: {},
-		},
+			autoprefixer: {}
+		}
 	},
-	css: ["assets/css/index.css"],
-	modules: ["@vite-pwa/nuxt"],
+	css: ['assets/css/index.css'],
+	modules: ['@vite-pwa/nuxt'],
 	experimental: {
 		viewTransition: true,
-		typedPages: true,
+		typedPages: true
 	},
 	vite: {
 		resolve: {
 			alias: {
-				"~": path.resolve(__dirname, "./"),
-			},
+				'~': path.resolve(__dirname, './')
+			}
 		},
-		build: { target: "esnext" },
-		plugins: [wasm(), VitePWA({
-			registerType: "autoUpdate",
-			injectRegister: "auto",
-		})],
+		build: { target: 'esnext' },
+		plugins: [
+			VitePWA({
+				registerType: 'autoUpdate',
+				injectRegister: 'auto'
+			})
+		]
 	},
 	ssr: false,
 	imports: { scan: false, autoImport: false },
 	components: false,
-	compatibilityDate: "2024-08-15",
-});
+	compatibilityDate: '2024-08-15'
+})

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { swiperBreakpoints } from "~/lib/swiper-break-points";
+import { swiperBreakpoints } from '~/lib/swiper-break-points'
 </script>
 
 <template>
@@ -7,7 +7,8 @@ import { swiperBreakpoints } from "~/lib/swiper-break-points";
 		class="w-full overflow-hidden rounded-t-xl"
 		:space-between="18"
 		:slides-per-view="2"
-		:breakpoints="swiperBreakpoints">
+		:breakpoints="swiperBreakpoints"
+	>
 		<slot />
 	</swiper-container>
 </template>

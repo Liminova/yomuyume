@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import { NuxtLink } from "#components";
-import Image from "~/components/image";
-import { GET_COVER_FILE_PATH } from "~/composables/api/common";
-import type { InnerSearchResponseTitle } from "~/composables/api/content";
+import { NuxtLink } from '#components'
+import Image from '~/components/image'
+import { GET_COVER_FILE_PATH } from '~/composables/api/common'
+import type { InnerSearchResponseTitle } from '~/composables/api/content'
 
-const props = defineProps<{ title: InnerSearchResponseTitle }>();
+const props = defineProps<{ title: InnerSearchResponseTitle }>()
 </script>
 
 <template>
 	<NuxtLink
 		:to="`/title/${props.title.id}`"
-		class="relative flex flex-row justify-center overflow-hidden rounded-3xl bg-black/50 max-sm:aspect-[10/12] sm:static">
+		class="relative flex flex-row justify-center overflow-hidden rounded-3xl bg-black/50 max-sm:aspect-[10/12] sm:static"
+	>
 		<!-- Background -->
-		<div class="absolute z-[-1] hidden size-full overflow-hidden object-cover px-2 sm:block">
+		<div
+			class="absolute z-[-1] hidden size-full overflow-hidden object-cover px-2 sm:block"
+		>
 			<Image
 				:id="props.title.id"
 				class="size-full rounded-3xl object-cover"
@@ -21,7 +24,8 @@ const props = defineProps<{ title: InnerSearchResponseTitle }>();
 				:blurhash="props.title.cover_blurhash"
 				:width="props.title.cover_width"
 				:height="props.title.cover_height"
-				:is-jxl="props.title.cover_jxl" />
+				:is-jxl="props.title.cover_jxl"
+			/>
 		</div>
 
 		<!-- Cover -->
@@ -34,29 +38,29 @@ const props = defineProps<{ title: InnerSearchResponseTitle }>();
 				:blurhash="props.title.cover_blurhash"
 				:width="props.title.cover_width"
 				:height="props.title.cover_height"
-				:is-jxl="props.title.cover_jxl" />
+				:is-jxl="props.title.cover_jxl"
+			/>
 		</div>
 
 		<div
-			class="pointer-events-none absolute left-0 top-0 flex size-full bg-gradient-to-t from-black/80 to-transparent sm:hidden" />
+			class="pointer-events-none absolute left-0 top-0 flex size-full bg-gradient-to-t from-black/80 to-transparent sm:hidden"
+		/>
 
 		<!-- Informations -->
 		<div
-			class="absolute left-0 top-0 z-[1] flex size-full flex-col justify-end p-7 sm:static sm:z-auto sm:max-w-3xl sm:justify-start sm:bg-transparent sm:p-10">
-			<div
-				class="text-lg font-light"
-				data-theme="dark">
-				{{ props.title.author ?? "Unknown" }}
+			class="absolute left-0 top-0 z-[1] flex size-full flex-col justify-end p-7 sm:static sm:z-auto sm:max-w-3xl sm:justify-start sm:bg-transparent sm:p-10"
+		>
+			<div class="text-lg font-light" data-theme="dark">
+				{{ props.title.author ?? 'Unknown' }}
 			</div>
 			<div
 				class="truncate-2 mb-1 text-balance text-3xl font-bold"
-				data-theme="dark">
-				{{ props.title.title ?? "Untitled" }}
+				data-theme="dark"
+			>
+				{{ props.title.title ?? 'Untitled' }}
 			</div>
 
-			<div
-				v-if="props.title.release"
-				class="truncate">
+			<div v-if="props.title.release" class="truncate">
 				{{ props.title.release }}
 			</div>
 
@@ -70,10 +74,9 @@ const props = defineProps<{ title: InnerSearchResponseTitle }>();
 
 			<div
 				v-if="title.tags?.length !== 0"
-				class="mb-2 hidden flex-row flex-wrap gap-2 sm:flex">
-				<span
-					v-for="[id, name] in title.tags"
-					:key="id">
+				class="mb-2 hidden flex-row flex-wrap gap-2 sm:flex"
+			>
+				<span v-for="[id, name] in title.tags" :key="id">
 					<div>
 						{{ name }}
 					</div>
