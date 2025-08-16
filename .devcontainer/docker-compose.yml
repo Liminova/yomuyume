@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:17-alpine
+    # ports:
+    #    - 5432:5432
+    hostname: postgres
+    volumes:
+      - ./postgres-dev:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ymym
+
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+    tty: true
+    user: 1000:1000
+    volumes:
+      - ../:/ymym
+      - cargo-cache:/usr/local/cargo
+      - global-pnpm-store:/home/ymym/.pnpm-store
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+    environment:
+      LIBRARY_PATH: /ymym/library
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ymym
+      # REVERSE_PROXY_IP_HEADER: CF-Connecting-IP # the header containing real ip address if you're behind a reverse proxy
+
+      SMTP_HOST: smtp.example.com
+      SMTP_USERNAME: user@example.com
+      SMTP_PASSWORD: password
+      SMTP_FROM_EMAIL: from@example.com
+      SMTP_FROM_NAME: Yomuyume
+
+volumes:
+  postgres-dev:
+  cargo-cache:
+  global-pnpm-store:

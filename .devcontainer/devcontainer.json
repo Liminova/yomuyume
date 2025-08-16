@@ -1,41 +1,8 @@
 {
-	"name": "Yomuyume-dev",
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
-	"features": {
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {
-			"moby": true,
-			"azureDnsAutoDetection": true,
-			"installDockerBuildx": true,
-			"installDockerComposeSwitch": true,
-			"version": "latest",
-			"dockerDashComposeVersion": "latest"
-		}
-	},
-	"mounts": [
-		{
-			"source": "cargo-cache",
-			"target": "/usr/local/cargo",
-			"type": "volume"
-		},
-		{
-			"source": "global-pnpm-store",
-			"target": "/home/vscode/.pnpm-store",
-			"type": "volume"
-		}
-	],
-	"runArgs": [
-		"--hostname=devcontainer",
-		"-p",
-		"3000:3000",
-		"-p",
-		"3001:3001",
-		"-p",
-		"5432:5432",
-		"-p",
-		"5433:5433"
-	],
+	"name": "yomuyume",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "dev",
+	"workspaceFolder": "/ymym",
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -43,27 +10,11 @@
 				"bradlc.vscode-tailwindcss",
 				"Vue.volar",
 				"fill-labs.dependi",
-				"maptz.regionfolder",
 				"mtxr.sqltools",
-				"mtxr.sqltools-driver-pg"
-			],
-			"settings": {
-				"terminal.integrated.defaultProfile.linux": "zsh",
-				"css.customData": [
-					".devcontainer/css_custom_data.json"
-				],
-				"[rust]": {
-					"editor.formatOnSave": true
-				},
-				"explorer.fileNesting.patterns": {
-					"*.ts": "${capture}.js",
-					"*.js": "${capture}.js.map, ${capture}.min.js, ${capture}.d.ts",
-					"*.jsx": "${capture}.js",
-					"*.tsx": "${capture}.ts",
-					"package.json": "pnpm-lock.yaml, .eslint*, Cargo*, *.json, *.js, *.ts"
-				},
-				"git.path": "/usr/bin/git"
-			}
+				"mtxr.sqltools-driver-pg",
+				"tamasfe.even-better-toml",
+				"esbenp.prettier-vscode"
+			]
 		}
 	},
 	"postCreateCommand": "zsh .devcontainer/postinstall.sh"
