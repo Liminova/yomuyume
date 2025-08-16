@@ -1,5 +1,7 @@
 ## `DirEntry` guesser decision tree diagram
+
 > no, the diamond shaped blocks are too big.
+
 ```mermaid
 flowchart TD
     dir@{ shape: rounded, label: "a DirEntry" }
