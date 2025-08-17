@@ -34,6 +34,13 @@ services:
             DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ymym
             # REVERSE_PROXY_IP_HEADER: CF-Connecting-IP # the header containing real ip address if you're behind a reverse proxy
 
+            FEATURE_NOMEDIA: 'false'
+            FEATURE_KOMGA_ONESHOT: 'false'
+            FEATURE_KOMGA_RECYCLE: 'false'
+
+            RESCAN_INTERVAL_SECS: '21600' # 6 hours
+            RESCAN_THREAD: '8'
+
             SMTP_HOST: smtp.example.com
             SMTP_USERNAME: user@example.com
             SMTP_PASSWORD: password
