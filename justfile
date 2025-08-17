@@ -4,7 +4,25 @@ default:
 # lint the client codes
 lint-c:
     cd /ymym/client && \
-        pnpm oxlint --import-plugin -D correctness -D perf && \
+        pnpm oxlint --fix \
+            -D correctness \
+            -D suspicious \
+            -D pedantic \
+            -D perf \
+            -A group-export \
+            -A no-null \
+            -A filename-case \
+            -A consistent-type-specifier-style \
+            -A max-lines-per-function \
+            -A sort-imports \
+            -A prefer-global-this \
+            -A func-style \
+            -A sort-keys \
+            -A prefer-add-event-listener \
+            -A require-post-message-target-origin \
+            -A new-cap \
+            -A no-magic-numbers \
+            -A id-length && \
         pnpm prettier -l -w \"**/*.{js,ts,vue,json,css}\" && \
         cd -
 
