@@ -19,11 +19,11 @@ export interface CategoriesResponseBodyInner {
 	cover_jxl?: string
 }
 
-export type GetCategoriesResponseBody = Array<{
+export type GetCategoriesResponseBody = {
 	id: string
 	name?: string
 	description?: string
-}>
+}[]
 
 export function useGetCategories() {
 	return useFetch(GET_CATEGORIES_PATH, {
@@ -81,11 +81,11 @@ export interface BasePageResponse {
 }
 
 export interface TitleResponse extends BaseTitleResponse {
-	chapters?: Array<{
+	chapters?: {
 		id: string
 		number: number
 		description?: string
-	}>
+	}[]
 }
 
 export function useContentGetTitle(titleId: string) {
@@ -131,27 +131,27 @@ export interface SearchResponse {
 }
 
 export function useContentSearchTitle(query?: SearchQuery) {
-	const limit = query?.limit ?? 10
+	const defaultPageParam = 0
+	const defaultLimit = 10
 
 	return useInfiniteQuery({
 		queryKey: `search-${JSON.stringify(query)}`,
-		async queryFn({ pageParam = 0, signal }) {
-			return $fetch<SearchResponse>(SEARCH_PATH, {
+		queryFn: ({ pageParam = defaultPageParam, signal }) =>
+			$fetch<SearchResponse>(SEARCH_PATH, {
 				method: 'POST',
-				signal,
 				query: {
 					...query,
-					offset: pageParam,
-					limit
-				}
-			})
-		},
-		initialPageParam: query?.offset ?? 0,
+					limit: query?.limit ?? defaultLimit,
+					offset: pageParam
+				},
+				signal
+			}),
+		initialPageParam: query?.offset ?? defaultPageParam,
 		getNextPageParam(lastPage) {
 			if (lastPage.data === undefined || lastPage.data.length === 0) {
 				return null
 			}
-			return lastPage.offset + limit
+			return lastPage.offset + (query?.limit ?? defaultLimit)
 		},
 		flattened(pages) {
 			return pages.flatMap((page) => page.data.data ?? [])
@@ -164,9 +164,9 @@ export const BookmarkedTitlesQuery: SearchQuery = {
 	is_bookmarked: true
 } as const
 export const ReadingTitlesQuery: SearchQuery = {
+	is_ascending: true,
 	is_reading: true,
-	order_by: 'progress_last_read_at',
-	is_ascending: true
+	order_by: 'progress_last_read_at'
 } as const
 
 export function useContentGetTags() {

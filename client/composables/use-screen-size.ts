@@ -1,5 +1,5 @@
 import { useState } from 'nuxt/app'
-import { getCurrentScope, onMounted, onUnmounted, type Ref } from 'vue'
+import { type Ref, getCurrentScope, onMounted, onUnmounted } from 'vue'
 
 export interface ScreenSizeState {
 	width: number
@@ -7,9 +7,8 @@ export interface ScreenSizeState {
 }
 
 export function useScreenSize(): Ref<ScreenSizeState, ScreenSizeState> {
-	if (!getCurrentScope()) {
+	if (!getCurrentScope())
 		throw new Error('useScreenSize must be used within a component')
-	}
 
 	const states = useState<ScreenSizeState>('screen-size', () => ({
 		width: window.innerWidth,

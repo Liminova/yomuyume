@@ -34,11 +34,12 @@ export function useMutation<TVariables, TReturn, TError = unknown>({
 			options?.onSuccess?.(result, variables)
 			status.value = 'success'
 			return result
-		} catch (innerError) {
+		} catch (error) {
 			status.value = 'error'
-			error.value = innerError as TError
-			onError?.(innerError as TError, variables)
-			options?.onError?.(innerError as TError, variables)
+			// @ts-expect-error - idc
+			error.value = error as TError
+			onError?.(error as TError, variables)
+			options?.onError?.(error as TError, variables)
 			return null
 		}
 	}

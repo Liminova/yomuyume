@@ -21,20 +21,18 @@ export interface SensitiveRequest {
 
 export function useUserSensitiveAction() {
 	return useMutation({
-		async mutationFn(body: SensitiveRequest) {
-			return NewYomuyumeRequest(USER_SENSITIVE_PATH, {
+		mutationFn: (body: SensitiveRequest) =>
+			NewYomuyumeRequest(USER_SENSITIVE_PATH, {
 				method: 'POST',
 				body: JSON.stringify(body)
 			})
-		}
 	})
 }
 
 export function useUserFavorite(method: 'PUT' | 'DELETE') {
 	return useMutation({
-		async mutationFn(titleId: string) {
-			return NewYomuyumeRequest(FAVORITE_PATH(titleId), { method })
-		},
+		mutationFn: (titleId: string) =>
+			NewYomuyumeRequest(FAVORITE_PATH(titleId), { method }),
 		onSuccess() {
 			clearNuxtData(`search-${JSON.stringify(FavoriteTitlesQuery)}`)
 		}
@@ -43,9 +41,8 @@ export function useUserFavorite(method: 'PUT' | 'DELETE') {
 
 export function useUserBookmark(method: 'PUT' | 'DELETE') {
 	return useMutation({
-		async mutationFn(titleId: string) {
-			return NewYomuyumeRequest(BOOKMARK_PATH(titleId), { method })
-		},
+		mutationFn: (titleId: string) =>
+			NewYomuyumeRequest(BOOKMARK_PATH(titleId), { method }),
 		onSuccess() {
 			clearNuxtData(`search-${JSON.stringify(BookmarkedTitlesQuery)}`)
 		}
@@ -54,31 +51,29 @@ export function useUserBookmark(method: 'PUT' | 'DELETE') {
 
 export function useUserModifyInfo() {
 	return useMutation({
-		async mutationFn(body: { username?: string; email?: string }) {
-			return NewYomuyumeRequest(USER_MODIFY_PATH, {
+		mutationFn: (body: { username?: string; email?: string }) =>
+			NewYomuyumeRequest(USER_MODIFY_PATH, {
 				method: 'POST',
 				body: JSON.stringify(body)
 			})
-		}
 	})
 }
 
 export function useUserSetProgress() {
 	return useMutation({
-		async mutationFn(query: {
+		mutationFn: (query: {
 			title_id: string
 			chapter_id: string
 			page_id: string
 			percent: number
-		}) {
-			return NewYomuyumeRequest(
+		}) =>
+			NewYomuyumeRequest(
 				USER_PROGRESS_PATH,
 				{
 					method: 'PUT'
 				},
 				query
 			)
-		}
 	})
 }
 
@@ -95,7 +90,7 @@ export interface WhoAmIResponseBody {
 export function useUserWhoAmI() {
 	return useFetch<WhoAmIResponseBody>(WHOAMI_PATH, {
 		credentials: 'same-origin',
-		key: 'whoami',
-		immediate: false
+		immediate: false,
+		key: 'whoami'
 	})
 }

@@ -20,7 +20,7 @@ export class WorkerPool<I> {
 	private semaphore: number
 	private readonly pool: MyWorker[] = []
 
-	private readonly queue: Array<(worker: MyWorker) => void> = []
+	private readonly queue: ((worker: MyWorker) => void)[] = []
 
 	public constructor(newWorkerFn: () => Worker, maxConcurrentWorker = 4) {
 		this.newWorkerFn = newWorkerFn
@@ -32,7 +32,7 @@ export class WorkerPool<I> {
 	 * would be used ONLY when the worker is first created to ensure that it's
 	 * ready to receive messages.
 	 */
-	private async ensureWorkerReady(myWorker: MyWorker): Promise<MyWorker> {
+	private ensureWorkerReady(myWorker: MyWorker): Promise<MyWorker> {
 		const pollingIntervalID = window.setInterval(() => {
 			myWorker.inner.postMessage({
 				type: 'ping'
@@ -58,11 +58,9 @@ export class WorkerPool<I> {
 	 *
 	 * Also assign the onmessage handler "to" the worker.
 	 */
-	public async getWorker(): Promise<MyWorker> {
+	public getWorker(): Promise<MyWorker> {
 		const worker = this.pool.shift()
-		if (worker) {
-			return worker
-		}
+		if (worker) return Promise.resolve(worker)
 
 		if (this.semaphore > 0) {
 			this.semaphore -= 1

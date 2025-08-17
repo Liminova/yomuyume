@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useVModel } from '@vueuse/core'
-import { computed, type HTMLAttributes, ref } from 'vue'
+import { type HTMLAttributes, computed, ref } from 'vue'
 import Toggle from '~/components/Toggle.vue'
 
 const props = withDefaults(

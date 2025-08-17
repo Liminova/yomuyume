@@ -15,7 +15,7 @@ export enum StoreName {
 }
 
 const DB_NAME = 'yomuyume'
-const DB_VERSION = 20250128
+const DB_VERSION = 20_250_128
 
 let db: IDBDatabase | null = null
 
@@ -29,20 +29,19 @@ function initDB(): Promise<IDBDatabase> {
 
 		const request = indexedDB.open(DB_NAME, DB_VERSION)
 
-		request.onerror = (event): void => {
+		request.addEventListener('error', (event): void => {
 			// @ts-expect-error idk
 			reject(new Error(`Failed to open database: ${event.target?.error}`))
-		}
+		})
 
-		request.onsuccess = (event): void => {
+		request.addEventListener('success', (event): void => {
 			db = (event.target as IDBOpenDBRequest).result
 			resolve(db)
-		}
+		})
 
 		request.onupgradeneeded = (event): void => {
 			const db = (event.target as IDBOpenDBRequest).result
-			const oldVersion = event.oldVersion
-			const newVersion = event.newVersion
+			const { oldVersion, newVersion } = event
 
 			// Remove existing stores if version changed
 			if (
@@ -58,14 +57,14 @@ function initDB(): Promise<IDBDatabase> {
 			// Create stores if they don't exist
 			if (!db.objectStoreNames.contains(StoreName.BLURHASH)) {
 				db.createObjectStore(StoreName.BLURHASH, {
-					keyPath: 'id',
-					autoIncrement: false
+					autoIncrement: false,
+					keyPath: 'id'
 				})
 			}
 			if (!db.objectStoreNames.contains(StoreName.JPEGXL)) {
 				db.createObjectStore(StoreName.JPEGXL, {
-					keyPath: 'id',
-					autoIncrement: false
+					autoIncrement: false,
+					keyPath: 'id'
 				})
 			}
 		}
@@ -91,13 +90,13 @@ export async function getPageInDB(
 		const store = transaction.objectStore(type)
 		const request = store.get(id)
 
-		request.onerror = (): void => {
+		request.addEventListener('error', (): void => {
 			reject(new Error(`Failed to get item with id ${id} from ${type}`))
-		}
+		})
 
-		request.onsuccess = (): void => {
+		request.addEventListener('success', (): void => {
 			resolve(request.result as JpegXLInDB | BlurHashInDB | undefined)
-		}
+		})
 	})
 }
 
@@ -119,14 +118,14 @@ export async function setPageInDB({
 		const store = transaction.objectStore(type)
 		const request = store.put(page)
 
-		request.onerror = (): void => {
+		request.addEventListener('error', (): void => {
 			reject(
 				new Error(`Failed to store item with id ${page.id} in ${type}`)
 			)
-		}
+		})
 
-		request.onsuccess = (): void => {
+		request.addEventListener('success', (): void => {
 			resolve()
-		}
+		})
 	})
 }

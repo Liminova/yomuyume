@@ -1,5 +1,5 @@
 import init, { decode } from '../blurhash-webp-wasm/blurhash_webp_wasm'
-import { setPageInDB, StoreName } from '../db'
+import { StoreName, setPageInDB } from '../db'
 import type { BlurhashWorkerInput } from '../decode-blurhash'
 import type { WorkerOutput } from './pool'
 
@@ -7,7 +7,7 @@ declare const self: Worker
 
 let inited = false
 let initing = false
-const waitInitQueue: Array<(value: void | PromiseLike<void>) => void> = []
+const waitInitQueue: ((value: void | PromiseLike<void>) => void)[] = []
 
 self.onmessage = async (
 	event: MessageEvent<BlurhashWorkerInput>

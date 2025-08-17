@@ -2,9 +2,9 @@
 import { NuxtLink } from '#components'
 import Image from '~/components/image'
 import { GET_COVER_FILE_PATH } from '~/composables/api/common'
-import type { InnerSearchResponseTitle } from '~/composables/api/content'
+import type { BaseTitleResponse } from '~/composables/api/content'
 
-const props = defineProps<{ title: InnerSearchResponseTitle }>()
+const props = defineProps<{ title: BaseTitleResponse }>()
 </script>
 
 <template>

@@ -41,7 +41,7 @@ const registerButtonDisabled = computed(
 		!retypeMatch.value ||
 		!passwordStrong.value ||
 		!emailValid.value ||
-		register.isPending.value ||
+		register.status.value === 'pending' ||
 		password.value === '' ||
 		passwordRetype.value === '' ||
 		email.value === ''
@@ -54,8 +54,8 @@ function handleRegister(): void {
 
 	register.mutate(
 		{
-			username: username.value,
 			email: email.value,
+			username: username.value,
 			password: password.value
 		},
 		{
@@ -65,7 +65,7 @@ function handleRegister(): void {
 			},
 			onError(error) {
 				toast.error("Can't register", {
-					description: error.message
+					description: `${error}`
 				})
 			}
 		}
@@ -79,14 +79,14 @@ function handleRegister(): void {
 		class="col-span-2"
 		type="text"
 		label="Username"
-		:disabled="register.isPending.value"
+		:disabled="register.status.value === 'pending'"
 	/>
 	<Input
 		v-model="email"
 		class="col-span-2"
 		type="email"
 		label="Email"
-		:disabled="register.isPending.value"
+		:disabled="register.status.value === 'pending'"
 		supporting-text="Invalid email address"
 		:show-supporting-text="!emailValid"
 		:style="emailValid ? 'default' : 'destructive'"
@@ -96,14 +96,14 @@ function handleRegister(): void {
 		class="col-span-2"
 		type="password"
 		label="Password"
-		:disabled="register.isPending.value"
+		:disabled="register.status.value === 'pending'"
 	/>
 	<Input
 		v-model="passwordRetype"
 		class="col-span-2"
 		type="password"
 		label="Retype password"
-		:disabled="register.isPending.value"
+		:disabled="register.status.value === 'pending'"
 		supporting-text="Passwords do not match"
 		:show-supporting-text="!retypeMatch"
 		@keydown.enter="handleRegister"

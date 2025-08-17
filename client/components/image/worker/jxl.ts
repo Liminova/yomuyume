@@ -1,4 +1,4 @@
-import { setPageInDB, StoreName } from '../db'
+import { StoreName, setPageInDB } from '../db'
 import type { JpegXLWorkerInput } from '../decode-jpegxl'
 import init, { decode } from '../jxl-webp-wasm'
 import type { WorkerOutput } from './pool'
@@ -7,7 +7,7 @@ declare const self: Worker
 
 let inited = false
 let initing = false
-const waitInitQueue: Array<(value: void | PromiseLike<void>) => void> = []
+const waitInitQueue: ((value: void | PromiseLike<void>) => void)[] = []
 
 self.onmessage = async (
 	event: MessageEvent<JpegXLWorkerInput>

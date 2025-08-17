@@ -32,12 +32,11 @@ export function useGetServerStatus() {
 
 export function usePostServerStatus() {
 	return useMutation({
-		async mutationFn(body: { echo: string }) {
-			return NewYomuyumeRequest<ServerStatusResponse>(GET_STATUS_PATH, {
+		mutationFn: (body: { echo: string }) =>
+			NewYomuyumeRequest<ServerStatusResponse>(GET_STATUS_PATH, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body)
 			})
-		}
 	})
 }

@@ -12,8 +12,8 @@ const props = withDefaults(
 		currentStateForOverwrite?: string
 	}>(),
 	{
-		isOverwrite: false,
-		currentStateForOverwrite: ''
+		currentStateForOverwrite: '',
+		isOverwrite: false
 	}
 )
 
@@ -33,19 +33,12 @@ function chipHandler(eventTarget: HTMLElement): void {
 
 	if (props.isOverwrite) {
 		emit('overwrite', label)
-		if (!chipSet.value) {
-			return
-		}
+		if (!chipSet.value) return
 
 		const chips = chipSet.value.querySelectorAll('md-filter-chip')
 
-		for (const chip of chips) {
-			if (chip === eventTarget) {
-				continue
-			}
-
-			chip.removeAttribute('selected')
-		}
+		for (const chip of chips)
+			if (chip !== eventTarget) chip.removeAttribute('selected')
 
 		return
 	}
@@ -78,4 +71,3 @@ function chipHandler(eventTarget: HTMLElement): void {
 </md-chip-set> -->
 	</div>
 </template>
-./FilterType

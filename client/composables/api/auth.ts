@@ -7,14 +7,13 @@ export function useAuthLogin() {
 	const { refresh } = useUserWhoAmI()
 
 	return useMutation({
-		async mutationFn(body: { login: string; password: string }) {
-			return $fetch(LOGIN_PATH, {
+		mutationFn: (body: { login: string; password: string }) =>
+			$fetch(LOGIN_PATH, {
 				method: 'POST',
 				credentials: 'same-origin',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body)
-			})
-		},
+			}),
 		async onSuccess() {
 			await refresh()
 		}
@@ -34,32 +33,30 @@ export function useAuthLogout() {
 
 export function useAuthRegister() {
 	return useMutation({
-		async mutationFn(body: {
+		mutationFn: (body: {
 			username: string
 			email: string
 			password: string
-		}) {
-			return $fetch(REGISTER_PATH, {
+		}) =>
+			$fetch(REGISTER_PATH, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body)
 			})
-		}
 	})
 }
 
 export function useAuthForgot() {
 	return useMutation({
-		async mutationFn(body: {
+		mutationFn: (body: {
 			email: string
 			code?: string
 			new_password?: string
-		}) {
-			return $fetch(FORGOT_PATH, {
+		}) =>
+			$fetch(FORGOT_PATH, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body)
 			})
-		}
 	})
 }

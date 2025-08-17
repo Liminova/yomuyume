@@ -1,10 +1,10 @@
-import { getPageInDB, StoreName } from './db'
+import { StoreName, getPageInDB } from './db'
 import {
 	type WorkerInputWrapper,
 	type WorkerOutput,
 	WorkerPool
 } from './worker/pool'
-import { onUnmounted, type Ref } from 'vue'
+import { type Ref, onUnmounted } from 'vue'
 
 type PageID = string
 type DecodedImgURL = string
@@ -14,7 +14,7 @@ interface JpegXLInput {
 }
 export type JpegXLWorkerInput = WorkerInputWrapper<JpegXLInput>
 
-const queue = new Map<PageID, Array<Ref<DecodedImgURL | null>>>()
+const queue = new Map<PageID, Ref<DecodedImgURL | null>[]>()
 const pool = new WorkerPool<JpegXLWorkerInput>(
 	() =>
 		new Worker(new URL('./worker/jxl.ts', import.meta.url), {

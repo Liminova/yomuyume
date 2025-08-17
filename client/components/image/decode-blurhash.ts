@@ -1,10 +1,10 @@
-import { getPageInDB, StoreName } from './db'
+import { StoreName, getPageInDB } from './db'
 import {
 	type WorkerInputWrapper,
 	type WorkerOutput,
 	WorkerPool
 } from './worker/pool'
-import { onUnmounted, type Ref } from 'vue'
+import { type Ref, onUnmounted } from 'vue'
 
 type PageID = string
 type DecodedImgURL = string
@@ -16,13 +16,14 @@ interface BlurhashInput {
 }
 export type BlurhashWorkerInput = WorkerInputWrapper<BlurhashInput>
 
-const queue = new Map<PageID, Array<Ref<DecodedImgURL | null>>>()
-const pool = new WorkerPool<BlurhashInput>(() => {
-	return new Worker(new URL('./worker/blurhash.ts', import.meta.url), {
-		type: 'module',
-		name: 'blurhash-worker'
-	})
-})
+const queue = new Map<PageID, Ref<DecodedImgURL | null>[]>()
+const pool = new WorkerPool<BlurhashInput>(
+	() =>
+		new Worker(new URL('./worker/blurhash.ts', import.meta.url), {
+			type: 'module',
+			name: 'blurhash-worker'
+		})
+)
 
 export function decodeBlurhash(
 	payload: BlurhashInput,
@@ -63,7 +64,6 @@ export function decodeBlurhash(
 		queue.set(payload.id, [outputImgURL])
 
 		const worker = await pool.getWorker()
-		// eslint-disable-next-line require-atomic-updates
 		worker.onmessage = async (
 			event: MessageEvent<WorkerOutput>
 		): Promise<void> => {

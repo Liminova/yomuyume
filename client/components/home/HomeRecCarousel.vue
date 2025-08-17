@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-redundant-type-constituents, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 import Toggle from '../Toggle.vue'
-import HomeRecCard from './HomeRecCarouselCard.vue'
+import HomeRecCarouselCard from './HomeRecCarouselCard.vue'
 import Autoplay from 'embla-carousel-autoplay'
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { onMounted, onUnmounted, ref } from 'vue'
 import Button from '~/components/ui/Button.vue'
 import {
-	Carousel,
+	type Carousel,
 	type CarouselApi,
 	CarouselContent,
 	CarouselItem
@@ -23,9 +23,8 @@ const nextSlideBar = ref<HTMLElement | null>(null)
 let [rafID, timeoutID] = [0, 0]
 
 function startNextSlideBar(api: CarouselApi): void {
-	if (nextSlideBar.value === null || !api) {
-		return
-	}
+	if (nextSlideBar.value === null || !api) return
+
 	isNextSlideBarActive.value = true
 
 	// reset states
@@ -36,9 +35,7 @@ function startNextSlideBar(api: CarouselApi): void {
 	rafID = window.requestAnimationFrame(() => {
 		timeoutID = window.setTimeout(() => {
 			const timeUntilNext = api.plugins().autoplay.timeUntilNext()
-			if (nextSlideBar.value === null || timeUntilNext === null) {
-				return
-			}
+			if (nextSlideBar.value === null || timeUntilNext === null) return
 
 			nextSlideBar.value.style.animationName = 'autoplay-progress'
 			nextSlideBar.value.style.animationDuration = `${timeUntilNext}ms`
@@ -46,9 +43,8 @@ function startNextSlideBar(api: CarouselApi): void {
 	})
 }
 function stopNextSlideBar(): void {
-	if (nextSlideBar.value === null) {
-		return
-	}
+	if (nextSlideBar.value === null) return
+
 	isNextSlideBarActive.value = false
 
 	nextSlideBar.value.style.animationName = 'none'
@@ -56,9 +52,7 @@ function stopNextSlideBar(): void {
 }
 
 onMounted(() => {
-	if (carouselRef.value?.carouselApi === undefined) {
-		return
-	}
+	if (carouselRef.value?.carouselApi === undefined) return
 
 	carouselRef.value.carouselApi.on('autoplay:timerset', startNextSlideBar)
 	carouselRef.value.carouselApi.on('autoplay:timerstopped', stopNextSlideBar)
@@ -91,7 +85,7 @@ onUnmounted(() => {
 				v-for="title in titles.flattened.value"
 				:key="`rec${title.id}`"
 			>
-				<HomeRecCard :title="title" />
+				<HomeRecCarouselCard :title="title" />
 			</CarouselItem>
 		</CarouselContent>
 

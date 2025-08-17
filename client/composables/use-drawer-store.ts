@@ -1,7 +1,7 @@
 import { useScreenSize } from './use-screen-size'
 import { useDebounceFn } from '@vueuse/core'
 import { useRoute, useState } from 'nuxt/app'
-import { onMounted, onUnmounted, type Ref, watchEffect } from 'vue'
+import { type Ref, onMounted, onUnmounted, watchEffect } from 'vue'
 
 export enum DrawerKind {
 	AlwaysVisible = 'always-visible', // desktop
@@ -16,8 +16,8 @@ export interface DrawerStore {
 
 export function useDrawerStore(): Ref<DrawerStore> {
 	return useState<DrawerStore>('drawer-store', () => ({
-		kind: DrawerKind.AlwaysVisible,
 		expanded: true,
+		kind: DrawerKind.AlwaysVisible,
 		topBarVisible: true
 	}))
 }
@@ -38,9 +38,7 @@ export function initDrawerStore(): void {
 
 	const controller = new AbortController()
 	onMounted(() => {
-		if (window.innerWidth < 1280) {
-			drawerStore.value.expanded = false
-		}
+		if (window.innerWidth < 1280) drawerStore.value.expanded = false
 
 		// auto show/hide top bar on scroll
 		let prevScrollPos = -document.body.getBoundingClientRect().top
@@ -50,6 +48,7 @@ export function initDrawerStore(): void {
 				return
 			}
 			const currentScrollPos = -document.body.getBoundingClientRect().top
+
 			if (prevScrollPos > currentScrollPos || currentScrollPos < 100) {
 				drawerStore.value.topBarVisible = true
 			} else {

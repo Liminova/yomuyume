@@ -8,7 +8,7 @@ export function useIsJxlNative() {
 export async function initIsJxlNative(): Promise<void> {
 	const { data } = await useAsyncData<boolean>(
 		'is-jxl-native',
-		async (): Promise<boolean> => {
+		(): Promise<boolean> => {
 			const image = new Image()
 
 			image.src = `data:image/jxl;base64,/woIAAAMABKIAgC4AF3lEgAAFSqjjBu8nOv58kOHxbSN6wxttW1hSaLIODZJJ3BIEkkaoCUzGM6qJAE=`

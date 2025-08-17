@@ -6,7 +6,6 @@ interface PageType<TReturn, TPageParam> {
 	data: TReturn
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types
 export function useInfiniteQuery<
 	TReturn,
 	TPageParam,
@@ -18,22 +17,21 @@ export function useInfiniteQuery<
 		signal: AbortSignal
 		pageParam: TPageParam
 	}) => Promise<TReturn>
-	flattened?: (pages: Array<PageType<TReturn, TPageParam>>) => TFlattened
+	flattened?: (pages: PageType<TReturn, TPageParam>[]) => TFlattened
 	initialPageParam: TPageParam
 	getNextPageParam: (
 		lastPage: TReturn,
 		lastPageParam: TPageParam
 	) => TPageParam | null | undefined
 }) {
-	if (!getCurrentScope()) {
+	if (!getCurrentScope())
 		console.warn('useMyInfiniteQuery should be used within a component')
-	}
 
 	const currPageParam = useState<TPageParam | null | undefined>(
 		`currentPageParam-${props.queryKey}`,
 		() => props.initialPageParam
 	)
-	const pages = useState<Array<{ params: TPageParam; data: TReturn }>>(
+	const pages = useState<{ params: TPageParam; data: TReturn }[]>(
 		`pages-${props.queryKey}`,
 		() => []
 	)
@@ -55,9 +53,9 @@ export function useInfiniteQuery<
 		status.value = 'pending'
 		error.value = null
 
-		if (currPageParam.value === null || currPageParam.value === undefined) {
+		if (currPageParam.value === null || currPageParam.value === undefined)
 			return
-		}
+
 		try {
 			const result = await props.queryFn({
 				signal: controller.signal,
@@ -69,9 +67,10 @@ export function useInfiniteQuery<
 				currPageParam.value
 			)
 			status.value = 'success'
-		} catch (innerError) {
+		} catch (error) {
 			status.value = 'error'
-			error.value = innerError as TError
+			// @ts-expect-error - idc
+			error.value = error as TError
 		}
 	})()
 
@@ -85,9 +84,8 @@ export function useInfiniteQuery<
 			currPageParam.value === null ||
 			currPageParam.value === undefined ||
 			status.value === 'pending'
-		) {
+		)
 			return
-		}
 
 		status.value = 'pending'
 		error.value = null
@@ -105,9 +103,10 @@ export function useInfiniteQuery<
 				currPageParam.value
 			)
 			return result
-		} catch (innerError) {
+		} catch (error) {
 			status.value = 'error'
-			error.value = innerError as TError
+			// @ts-expect-error - idc
+			error.value = error as TError
 		}
 	}
 

@@ -1,0 +1,7 @@
+export enum StatusCode {
+	OK = 200,
+	NO_CONTENT = 204,
+
+	CLIENT_ERROR_RESPONSE_START = 400,
+	NOT_FOUND = 404
+}

@@ -8,7 +8,7 @@ import { useUserSetProgress } from '~/composables/api/user'
 const props = defineProps<{
 	titleId: string
 	chapterId: string
-	chapterIds: Array<{ id: string }>
+	chapterIds: { id: string }[]
 }>()
 
 const pages = useContentGetPages(props.chapterId)

@@ -4,20 +4,19 @@ import { useFetch } from 'nuxt/app'
 
 export function useAdminSetLiveConfig() {
 	return useMutation({
-		async mutationFn(body: {
+		mutationFn: (body: {
 			komga_oneshot_support?: boolean
 			komga_recycle_support?: boolean
 			nomedia_support?: boolean
 			rescan_enabled?: boolean
 			rescan_interval_in_minutes?: number
-		}) {
-			return $fetch(LIVE_CONFIG_PATH, {
+		}) =>
+			$fetch(LIVE_CONFIG_PATH, {
 				method: 'POST',
 				credentials: 'same-origin',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body)
 			})
-		}
 	})
 }
 

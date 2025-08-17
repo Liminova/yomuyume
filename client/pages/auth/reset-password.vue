@@ -33,7 +33,7 @@ function handleSendRequestResetPassword(): void {
 			},
 			onError(error) {
 				toast.error("Can't send code", {
-					description: error.message
+					description: `${error}`
 				})
 			}
 		}
@@ -43,8 +43,8 @@ function handleSendRequestResetPassword(): void {
 function handleConfirmResetPassword(): void {
 	resetPassword.mutate(
 		{
-			email: email.value,
 			code: code.value,
+			email: email.value,
 			new_password: newPassword.value
 		},
 		{
@@ -54,7 +54,7 @@ function handleConfirmResetPassword(): void {
 			},
 			onError(error) {
 				toast.error("Can't reset password", {
-					description: error.message
+					description: `${error}`
 				})
 			}
 		}
@@ -62,7 +62,7 @@ function handleConfirmResetPassword(): void {
 }
 
 const canSendRequest = computed(
-	() => email.value !== '' && !resetPassword.isPending.value
+	() => email.value !== '' && resetPassword.status.value !== 'pending'
 )
 </script>
 
