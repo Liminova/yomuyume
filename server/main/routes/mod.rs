@@ -1,6 +1,5 @@
 #![allow(clippy::needless_for_each)]
 
-pub mod admin;
 pub mod auth;
 pub mod content;
 pub mod errors;
@@ -49,10 +48,6 @@ impl Modify for SecurityAddon {
     ),
     tags(
         (
-            name = "admin",
-            description = "Admin stuffs"
-        ),
-        (
             name = "auth",
             description = "Login, register, logout"
         ),
@@ -74,8 +69,6 @@ impl Modify for SecurityAddon {
         )
     ),
     paths(
-        admin::post_live_config,
-
         auth::post_login,
         auth::post_register,
         auth::get_logout,
@@ -104,9 +97,6 @@ impl Modify for SecurityAddon {
         file::get_cover_file,
     ),
     components(schemas(
-        admin::SetLiveConfigRequest,
-        admin::GetLiveConfigResponse,
-
         auth::LoginRequest,
         auth::RegisterRequest,
         auth::ForgotRequest,

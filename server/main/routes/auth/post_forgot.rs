@@ -122,19 +122,18 @@ pub async fn post_forgot(
                     e
                 })
                 .map(|u| (u.username.clone(), u.email.clone()))?;
-            let app_name = &app_state.config.app_name;
 
             mailer.send(
                 &username,
                 &email,
-                format!("{app_name} - forgot password"),
+                "Yomuyume - forgot password",
                 format!(
                     "Hello, {username}!\n\n\
                     You have requested to reset your password. Please copy the following code into the app to continue:\n\n\
                     {code}\n\n\
                     If you don't recognize this action or don't own this account, ignore this email.\n\n\
                     Best regards,\n\
-                    The {app_name} team",
+                    Yomuyume.",
                 ),
             )
             .map_err(|e| {

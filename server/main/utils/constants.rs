@@ -79,7 +79,6 @@ pub const USER_SENSITIVE_PATH: &str = "/api/user/sensitive";
 pub const USER_PROGRESS_PATH: &str = "/api/user/progress";
 
 pub const GET_SCANNING_PROGRESS_PATH: &str = "/api/admin/scanning_progress";
-pub const LIVE_CONFIG_PATH: &str = "/api/admin/live_config";
 
 pub const GET_STATUS_PATH: &str = "/api/status";
 // END: API paths - DO NOT MODIFY THIS LINE

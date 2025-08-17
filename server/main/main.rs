@@ -34,10 +34,7 @@ use axum::{
     response::IntoResponse,
     routing::{get, post, put},
 };
-use tokio::{
-    net::TcpListener,
-    time::{Duration, sleep},
-};
+use tokio::{net::TcpListener, time::sleep};
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info};
 use utoipa::OpenApi;
@@ -46,7 +43,6 @@ use utoipa_redoc::{Redoc, Servable};
 use crate::{
     routes::{
         ApiDoc,
-        admin::{get_live_config, post_live_config},
         auth::{get_logout, post_forgot, post_login, post_register},
         content::{get_categories, get_pages, get_search, get_tags, get_title},
         file::{get_cover_file, get_page_file},
@@ -62,9 +58,8 @@ use crate::{
         constants::{
             BOOKMARK_PATH, FAVORITE_PATH, FORGOT_PATH, GET_CATEGORIES_PATH, GET_COVER_FILE_PATH,
             GET_PAGE_FILE_PATH, GET_PAGES_PATH, GET_SCANNING_PROGRESS_PATH, GET_STATUS_PATH,
-            GET_TAGS_PATH, GET_TITLE_PATH, LIVE_CONFIG_PATH, LOGIN_PATH, LOGOUT_PATH,
-            REGISTER_PATH, SEARCH_PATH, USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH,
-            WHOAMI_PATH,
+            GET_TAGS_PATH, GET_TITLE_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, SEARCH_PATH,
+            USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH,
         },
     },
 };
@@ -83,10 +78,6 @@ async fn main() -> Result<()> {
         .init();
 
     let app_state = AppState::new().await;
-    let addr = format!(
-        "{}:{}",
-        app_state.config.listen_address, app_state.config.server_port
-    );
 
     let app = Router::new()
         .route(REGISTER_PATH, post(post_register))
@@ -95,11 +86,6 @@ async fn main() -> Result<()> {
         .route(FORGOT_PATH, post(post_forgot))
         .merge(
             Router::new()
-                // admin
-                .route(
-                    LIVE_CONFIG_PATH,
-                    post(post_live_config).get(get_live_config),
-                )
                 // content
                 .route(SEARCH_PATH, post(get_search))
                 .route(GET_CATEGORIES_PATH, get(get_categories))
@@ -136,11 +122,12 @@ async fn main() -> Result<()> {
         .layer(TraceLayer::new_for_http())
         .with_state(app_state.clone());
 
+    let listen_address = app_state.config.listen_address.clone();
     let server_handle = tokio::spawn(async move {
-        info!("listening on: {addr}");
+        info!("listening on: {}", &listen_address);
 
         if let Err(e) = axum::serve(
-            TcpListener::bind(&addr)
+            TcpListener::bind(&listen_address)
                 .await
                 .expect("can't start tcp listener"),
             app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -153,21 +140,15 @@ async fn main() -> Result<()> {
 
     let library_processor_handle = tokio::spawn(async move {
         library_processor::full_scan(app_state.clone()).await;
-        loop {
-            sleep(Duration::from_secs(
-                u64::from(
-                    app_state
-                        .live_config
-                        .get_rescan_interval_in_minutes()
-                        .await
-                        .max(5),
-                ) * 60,
-            ))
-            .await;
 
-            if app_state.live_config.get_rescan_enabled().await {
-                library_processor::full_scan(app_state.clone()).await;
-            }
+        if app_state.config.rescan_interval.is_zero() {
+            info!("rescan interval is set to 0, skipping periodic rescan");
+            return;
+        }
+
+        loop {
+            sleep(app_state.config.rescan_interval).await;
+            library_processor::full_scan(app_state.clone()).await;
         }
     });
 

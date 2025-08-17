@@ -8,14 +8,12 @@ use crate::utils::{
     config::Config,
     constants::{CACHER_SWEEP_INTERVAL_SECONDS, CACHER_TIME_TO_LIVE_HOURS},
     id_generator::IDGenerator,
-    live_config::LiveConfig,
 };
 
 #[derive(Debug)]
 pub struct AppState {
     pub pool: sqlx::PgPool,
     pub config: Config,
-    pub live_config: LiveConfig,
     pub scanning_complete: RwLock<bool>,
     pub scanning_progress: RwLock<f64>,
     pub id_generator: IDGenerator,
@@ -32,16 +30,11 @@ impl AppState {
             .await
             .expect("can't connect to database");
 
-        let live_config = LiveConfig::load(&pool)
-            .await
-            .expect("can't initialize live config");
-
-        let id_generator = IDGenerator::new(config.snowflake_id_thread_count);
+        let id_generator = IDGenerator::new(config.snowflake_thread);
 
         Arc::new(Self {
             pool,
             config,
-            live_config,
             scanning_complete: RwLock::new(false),
             scanning_progress: RwLock::new(0.0),
             id_generator,

@@ -146,9 +146,9 @@ pub async fn full_scan(app_state: Arc<AppState>) {
     while let Some(scanned) = queue.pop_back() {
         let entry_path = scanned.entry.path();
         match scanned.entry.guess(
-            app_state.live_config.get_nomediasupport().await,
-            app_state.live_config.get_komga_oneshot_support().await,
-            app_state.live_config.get_komga_recycle_support().await,
+            app_state.config.feature_nomedia,
+            app_state.config.feature_komga_oneshot,
+            app_state.config.feature_komga_recycle,
         ) {
             Ok(entry_type) => match entry_type {
                 DirEntryType::CategoryDir(sub_entries) => {
@@ -167,7 +167,7 @@ pub async fn full_scan(app_state: Arc<AppState>) {
                             chapters,
                             scanned.parent,
                             category_path_to_id.clone(),
-                            app_state.live_config.get_nomediasupport().await,
+                            app_state.config.feature_nomedia,
                         )),
                         entry_path,
                     ));
@@ -180,7 +180,7 @@ pub async fn full_scan(app_state: Arc<AppState>) {
                             OneshotType::Directory(pages),
                             scanned.parent,
                             category_path_to_id.clone(),
-                            app_state.live_config.get_nomediasupport().await,
+                            app_state.config.feature_nomedia,
                         )),
                         entry_path,
                     ));
@@ -193,7 +193,7 @@ pub async fn full_scan(app_state: Arc<AppState>) {
                             OneshotType::Archive(files_in_archive),
                             scanned.parent,
                             category_path_to_id.clone(),
-                            app_state.live_config.get_nomediasupport().await,
+                            app_state.config.feature_nomedia,
                         )),
                         entry_path,
                     ));
@@ -211,7 +211,7 @@ pub async fn full_scan(app_state: Arc<AppState>) {
         }
     }
 
-    let sem = Arc::new(Semaphore::new(app_state.config.concurrent_scan_tasks));
+    let sem = Arc::new(Semaphore::new(app_state.config.rescan_thread));
     let mut futs = vec![];
     let upserted_title_ids = Arc::new(Mutex::new(vec![]));
 

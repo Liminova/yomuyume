@@ -159,7 +159,6 @@ pub async fn post_sensitive(
                     e
                 })
                 .map(|u| (u.username.clone(), u.email.clone()))?;
-            let app_name = &app_state.config.app_name;
             let action = match purpose {
                 CodePurpose::DeleteAccount => "delete your account",
                 CodePurpose::ResetPassword => "reset your password",
@@ -169,14 +168,14 @@ pub async fn post_sensitive(
             mailer.send(
                     &username,
                     &email,
-                    format!("{app_name} - {action}"),
+                    format!("Yomuyume - {action}"),
                     format!(
                         "Hello, {username}!\n\n\
                         You have requested to {action}. Please copy the following code into the app to continue:\n\n\
                         {code}\n\n\
                         If you don't recognize this action or don't own this account, ignore this email.\n\n\
                         Best regards,\n\
-                        The {app_name} team",
+                        Yomuyume.",
                     ),
                 )
                 .map_err(|e| {
