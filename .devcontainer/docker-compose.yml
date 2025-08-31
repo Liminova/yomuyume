@@ -19,7 +19,7 @@ services:
             LISTEN_ADDRESS: 0.0.0.0:3000
 
             LIBRARY_PATH: /ymym/library
-            DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ymym
+            DATA_PATH: /tmp/ymym-data
             # REVERSE_PROXY_IP_HEADER: CF-Connecting-IP # the header containing real ip address if you're behind a reverse proxy
 
             FEATURE_NOMEDIA: 'false'
