@@ -5,18 +5,18 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-use crate::utils::{archive_file::ArchiveFileError, id_generator::GenerateIDErr};
+use crate::utils::archive_file::ArchiveFileError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum InternalErr {
-    #[error("{0}")]
-    DB(sqlx::Error),
+    #[error("")]
+    DB,
     #[error("IO error: {0}")]
     IO(std::io::Error),
     #[error("archive error: {0}")]
     Archive(ArchiveFileError),
     #[error("mailer error: {0}")]
-    Mailer(anyhow::Error),
+    Mailer(String),
 
     #[error("cache error: can't get {0} to read, this should not happen")]
     ReadCache(String),
@@ -28,8 +28,6 @@ pub enum InternalErr {
     #[error("chapter w/ ID {0} has no page, this should not happen")]
     ChapterNoPage(i64),
 
-    #[error("can't generate snowflake id: {0}")]
-    Snowflake(GenerateIDErr),
     #[error("can't generate secure id: {0}")]
     SecureID(argon2::password_hash::rand_core::Error),
     #[error("can't hash password: {0}")]
@@ -39,11 +37,7 @@ pub enum InternalErr {
 impl IntoResponse for InternalErr {
     fn into_response(self) -> Response {
         tracing::error!("In case I forgot to call tracing::error: {self:?}");
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("{}", anyhow::anyhow!("{self}")),
-        )
-            .into_response()
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("{self}")).into_response()
     }
 }
 
@@ -87,6 +81,6 @@ pub enum RequestErr {
 
 impl IntoResponse for RequestErr {
     fn into_response(self) -> Response {
-        format!("{}", anyhow::anyhow!("{self}")).into_response()
+        format!("{self}").into_response()
     }
 }
