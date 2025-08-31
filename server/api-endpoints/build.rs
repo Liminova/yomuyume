@@ -61,7 +61,7 @@ fn main() -> io::Result<()> {
 
             if params.is_empty() {
                 results.push(format!(
-                    r#"export const {} = "{}";"#,
+                    r#"export const {} = '{}';"#,
                     endpoint_name, endpoint_url
                 ));
             } else {
