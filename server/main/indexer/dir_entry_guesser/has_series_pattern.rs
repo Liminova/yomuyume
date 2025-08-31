@@ -1,25 +1,31 @@
 use std::fs::DirEntry;
 
+use tracing::{debug, warn};
+
 use crate::{
-    library_processor::dir_entry_guesser::{ScannedChapterInfo, ScannedChapterType},
-    traits::{do_something_and_ok::DoSomethingAndOk, pathbuf_utils::PathBufUtils},
-    utils::archive_file::{ArchiveFile, ItemsInArchiveUtils},
+    indexer::dir_entry_guesser::{IndexedChapterKind, PartialIndexedChapter},
+    utils::{
+        absolute_path::ToAbsolute,
+        archive_file::{ArchiveFile, ItemsInArchiveUtils},
+        okay::MapErrorThenOk,
+        pathbuf_utils::PathBufUtils,
+    },
 };
 
 pub trait HasPatternOfSeries {
-    fn has_pattern_of_a_series(
+    fn has_series_pattern(
         &self,
         nomedia_support: bool,
         komga_recycle_support: bool,
-    ) -> Option<Vec<ScannedChapterInfo>>;
+    ) -> Option<Vec<PartialIndexedChapter>>;
 }
 
 impl HasPatternOfSeries for Vec<DirEntry> {
-    fn has_pattern_of_a_series(
+    fn has_series_pattern(
         &self,
         is_nomedia_enabled: bool,
         is_komga_recyle_enabled: bool,
-    ) -> Option<Vec<ScannedChapterInfo>> {
+    ) -> Option<Vec<PartialIndexedChapter>> {
         if self.len() < 2 {
             return None;
         }
@@ -31,7 +37,7 @@ impl HasPatternOfSeries for Vec<DirEntry> {
             .filter_map(|p| match p.metadata() {
                 Ok(m) => Some((p, m)),
                 Err(e) => {
-                    tracing::warn!("can't get metadata of `{}`: {e:?}", p.display());
+                    warn!("can't get metadata of `{}`: {e:?}", p.display());
                     None
                 }
             })
@@ -41,11 +47,16 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                 is_file_but || is_dir_but
             })
             .filter_map(|(p, m)| {
+                let Ok(path) = p.to_absolute(None) else {
+                    warn!("can't convert `{}` to absolute path", p.display());
+                    return None;
+                };
+
                 if m.is_dir() {
-                    return Some(ScannedChapterInfo {
-                        volume: 0,
-                        path: p,
-                        dir_or_archive: ScannedChapterType::Directory,
+                    return Some(PartialIndexedChapter {
+                        fallback_vol_num: 0,
+                        path,
+                        kind: IndexedChapterKind::Directory,
                     });
                 }
 
@@ -53,17 +64,17 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                     return None;
                 }
 
-                p.list_files_in_archive()
-                    .okay(|e| tracing::warn!("can't list files in `{}`: {e:?}", p.display()))
+                (&p).list_files_in_archive()
+                    .okay(|e| warn!("can't list files in `{}`: {e:?}", p.display()))
                     .filter(|files| {
                         !files.is_empty()
                             || !files.contains_nomedia(is_nomedia_enabled)
                             || files.contains_image()
                     })
-                    .map(|files| ScannedChapterInfo {
-                        volume: 0,
-                        path: p,
-                        dir_or_archive: ScannedChapterType::Archive(files),
+                    .map(|files| PartialIndexedChapter {
+                        fallback_vol_num: 0,
+                        path,
+                        kind: IndexedChapterKind::Archive(files),
                     })
             })
             .collect::<Vec<_>>();
@@ -73,11 +84,12 @@ impl HasPatternOfSeries for Vec<DirEntry> {
         }
 
         let mut basename = String::new();
-        let mut chapters: Vec<ScannedChapterInfo> = Vec::with_capacity(are_we_chapters.len());
+        let mut chapters: Vec<PartialIndexedChapter> = Vec::with_capacity(are_we_chapters.len());
 
         for am_i_chapter in are_we_chapters {
             let path_last_component = am_i_chapter
                 .path
+                .as_ref()
                 .with_extension("")
                 .file_name()?
                 .to_string_lossy()
@@ -92,7 +104,7 @@ impl HasPatternOfSeries for Vec<DirEntry> {
 
                 if !is_digit && chapter_number.is_empty() {
                     #[cfg(debug_assertions)]
-                    tracing::debug!(
+                    debug!(
                         "returning None because `{:?}` doesn't have a chapter number",
                         am_i_chapter.path
                     );
@@ -120,25 +132,24 @@ impl HasPatternOfSeries for Vec<DirEntry> {
             // break immediately if there exists another basename
             if !basename.is_empty() && curr_basename_normalized != basename {
                 #[cfg(debug_assertions)]
-                tracing::debug!(
+                debug!(
                     "returning None because `{:?}` has a different basename than `{}`",
-                    curr_basename_normalized,
-                    basename
+                    curr_basename_normalized, basename
                 );
 
                 return None;
             }
             basename = curr_basename_normalized;
 
-            chapters.push(ScannedChapterInfo {
+            chapters.push(PartialIndexedChapter {
                 path: am_i_chapter.path,
-                volume: chapter_number
+                fallback_vol_num: chapter_number
                     .chars()
                     .rev()
                     .collect::<String>()
                     .parse()
                     .unwrap_or_default(),
-                dir_or_archive: am_i_chapter.dir_or_archive,
+                kind: am_i_chapter.kind,
             });
         }
 

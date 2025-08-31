@@ -7,11 +7,14 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::{
-        library_processor::dir_entry_guesser::{
-            ScannedChapterInfo, ScannedChapterType, has_pattern_of_a_series::HasPatternOfSeries,
+        indexer::dir_entry_guesser::{
+            IndexedChapterKind, PartialIndexedChapter, has_series_pattern::HasPatternOfSeries,
         },
-        traits::pathbuf_utils::PathBufUtils,
-        utils::archive_file::{ArchiveFile, ItemInArchive},
+        utils::{
+            absolute_path::ToAbsolute,
+            archive_file::{ArchiveFile, ItemInArchive},
+            pathbuf_utils::PathBufUtils,
+        },
     };
 
     macro_rules! into_archive_item {
@@ -68,22 +71,30 @@ mod tests {
                 .unwrap()
                 .map(|e| e.unwrap())
                 .collect::<Vec<_>>()
-                .has_pattern_of_a_series(true, false)
+                .has_series_pattern(true, false)
                 .unwrap(),
             vec![
-                ScannedChapterInfo {
-                    volume: 1,
-                    path: tmp.path().join("inner/123chapter_001.zip"),
-                    dir_or_archive: ScannedChapterType::Archive(vec![
+                PartialIndexedChapter {
+                    fallback_vol_num: 1,
+                    path: tmp
+                        .path()
+                        .join("inner/123chapter_001.zip")
+                        .to_absolute(None)
+                        .unwrap(),
+                    kind: IndexedChapterKind::Archive(vec![
                         into_archive_item!(jpg_file, "file.jpg"),
                         into_archive_item!(png_file, "file.png"),
                         into_archive_item!(txt_file, "file.txt"),
                     ]),
                 },
-                ScannedChapterInfo {
-                    volume: 200,
-                    path: tmp.path().join("inner/123-----CHAPTER    00200.zip"),
-                    dir_or_archive: ScannedChapterType::Archive(vec![into_archive_item!(
+                PartialIndexedChapter {
+                    fallback_vol_num: 200,
+                    path: tmp
+                        .path()
+                        .join("inner/123-----CHAPTER    00200.zip")
+                        .to_absolute(None)
+                        .unwrap(),
+                    kind: IndexedChapterKind::Archive(vec![into_archive_item!(
                         png_file, "file.png"
                     ),]),
                 }
@@ -98,7 +109,7 @@ mod tests {
                 .unwrap()
                 .map(|e| e.unwrap())
                 .collect::<Vec<_>>()
-                .has_pattern_of_a_series(false, false),
+                .has_series_pattern(false, false),
             None
         );
 
@@ -119,19 +130,23 @@ mod tests {
                 .unwrap()
                 .map(|e| e.unwrap())
                 .collect::<Vec<_>>()
-                .has_pattern_of_a_series(false, false),
+                .has_series_pattern(false, false),
             Some(vec![
-                ScannedChapterInfo {
-                    volume: 100,
-                    path: tmp.path().join("inner2/00100.zip"),
-                    dir_or_archive: ScannedChapterType::Archive(vec![into_archive_item!(
+                PartialIndexedChapter {
+                    fallback_vol_num: 100,
+                    path: tmp
+                        .path()
+                        .join("inner2/00100.zip")
+                        .to_absolute(None)
+                        .unwrap(),
+                    kind: IndexedChapterKind::Archive(vec![into_archive_item!(
                         png_file, "file.png"
                     ),]),
                 },
-                ScannedChapterInfo {
-                    volume: 2,
-                    path: tmp.path().join("inner2/002.zip"),
-                    dir_or_archive: ScannedChapterType::Archive(vec![into_archive_item!(
+                PartialIndexedChapter {
+                    fallback_vol_num: 2,
+                    path: tmp.path().join("inner2/002.zip").to_absolute(None).unwrap(),
+                    kind: IndexedChapterKind::Archive(vec![into_archive_item!(
                         png_file, "file.png"
                     ),]),
                 }
