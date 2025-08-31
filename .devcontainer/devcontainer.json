@@ -10,8 +10,6 @@
 				"bradlc.vscode-tailwindcss",
 				"Vue.volar",
 				"fill-labs.dependi",
-				"mtxr.sqltools",
-				"mtxr.sqltools-driver-pg",
 				"tamasfe.even-better-toml",
 				"esbenp.prettier-vscode"
 			]
