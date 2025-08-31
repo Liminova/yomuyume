@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use crate::structs::absolute_path::AbsolutePath;
+use tracing::info;
+
+use crate::utils::{absolute_path::AbsolutePath, constants};
 
 #[derive(Debug, Clone)]
 pub struct Smtp {
@@ -16,7 +18,8 @@ pub struct Config {
     pub listen_address: String,
 
     pub library_path: AbsolutePath,
-    pub database_url: String,
+    pub data_path: AbsolutePath,
+
     pub reverse_proxy_ip_header: Option<String>,
 
     pub feature_nomedia: bool,
@@ -24,8 +27,6 @@ pub struct Config {
     pub feature_komga_recycle: bool,
 
     pub rescan_interval: tokio::time::Duration,
-    pub rescan_thread: usize,
-    pub snowflake_thread: usize,
 
     pub smtp: Option<Smtp>,
 }
@@ -84,9 +85,21 @@ macro_rules! optional {
 }
 
 impl Config {
-    pub fn init() -> Self {
+    pub fn new() -> Self {
         let library_path = AbsolutePath::from(&PathBuf::from(must!("LIBRARY_PATH")), None)
             .expect("can't convert LIBRARY_PATH to absolute");
+
+        let data_path = PathBuf::from(optional!("DATA_PATH", "./data"));
+        if !data_path.exists() {
+            std::fs::create_dir_all(&data_path).expect("can't create data directory");
+        }
+        if data_path.is_dir() {
+            info!("data path: {}", data_path.display());
+        } else {
+            panic!("DATA_PATH is not point to a valid directory");
+        }
+        let data_path =
+            AbsolutePath::from(&data_path, None).expect("can't convert DATA_PATH to absolute");
 
         assert!(
             library_path.as_ref().is_dir(),
@@ -97,7 +110,7 @@ impl Config {
             listen_address: optional!("LISTEN_ADDRESS", "0.0.0.0:3000"),
 
             library_path,
-            database_url: must!("DATABASE_URL"),
+            data_path,
             reverse_proxy_ip_header: optional!("REVERSE_PROXY_IP_HEADER"),
 
             feature_nomedia: optional!(bool: "FEATURE_NOMEDIA", false),
@@ -107,8 +120,6 @@ impl Config {
             rescan_interval: tokio::time::Duration::from_secs(
                 optional!(num: "RESCAN_INTERVAL_SECS", 6 * 60 * 60),
             ),
-            rescan_thread: optional!(num: "RESCAN_THREAD", 8),
-            snowflake_thread: optional!(num: "SNOWFLAKE_THREAD", 8),
 
             smtp: {
                 if let Some(host) = optional!("SMTP_HOST")
@@ -131,19 +142,15 @@ impl Config {
     }
 
     pub fn get_version(&self) -> String {
-        let semver = env!("CARGO_PKG_VERSION").parse::<semver::Version>();
+        let version = env!("CARGO_PKG_VERSION");
+        let mut parts = version.split('.');
+        let major = parts.next().unwrap_or("0").parse().unwrap_or(0);
+        let minor = parts.next().unwrap_or("0").parse().unwrap_or(0);
 
-        if let Ok(semver) = semver {
-            format!(
-                "{} - {}",
-                semver,
-                super::constants::VERSION_NAMES[(semver.major + semver.minor - 1) as usize]
-            )
-        } else {
-            tracing::warn!(
-                "couldn't parse a semver out of Cargo.toml? defaulting to 0.0.0-unknown"
-            );
-            String::from("0.0.0-unknown - No Version Name")
-        }
+        format!(
+            "{} - {}",
+            env!("CARGO_PKG_VERSION"),
+            constants::VERSION_NAMES[(major + minor - 1) as usize]
+        )
     }
 }

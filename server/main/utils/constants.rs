@@ -1,6 +1,6 @@
 pub const SUPPORTED_ARCHIVE_FORMATS: [&str; 5] = ["zip", "cbz", "rar", "cbr", "7z"];
-pub const SUPPORTED_IMAGE_FORMATS: [&str; 10] = [
-    "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp", "jxl",
+pub const SUPPORTED_IMAGE_FORMATS: [&str; 9] = [
+    "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
 ];
 
 pub const COMICINFO_SCHEMA: &str =
@@ -10,16 +10,10 @@ pub const CATEGORY_INFO_SCHEMA: &str =
     r#"<?xml-model href="https://delnegend.com/categoryinfo-1.0.xsd"?>"#;
 pub const CATEGORYINFO: &str = "CategoryInfo.xml";
 
-pub const SESSION_UPDATE_LAST_USED_AT_IF_OLDER_THAN_SECONDS: i64 = 5 * 60;
-pub const SESSION_EXPIRED_AFTER: i64 = 60 * 60 * 24 * 7; // 7 days
-
 pub const TEMP_CODE_REQUEST_RATE_LIMIT: i64 = 60 * 5; // 5 minutes per request
 pub const TEMP_CODE_EXPIRED_AFTER: i64 = 60 * 5; // 5 minutes after request
 
-pub const CACHER_TIME_TO_LIVE_HOURS: i64 = 6; // 6 hours
-pub const CACHER_SWEEP_INTERVAL_SECONDS: u64 = 60 * 60 * 6;
-
-pub(super) const VERSION_NAMES: [&str; 31] = [
+pub const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
     "Story of Eastern Wonderland",
     "Phantasmagoria of Dim.Dream",

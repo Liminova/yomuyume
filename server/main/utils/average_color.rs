@@ -1,0 +1,57 @@
+use image::{DynamicImage, GenericImageView, Pixel, Rgb};
+use serde::{Deserialize, Serialize};
+
+pub trait AverageColor {
+    fn average_color(&self) -> Option<HexColor>;
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub struct HexColor((u8, u8, u8));
+
+impl From<HexColor> for String {
+    fn from(hex: HexColor) -> Self {
+        format!("#{:02x}{:02x}{:02x}", hex.0.0, hex.0.1, hex.0.2)
+    }
+}
+
+impl From<Rgb<u8>> for HexColor {
+    fn from(rgb: Rgb<u8>) -> Self {
+        HexColor((rgb[0], rgb[1], rgb[2]))
+    }
+}
+
+impl From<(u8, u8, u8)> for HexColor {
+    fn from(tup: (u8, u8, u8)) -> Self {
+        HexColor(tup)
+    }
+}
+
+impl AverageColor for DynamicImage {
+    fn average_color(&self) -> Option<HexColor> {
+        let (width, height) = self.dimensions();
+        let total_pixels = width as u64 * height as u64;
+
+        if total_pixels == 0 {
+            return None; // Handle empty images
+        }
+
+        let mut sum_r: u64 = 0;
+        let mut sum_g: u64 = 0;
+        let mut sum_b: u64 = 0;
+
+        // Iterate through each pixel and sum its color components.
+        for (_x, _y, pixel) in self.pixels() {
+            let rgba = pixel.to_rgb(); // Convert to RGBA8 format
+            sum_r += rgba[0] as u64;
+            sum_g += rgba[1] as u64;
+            sum_b += rgba[2] as u64;
+        }
+
+        // Calculate the average for each component.
+        let avg_r = (sum_r / total_pixels) as u8;
+        let avg_g = (sum_g / total_pixels) as u8;
+        let avg_b = (sum_b / total_pixels) as u8;
+
+        Some(HexColor((avg_r, avg_g, avg_b)))
+    }
+}

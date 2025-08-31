@@ -1,17 +1,14 @@
-//! ComicInfo Version 2.1 Extended
+//! ComicInfo Version 2.1
 //!
-//! Schema: [`crate::config::COMICINFO_SCHEMA`]
-//!
-//! Based on the [ComicInfo Version 2.1 Schema](https://anansi-project.github.io/docs/comicinfo/schemas/v2.1)
+//! Schema: https://github.com/anansi-project/comicinfo/blob/0b6e01/drafts/v2.1/ComicInfo.xsd
 
 #![allow(clippy::ref_option)]
 
-use std::{path::PathBuf, str::FromStr};
+use std::str::FromStr;
 
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use super::option_blurhash_deserializer;
 use crate::utils::constants::COMICINFO_SCHEMA;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -514,35 +511,6 @@ pub struct ComicPageInfo {
         skip_serializing_if = "int32_is_neg_one"
     )]
     pub image_height: i32,
-
-    /// Yomuyume custom attributes
-    #[serde(
-        rename = "@ImagePath",
-        default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub image_path: Option<String>,
-    #[serde(
-        rename = "@Description",
-        default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub description: Option<String>,
-    #[serde(
-        rename = "@Blurhash",
-        default,
-        deserialize_with = "option_blurhash_deserializer",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub blurhash: Option<String>,
-    #[serde(
-        rename = "@ModifiedDateAtEncode",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub modified_date_at_encode: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -651,26 +619,28 @@ impl ComicInfo {
     }
 
     /// Get the description of a page file given its file name.
-    pub fn get_page_description(&self, page_file_name: &str) -> Option<String> {
-        let with_ext = page_file_name.to_string();
+    pub fn get_page_description(&self, _page_file_name: &str) -> Option<String> {
+        // let with_ext = page_file_name.to_string();
 
-        let no_ext = PathBuf::from(page_file_name)
-            .file_stem()
-            .map(|s| s.to_string_lossy().to_string())
-            .unwrap_or_default();
+        // let no_ext = PathBuf::from(page_file_name)
+        //     .file_stem()
+        //     .map(|s| s.to_string_lossy().to_string())
+        //     .unwrap_or_default();
 
-        self.pages().iter().find_map(|page| {
-            let image_path = page.image_path.as_ref()?;
+        // self.pages().iter().find_map(|page| {
+        //     let image_path = page.image_path.as_ref()?;
 
-            let matched_with_ext = image_path == &with_ext;
-            let matched_no_ext = image_path == &no_ext;
+        //     let matched_with_ext = image_path == &with_ext;
+        //     let matched_no_ext = image_path == &no_ext;
 
-            if matched_with_ext || matched_no_ext {
-                return page.description.clone();
-            }
+        //     if matched_with_ext || matched_no_ext {
+        //         return page.description.clone();
+        //     }
 
-            None
-        })
+        //     None
+        // })
+
+        None
     }
 
     /// Parse a ComicInfo.xml string and return a [`ComicInfo`] object.
@@ -689,6 +659,14 @@ impl ComicInfo {
         ser.indent(' ', 4);
         self.serialize(ser)?;
         Ok(buffer)
+    }
+}
+
+impl TryFrom<&str> for ComicInfo {
+    type Error = quick_xml::DeError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        quick_xml::de::from_str(value)
     }
 }
 
@@ -1140,11 +1118,7 @@ mod tests {
                 key: String::new(),
                 bookmark: String::new(),
                 image_width: -1,
-                image_height: -1,
-                image_path: None,
-                description: None,
-                blurhash: None,
-                modified_date_at_encode: None
+                image_height: -1
             }]
         );
         assert_eq!(
@@ -1175,11 +1149,7 @@ mod tests {
                 key: "1".to_string(),
                 bookmark: "2".to_string(),
                 image_width: 3,
-                image_height: 4,
-                image_path: Some("5".to_string()),
-                description: Some("6".to_string()),
-                blurhash: None,
-                modified_date_at_encode: None
+                image_height: 4
             }]
         );
         assert_eq!(
@@ -1187,7 +1157,7 @@ mod tests {
             format!("{COMICINFO_SCHEMA}
 <ComicInfo>
     <Pages>
-        <Page Image=\"0\" Type=\"FrontCover\" Key=\"1\" Bookmark=\"2\" ImageWidth=\"3\" ImageHeight=\"4\" ImagePath=\"5\" Description=\"6\"/>
+        <Page Image=\"0\" Type=\"FrontCover\" Key=\"1\" Bookmark=\"2\" ImageWidth=\"3\" ImageHeight=\"4\"/>
     </Pages>
 </ComicInfo>")
         );
@@ -1335,36 +1305,6 @@ mod tests {
             format!(
                 "{COMICINFO_SCHEMA}\n<ComicInfo>\n    <Tags>tag1, tag2, tag3</Tags>\n</ComicInfo>"
             )
-        );
-    }
-
-    #[test]
-    fn blurhash() {
-        assert_eq!(
-            ComicInfo::from_str(
-                r#"<ComicInfo>
-                <Pages>
-                    <Page Image="0" Blurhash="LEHV6nWB2yk8pyo0adR*.7kCMdnj" />
-                </Pages>
-            </ComicInfo>"#
-            )
-            .unwrap()
-            .pages()
-            .first()
-            .unwrap()
-            .blurhash,
-            Some("LEHV6nWB2yk8pyo0adR*.7kCMdnj".to_string())
-        );
-
-        assert!(
-            ComicInfo::from_str(
-                r#"<ComicInfo>
-                <Pages>
-                    <Page Image="0" Blurhash="123456789" />
-                </Pages>
-            </ComicInfo>"#
-            )
-            .is_err()
         );
     }
 }

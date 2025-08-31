@@ -5,6 +5,7 @@
 
 use std::{
     collections::HashMap,
+    ffi::OsStr,
     io::{BufReader, Read, Write},
     path::PathBuf,
     pin::Pin,
@@ -12,19 +13,37 @@ use std::{
     task::Poll,
 };
 
-use anyhow::{Context, anyhow};
 use axum::body::Bytes;
 use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Timelike, Utc};
 use futures_core::Stream;
-use memfd_exec::{ChildStdout, MemFdExecutable, Stdio};
+use tokio::io::AsyncRead;
 use tracing::warn;
 
-use crate::{
-    traits::{do_something_and_ok::DoSomethingAndOk, string_utils::StringUtils},
-    utils::constants::SUPPORTED_ARCHIVE_FORMATS,
+use crate::utils::{
+    constants::SUPPORTED_ARCHIVE_FORMATS, okay::MapErrorThenOk, string_utils::StringUtils,
 };
 
-const SEVEN_ZIP_BIN: &[u8] = include_bytes!("7zz");
+const SZ_BIN: &[u8] = include_bytes!("7zz");
+
+fn get_7z() -> Result<std::process::Command, ArchiveFileError> {
+    let sz_cli_path = std::env::temp_dir().join("7z");
+
+    if !std::path::Path::new(&sz_cli_path).exists() {
+        std::fs::write(&sz_cli_path, SZ_BIN).map_err(ArchiveFileError::CantSpawn7z)?;
+    }
+    Ok(std::process::Command::new(&sz_cli_path))
+}
+
+async fn get_7z_async() -> Result<tokio::process::Command, ArchiveFileError> {
+    let sz_cli_path = std::env::temp_dir().join("7z");
+
+    if !std::path::Path::new(&sz_cli_path).exists() {
+        tokio::fs::write(&sz_cli_path, SZ_BIN)
+            .await
+            .map_err(ArchiveFileError::CantSpawn7zAsync)?;
+    }
+    Ok(tokio::process::Command::new(&sz_cli_path))
+}
 
 #[derive(Debug, Clone, Eq)]
 pub struct ItemInArchive {
@@ -120,11 +139,13 @@ pub enum ArchiveFileError {
     #[error("{0:?} is not an archive")]
     NotAnArchive(PathBuf),
     #[error("can't spawn 7zz process: {0:?}")]
-    CantSpawn7z(anyhow::Error),
+    CantSpawn7z(std::io::Error),
+    #[error("can't spawn 7zz process: {0:?}")]
+    CantSpawn7zAsync(tokio::io::Error),
     #[error("error from 7zz: {0}")]
     SevenZipError(String),
-    #[error("can't wait 7zz process to complete: {0:?}")]
-    CantWaitToComplete(anyhow::Error),
+    #[error("can't wait 7zz process to complete")]
+    CantWaitToComplete(std::io::Error),
     #[error("can't take stdin pipe to write to 7zz input")]
     CantTakeStdinPipe,
     #[error("can't take stdout pipe to read 7zz output")]
@@ -160,8 +181,10 @@ pub trait ArchiveFile {
     /// exist, return an empty buffer.
     ///
     /// https://superuser.com/a/148501
-    fn read_file_from_archive(&self, file_name: impl ToString)
-    -> Result<Vec<u8>, ArchiveFileError>;
+    fn read_file_from_archive(
+        &self,
+        file_name: impl AsRef<OsStr>,
+    ) -> Result<Vec<u8>, ArchiveFileError>;
 
     /// Upsert a buffer to a specified file in the archive.
     fn upsert_file_to_archive(
@@ -181,7 +204,7 @@ pub trait ArchiveFile {
         self,
         file_name: impl ToString,
         filesize: Option<i64>,
-    ) -> Result<impl Stream<Item = Result<Bytes, ArchiveFileError>>, ArchiveFileError>;
+    ) -> Result<impl AsyncRead, ArchiveFileError>;
 }
 
 impl ArchiveFile for PathBuf {
@@ -216,15 +239,15 @@ impl ArchiveFile for PathBuf {
         })?;
 
         // 7z a -tzip DestinyTest.zip destiny1.txt destiny4.txt destiny6.txt
-        let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
+        let mut child = get_7z()?
             .arg("a")
             .arg(format!("{}", self.display()))
             .arg("-tzip")
             .args(items.iter().map(|path| format!("{}", path.display())))
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| ArchiveFileError::CantSpawn7z(e.into()))?;
+            .map_err(ArchiveFileError::CantSpawn7z)?;
 
         let mut stdout_buf: Vec<u8> = vec![];
         std::io::BufReader::new(
@@ -252,9 +275,7 @@ impl ArchiveFile for PathBuf {
             ));
         }
 
-        child
-            .wait()
-            .map_err(|e| ArchiveFileError::CantWaitToComplete(e.into()))?;
+        child.wait().map_err(ArchiveFileError::CantWaitToComplete)?;
 
         assert!(self.exists());
 
@@ -264,15 +285,15 @@ impl ArchiveFile for PathBuf {
     fn list_files_in_archive(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError> {
         self.validate()?;
 
-        let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
+        let mut child = get_7z()?
             .arg("l")
             .arg(format!("{}", self.display()))
             .arg("-ba")
             .arg("-slt")
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| ArchiveFileError::CantSpawn7z(e.into()))?;
+            .map_err(ArchiveFileError::CantSpawn7z)?;
 
         let mut stdout_buf: Vec<u8> = vec![];
         std::io::BufReader::new(
@@ -343,25 +364,14 @@ impl ArchiveFile for PathBuf {
 
                 let last_modified = attributes
                     .get("Modified")
-                    .ok_or_else(|| anyhow!("value not found for Modified"))
                     .and_then(|val| {
-                        NaiveDateTime::parse_from_str(val.trim(), "%Y-%m-%d %H:%M:%S%.f")
-                            .context("can't parse modified date")
+                        NaiveDateTime::parse_from_str(val.trim(), "%Y-%m-%d %H:%M:%S%.f").ok()
                     })
                     .and_then(|native_datetime| {
-                        Local
-                            .from_local_datetime(&native_datetime)
-                            .single()
-                            .context("can't convert modified date to local datetime")
+                        Local.from_local_datetime(&native_datetime).single()
                     })
                     .map(|local_datetime| local_datetime.to_utc())
-                    .map(|d| d.with_nanosecond(0).unwrap_or_default())
-                    .okay(|e| {
-                        warn!(
-                            "can't get last modified date for {path} in {}: {e:?}",
-                            self.display()
-                        );
-                    });
+                    .map(|d| d.with_nanosecond(0).unwrap_or_default());
 
                 let size = attributes
                     .get("Size")
@@ -388,21 +398,21 @@ impl ArchiveFile for PathBuf {
 
     fn read_file_from_archive(
         &self,
-        file_name: impl ToString,
+        file_name: impl AsRef<OsStr>,
     ) -> Result<Vec<u8>, ArchiveFileError> {
         self.validate()?;
 
         // Read content of specified file to stdout
         // 7zz e -so <input> <file-to-extract>
-        let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
+        let mut child = get_7z()?
             .arg("e")
             .arg(format!("{}", self.display()))
             .arg("-so")
-            .arg(file_name.to_string())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
+            .arg(file_name)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| ArchiveFileError::CantSpawn7z(e.into()))?;
+            .map_err(ArchiveFileError::CantSpawn7z)?;
 
         let mut stdout_buf: Vec<u8> = vec![];
         std::io::BufReader::new(
@@ -424,9 +434,7 @@ impl ArchiveFile for PathBuf {
         .read_to_end(&mut stderr_buf)
         .map_err(ArchiveFileError::CantReadStderr)?;
 
-        child
-            .wait()
-            .map_err(|e| ArchiveFileError::CantWaitToComplete(e.into()))?;
+        child.wait().map_err(ArchiveFileError::CantWaitToComplete)?;
 
         if !stderr_buf.is_empty() {
             return Err(ArchiveFileError::SevenZipError(
@@ -444,16 +452,16 @@ impl ArchiveFile for PathBuf {
     ) -> Result<(), ArchiveFileError> {
         self.validate()?;
 
-        let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
+        let mut child = get_7z()?
             .arg("u")
             .arg(format!("{}", self.display()))
             .arg(format!("-si{}", file_name.to_string()))
             .arg(file_name.to_string())
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| ArchiveFileError::CantSpawn7z(e.into()))?;
+            .map_err(ArchiveFileError::CantSpawn7z)?;
         {
             child
                 .stdin
@@ -464,7 +472,7 @@ impl ArchiveFile for PathBuf {
         }
         let child_output = child
             .wait_with_output()
-            .map_err(|e| ArchiveFileError::CantWaitToComplete(e.into()))?;
+            .map_err(ArchiveFileError::CantWaitToComplete)?;
 
         if !child_output.stderr.is_empty() {
             return Err(ArchiveFileError::SevenZipError(
@@ -481,18 +489,18 @@ impl ArchiveFile for PathBuf {
         self,
         file_name: impl ToString,
         filesize: Option<i64>,
-    ) -> Result<impl Stream<Item = Result<Bytes, ArchiveFileError>>, ArchiveFileError> {
+    ) -> Result<impl AsyncRead, ArchiveFileError> {
         self.validate()?;
 
-        let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
+        let mut child = get_7z()?
             .arg("e")
             .arg(format!("{}", self.display()))
             .arg("-so")
             .arg(file_name.to_string())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| ArchiveFileError::CantSpawn7z(e.into()))?;
+            .map_err(ArchiveFileError::CantSpawn7z)?;
         let buf = BufReader::new(
             child
                 .stdout
@@ -500,16 +508,24 @@ impl ArchiveFile for PathBuf {
                 .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?,
         );
 
-        Ok(ArchiveItemStream {
+        Ok(ArchiveFileStream {
             reader: buf,
             filesize,
         })
     }
 }
 
+// TODO: The ArchiveItemStream and ArchiveFileStream should serve the same
+// purpose, which is to allow Axum to stream file content from the archive without
+// fully extract it to memory; the only difference is the first one uses a trait
+// from futures-core, while the other one is from tokio.
+//
+// At the time of writing, the codebase is going through a heavy rewrite, so I
+// cannot test it, but eventually we want to minimize the app's dependencies.
+
 #[derive(Debug)]
 struct ArchiveItemStream {
-    reader: BufReader<ChildStdout>,
+    reader: BufReader<std::process::ChildStdout>,
     filesize: Option<i64>,
 }
 
@@ -541,6 +557,32 @@ impl Stream for ArchiveItemStream {
     }
 }
 
+#[derive(Debug)]
+struct ArchiveFileStream {
+    reader: BufReader<std::process::ChildStdout>,
+    filesize: Option<i64>,
+}
+
+impl AsyncRead for ArchiveFileStream {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        let _ = cx;
+        let unfilled = buf.initialize_unfilled();
+        let this = Pin::into_inner(self);
+        match this.reader.read(unfilled) {
+            Ok(0) => Poll::Ready(Ok(())),
+            Ok(n) => {
+                buf.advance(n);
+                Poll::Ready(Ok(()))
+            }
+            Err(e) => Poll::Ready(Err(e)),
+        }
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -551,22 +593,15 @@ mod tests {
     };
 
     use chrono::{DateTime, Timelike, Utc};
-    use memfd_exec::{MemFdExecutable, Stdio};
+    use std::process::Stdio;
     use tempfile::TempDir;
 
     use super::*;
 
     #[test]
-    fn available_only_on_x86_64_linux() {
-        #[cfg(not(target_arch = "x86_64"))]
-        {
-            assert!(false);
-        }
-    }
-
-    #[test]
     fn seven_zip_cli_in_path() {
-        let mut child = MemFdExecutable::new("7zz", SEVEN_ZIP_BIN)
+        let mut child = get_7z()
+            .unwrap()
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()

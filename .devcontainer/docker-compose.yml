@@ -3,8 +3,6 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-        depends_on:
-            - postgres
         tty: true
         user: 1000:1000
         volumes:

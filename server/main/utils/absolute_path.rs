@@ -5,7 +5,7 @@ use std::{
 
 use chrono::{DateTime, Utc};
 
-use crate::traits::pathbuf_utils::{LastModifiedErr, PathBufUtils};
+use crate::utils::pathbuf_utils::{LastModifiedErr, PathBufUtils};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AbsolutePath(PathBuf);
@@ -80,14 +80,20 @@ impl AbsolutePath {
         self.0.metadata()
     }
 
-    /// Syntax sugar for `<abs_path>.as_ref().last_modified()`
     pub fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedErr> {
         self.0.last_modified()
     }
 
-    /// Syntax sugar for `<abs_path>.as_ref().is_file()`
     pub fn is_file(&self) -> bool {
         self.0.is_file()
+    }
+
+    pub fn is_dir(&self) -> bool {
+        self.0.is_dir()
+    }
+
+    pub fn display(&self) -> impl Display + '_ {
+        self.0.display()
     }
 }
 

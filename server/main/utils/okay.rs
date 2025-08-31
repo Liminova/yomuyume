@@ -1,10 +1,10 @@
 use std::fmt::{Debug, Display};
 
-pub trait DoSomethingAndOk<T, E: Display + Debug> {
+pub trait MapErrorThenOk<T, E: Display + Debug> {
     fn okay<F: FnOnce(E)>(self, f: F) -> Option<T>;
 }
 
-impl<T, E: Display + Debug> DoSomethingAndOk<T, E> for anyhow::Result<T, E> {
+impl<T, E: Display + Debug> MapErrorThenOk<T, E> for Result<T, E> {
     /// Same as [`Result::map_err`] + [`Result::ok`]
     fn okay<F: FnOnce(E)>(self, f: F) -> Option<T> {
         match self {

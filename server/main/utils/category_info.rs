@@ -1,9 +1,8 @@
 #![allow(clippy::ref_option)]
 
-use chrono::{DateTime, Utc};
+// use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use super::option_blurhash_deserializer;
 use crate::utils::constants::CATEGORY_INFO_SCHEMA;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
@@ -24,8 +23,8 @@ pub struct CategoryInfo {
         skip_serializing_if = "Option::is_none"
     )]
     pub description: Option<String>,
-    #[serde(rename = "Cover", default, skip_serializing_if = "Cover::all_empty")]
-    pub cover: Option<Cover>,
+    // #[serde(rename = "Cover", default, skip_serializing_if = "Cover::all_empty")]
+    // pub cover: Option<Cover>,
 }
 
 fn name_deserializer<'de, D: Deserializer<'de>>(
@@ -65,45 +64,45 @@ fn description_serializer<S: Serializer>(
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
-pub struct Cover {
-    #[serde(rename = "@Path", default, skip_serializing_if = "Option::is_none")]
-    pub path: Option<String>,
-    #[serde(
-        rename = "@Blurhash",
-        default,
-        deserialize_with = "option_blurhash_deserializer",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub blurhash: Option<String>,
-    #[serde(rename = "@Width", default, skip_serializing_if = "Cover::is_zero")]
-    pub width: i32,
-    #[serde(rename = "@Height", default, skip_serializing_if = "Cover::is_zero")]
-    pub height: i32,
-    #[serde(
-        rename = "@ModifiedDateAtEncode",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub modified_date_at_encode: Option<DateTime<Utc>>,
-}
+// #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
+// pub struct Cover {
+//     #[serde(rename = "@Path", default, skip_serializing_if = "Option::is_none")]
+//     pub path: Option<String>,
+//     #[serde(
+//         rename = "@Blurhash",
+//         default,
+//         deserialize_with = "option_blurhash_deserializer",
+//         skip_serializing_if = "Option::is_none"
+//     )]
+//     pub blurhash: Option<String>,
+//     #[serde(rename = "@Width", default, skip_serializing_if = "Cover::is_zero")]
+//     pub width: i32,
+//     #[serde(rename = "@Height", default, skip_serializing_if = "Cover::is_zero")]
+//     pub height: i32,
+//     #[serde(
+//         rename = "@ModifiedDateAtEncode",
+//         default,
+//         skip_serializing_if = "Option::is_none"
+//     )]
+//     pub modified_date_at_encode: Option<DateTime<Utc>>,
+// }
 
-impl Cover {
-    fn is_zero(number: &i32) -> bool {
-        *number == 0
-    }
+// impl Cover {
+//     fn is_zero(number: &i32) -> bool {
+//         *number == 0
+//     }
 
-    fn all_empty(cover: &Option<Cover>) -> bool {
-        if let Some(cover) = cover {
-            return cover.blurhash.is_none()
-                && cover.width == 0
-                && cover.height == 0
-                && cover.modified_date_at_encode.is_none()
-                && cover.path.is_none();
-        }
-        true
-    }
-}
+//     fn all_empty(cover: &Option<Cover>) -> bool {
+//         if let Some(cover) = cover {
+//             return cover.blurhash.is_none()
+//                 && cover.width == 0
+//                 && cover.height == 0
+//                 && cover.modified_date_at_encode.is_none()
+//                 && cover.path.is_none();
+//         }
+//         true
+//     }
+// }
 
 impl CategoryInfo {
     pub fn from_str(s: &str) -> Result<Self, quick_xml::DeError> {
@@ -140,13 +139,13 @@ mod tests {
 
         assert_eq!(category_info.name, Some("Adventure".to_string()));
         assert_eq!(category_info.description, Some("Lorem Ipsum".to_string()));
-        assert_eq!(
-            category_info.cover,
-            Some(Cover {
-                path: Some("Foo".to_string()),
-                ..Default::default()
-            })
-        );
+        // assert_eq!(
+        //     category_info.cover,
+        //     Some(Cover {
+        //         path: Some("Foo".to_string()),
+        //         ..Default::default()
+        //     })
+        // );
     }
 
     #[test]
@@ -156,7 +155,7 @@ mod tests {
 
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
-        assert_eq!(category_info.cover, None);
+        // assert_eq!(category_info.cover, None);
     }
 
     #[test]
@@ -167,7 +166,7 @@ mod tests {
 
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
-        assert_eq!(category_info.cover, Some(Cover::default()));
+        // assert_eq!(category_info.cover, Some(Cover::default()));
 
         assert_eq!(
             category_info.to_pretty_string().unwrap(),
