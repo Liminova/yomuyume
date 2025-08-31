@@ -16,15 +16,14 @@
     clippy::unreadable_literal
 )]
 
-mod library_processor;
+mod config;
+mod database;
+mod indexer;
 mod routes;
-mod structs;
-mod traits;
 mod utils;
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
-use anyhow::Result;
 use axum::{
     Router,
     body::Body,
@@ -34,13 +33,17 @@ use axum::{
     response::IntoResponse,
     routing::{get, post, put},
 };
-use tokio::{net::TcpListener, time::sleep};
+use tantivy::IndexReader;
+use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 use utoipa::OpenApi;
 use utoipa_redoc::{Redoc, Servable};
 
 use crate::{
+    config::Config,
+    database::Database,
+    indexer::Indexer,
     routes::{
         ApiDoc,
         auth::{get_logout, post_forgot, post_login, post_register},
@@ -53,22 +56,33 @@ use crate::{
         },
         utils::{get_scanning_progress, get_status, post_status},
     },
-    utils::{
-        app_state::AppState,
-        constants::{
-            BOOKMARK_PATH, FAVORITE_PATH, FORGOT_PATH, GET_CATEGORIES_PATH, GET_COVER_FILE_PATH,
-            GET_PAGE_FILE_PATH, GET_PAGES_PATH, GET_SCANNING_PROGRESS_PATH, GET_STATUS_PATH,
-            GET_TAGS_PATH, GET_TITLE_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, SEARCH_PATH,
-            USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH,
-        },
+    utils::constants::{
+        BOOKMARK_PATH, FAVORITE_PATH, FORGOT_PATH, GET_CATEGORIES_PATH, GET_COVER_FILE_PATH,
+        GET_PAGE_FILE_PATH, GET_PAGES_PATH, GET_SCANNING_PROGRESS_PATH, GET_STATUS_PATH,
+        GET_TAGS_PATH, GET_TITLE_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, SEARCH_PATH,
+        USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH,
     },
 };
 use frontend_spa::{Content, get_file};
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    dotenvy::dotenv().ok();
+pub struct AppState {
+    pub db: Database,
+    pub config: Config,
+    pub index_reader: IndexReader,
+    pub first_time_index_content: bool,
+}
 
+impl std::fmt::Debug for AppState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AppState")
+            .field("db", &self.db)
+            .field("config", &self.config)
+            .finish()
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), String> {
     tracing_subscriber::fmt()
         .with_ansi(true)
         .with_max_level(tracing::Level::DEBUG)
@@ -77,7 +91,22 @@ async fn main() -> Result<()> {
         .with_line_number(true)
         .init();
 
-    let app_state = AppState::new().await;
+    let config = Config::new();
+
+    let index_path = config.data_path.as_ref().join("index");
+    let memory_budget_in_bytes = 50_000_000;
+    let indexer =
+        Indexer::new(&index_path, memory_budget_in_bytes).expect("can't initialize tantivy");
+
+    let user_db_path = config.data_path.as_ref().join("user.redb");
+    let content_db_path = config.data_path.as_ref().join("content.redb");
+    let first_time_index_content = !content_db_path.exists();
+    let app_state = Arc::new(AppState {
+        db: Database::new(user_db_path, content_db_path).expect("can't initialize redb"),
+        index_reader: indexer.reader.clone(),
+        config,
+        first_time_index_content,
+    });
 
     let app = Router::new()
         .route(REGISTER_PATH, post(post_register))
@@ -138,22 +167,7 @@ async fn main() -> Result<()> {
         }
     });
 
-    let library_processor_handle = tokio::spawn(async move {
-        library_processor::full_scan(app_state.clone()).await;
+    server_handle.await.unwrap();
 
-        if app_state.config.rescan_interval.is_zero() {
-            info!("rescan interval is set to 0, skipping periodic rescan");
-            return;
-        }
-
-        loop {
-            sleep(app_state.config.rescan_interval).await;
-            library_processor::full_scan(app_state.clone()).await;
-        }
-    });
-
-    let _ = tokio::join!(server_handle, library_processor_handle);
-
-    debug!("server stopped gracefully");
     Ok(())
 }
