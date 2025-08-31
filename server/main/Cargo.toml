@@ -22,7 +22,7 @@ lettre = "0.11.2"
 quick-xml = { version = "0.38.3", features = ["serialize", "encoding"] }
 rayon = "1.11.0"
 redb = "3.0.1"
-redb_json_derive = { path = "../redb_json_derive" }
+redb-json-derive = { path = "../redb-json-derive" }
 serde = { version = "1.0.188", features = ["serde_derive"] }
 serde_json = "1.0.108"
 serde_with = "3.12.0"

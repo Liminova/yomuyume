@@ -2309,7 +2309,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "redb_json_derive"
+name = "redb-json-derive"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",
@@ -3782,7 +3782,7 @@ dependencies = [
  "quick-xml",
  "rayon",
  "redb",
- "redb_json_derive",
+ "redb-json-derive",
  "regex",
  "serde",
  "serde_json",
