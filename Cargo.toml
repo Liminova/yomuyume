@@ -2,10 +2,6 @@
 members = ["server/main", "server/frontend-spa", "server/api-endpoints"]
 resolver = "2"
 
-[profile.dev.package.sqlx]
-opt-level = 3
-codegen-units = 1
-
 [profile.release]
 opt-level = 3
 codegen-units = 1
