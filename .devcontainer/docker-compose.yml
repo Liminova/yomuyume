@@ -1,16 +1,4 @@
 services:
-    postgres:
-        image: docker.io/library/postgres:17-alpine
-        # ports:
-        #    - 5432:5432
-        hostname: postgres
-        volumes:
-            - ./postgres-dev:/var/lib/postgresql/data
-        environment:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-            POSTGRES_DB: ymym
-
     dev:
         build:
             context: .
@@ -48,6 +36,5 @@ services:
             SMTP_FROM_NAME: Yomuyume
 
 volumes:
-    postgres-dev:
     cargo-cache:
     global-pnpm-store:
