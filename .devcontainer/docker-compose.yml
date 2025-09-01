@@ -18,7 +18,6 @@ services:
 
             LIBRARY_PATH: /ymym/library
             DATA_PATH: /tmp/ymym-data
-            # REVERSE_PROXY_IP_HEADER: CF-Connecting-IP # the header containing real ip address if you're behind a reverse proxy
 
             FEATURE_NOMEDIA: 'false'
             FEATURE_KOMGA_ONESHOT: 'false'
