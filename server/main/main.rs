@@ -167,7 +167,7 @@ async fn main() -> Result<(), String> {
         }
     });
 
-    server_handle.await.unwrap();
+    server_handle.await.expect("uh oh");
 
     Ok(())
 }
