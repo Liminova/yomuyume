@@ -20,8 +20,6 @@ pub struct Config {
     pub library_path: AbsolutePath,
     pub data_path: AbsolutePath,
 
-    pub reverse_proxy_ip_header: Option<String>,
-
     pub feature_nomedia: bool,
     pub feature_komga_oneshot: bool,
     pub feature_komga_recycle: bool,
@@ -111,7 +109,6 @@ impl Config {
 
             library_path,
             data_path,
-            reverse_proxy_ip_header: optional!("REVERSE_PROXY_IP_HEADER"),
 
             feature_nomedia: optional!(bool: "FEATURE_NOMEDIA", false),
             feature_komga_oneshot: optional!(bool: "FEATURE_KOMGA_ONESHOT", false),
