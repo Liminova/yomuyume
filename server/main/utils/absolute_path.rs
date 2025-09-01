@@ -14,6 +14,7 @@ pub struct AbsolutePath(PathBuf);
 pub enum AbsolutePathErr {
     #[error("can't get current working dir: {0:?}")]
     GetCurrentWorkingDir(std::io::Error),
+
     #[error("can't canonicalize path: {0:?}")]
     Canonicalize(std::io::Error),
 
