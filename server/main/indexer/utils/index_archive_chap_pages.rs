@@ -11,10 +11,7 @@ use tracing::warn;
 use crate::{
     AppState,
     database::{self, content::PageIdentityPath},
-    indexer::{
-        start_index::UpsertTitleErr,
-        utils::{IndexedChapterPages, PageToUpsert},
-    },
+    indexer::utils::{IndexedChapterPages, PageToUpsert},
     utils::{
         absolute_path::AbsolutePath,
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
@@ -28,10 +25,10 @@ pub async fn read_chap_pages_archive(
     chapter_path: &AbsolutePath,
     files_in_archive: Vec<ItemInArchive>,
     pages_in_db: &Vec<(PageIdentityPath, database::content::PageInfo)>,
-) -> Result<IndexedChapterPages, UpsertTitleErr> {
+) -> Option<IndexedChapterPages> {
     let pages_in_archive = files_in_archive.keep_images(app_state.config.feature_nomedia);
     if pages_in_archive.is_empty() {
-        return Err(UpsertTitleErr::IsEmpty);
+        return None;
     }
 
     let to_delete = 'scoped: {
@@ -115,7 +112,7 @@ pub async fn read_chap_pages_archive(
             .collect::<Vec<_>>()
     };
 
-    Ok(IndexedChapterPages {
+    Some(IndexedChapterPages {
         upsert: to_upsert,
         delete: to_delete,
     })

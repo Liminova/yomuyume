@@ -8,10 +8,7 @@ use tracing::{error, warn};
 use crate::{
     AppState,
     database::{self, content::PageIdentityPath},
-    indexer::{
-        start_index::UpsertTitleErr,
-        utils::{IndexedChapterPages, PageToUpsert},
-    },
+    indexer::utils::{IndexedChapterPages, PageToUpsert},
     utils::{
         absolute_path::AbsolutePath, average_color::AverageColor, okay::MapErrorThenOk,
         pathbuf_utils::PathBufUtils,
@@ -31,7 +28,7 @@ pub async fn read_chap_pages_dir(
     chapter_path: &AbsolutePath,
     files_in_chapter: Option<Vec<DirEntry>>,
     pages_in_db: &Vec<(PageIdentityPath, database::content::PageInfo)>,
-) -> Result<IndexedChapterPages, UpsertTitleErr> {
+) -> Option<IndexedChapterPages> {
     let pages_in_dir = files_in_chapter
         .unwrap_or_else(|| {
             std::fs::read_dir(chapter_path.as_ref())
@@ -123,7 +120,7 @@ pub async fn read_chap_pages_dir(
             acc
         });
     if pages_in_dir.is_empty() {
-        return Err(UpsertTitleErr::IsEmpty);
+        return None;
     }
 
     let to_delete = 'scoped: {
@@ -210,7 +207,7 @@ pub async fn read_chap_pages_dir(
             .collect::<Vec<_>>()
     };
 
-    Ok(IndexedChapterPages {
+    Some(IndexedChapterPages {
         upsert: to_upsert,
         delete: to_delete,
     })
