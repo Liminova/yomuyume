@@ -4,18 +4,23 @@ use std::{
     sync::Arc,
 };
 
+use redb::ReadableDatabase;
 use tokio::task::JoinSet;
 use tracing::{debug, error, info};
 
 use crate::{
     AppState,
+    database::{
+        self,
+        content::{chapter_key, page_key},
+    },
     indexer::{
         dir_entry_guesser::{DirEntryType, DirEntryTypeGuesser},
         index_oneshot::{OneshotType, index_oneshot},
         index_series::index_series,
     },
     utils::{
-        absolute_path::{AbsolutePath, AbsolutePathErr, ToAbsolute},
+        absolute_path::{AbsolutePath, ToAbsolute},
         archive_file::ItemInArchive,
         okay::MapErrorThenOk,
     },
@@ -27,36 +32,17 @@ struct ScannedEntry {
     parent: Option<AbsolutePath>, // None for the library root
 }
 
-/// ONLY add errors that would need to handle differently, e.g. [`IsIgnored`]
-/// would tell the caller the function "failed" because the file is ignored,
-/// not something wrong happened.
-///
-/// [`IsIgnored`]: UpsertTitleError::IsIgnored
-#[derive(Debug, thiserror::Error)]
-pub enum UpsertTitleErr {
-    #[error("it's empty")]
-    IsEmpty,
-
-    #[error("can't transform absolute path: {0:?}")]
-    PathAbsoluteConv(#[from] AbsolutePathErr),
-
-    #[error("{0:?}")]
-    CantReadChapterDir(std::io::Error),
-}
-
 type PageInTitle = ItemInArchive;
 
 #[allow(clippy::cognitive_complexity)]
-pub async fn start_index(app_state: Arc<AppState>) {
+pub async fn start_index(app_state: Arc<AppState>) -> Option<()> {
     // scan library directory
-    let Some(library_dir) = std::fs::read_dir(app_state.config.library_path.as_ref()).okay(|e| {
+    let library_dir = std::fs::read_dir(app_state.config.library_path.as_ref()).okay(|e| {
         error!(
             "can't read library path `{}`: {e:?}",
             app_state.config.library_path
         );
-    }) else {
-        return;
-    };
+    })?;
 
     let mut queue: VecDeque<ScannedEntry> = VecDeque::new();
 
@@ -65,7 +51,7 @@ pub async fn start_index(app_state: Arc<AppState>) {
         let entry = match entry {
             Ok(entry) => entry,
             Err(e) => {
-                error!("can't extract entry from root library: {e:?}",);
+                error!("can't extract entry from root library: {e:?}");
                 continue;
             }
         };
@@ -104,7 +90,7 @@ pub async fn start_index(app_state: Arc<AppState>) {
                     join_set.spawn(async move {
                         index_series(app_state, entry_path.clone(), chapters, scanned.parent)
                             .await
-                            .map_err(|e| (e, entry_path))
+                            .ok_or(entry_path)
                     });
                 }
                 DirEntryType::OneShotDir(pages) => {
@@ -116,7 +102,7 @@ pub async fn start_index(app_state: Arc<AppState>) {
                             scanned.parent,
                         )
                         .await
-                        .map_err(|e| (e, entry_path))
+                        .ok_or(entry_path)
                     });
                 }
                 DirEntryType::OneShotArchiveFile(files_in_archive) => {
@@ -128,7 +114,7 @@ pub async fn start_index(app_state: Arc<AppState>) {
                             scanned.parent,
                         )
                         .await
-                        .map_err(|e| (e, entry_path))
+                        .ok_or(entry_path)
                     });
                 }
                 DirEntryType::Ignored => {
@@ -147,38 +133,185 @@ pub async fn start_index(app_state: Arc<AppState>) {
     if app_state.first_time_index_content {
         while let Some(result) = join_set.join_next().await {
             match result {
-                Ok(Err((e, title_path))) => {
-                    error!("failed to index title `{}`: {e:?}", title_path.display());
-                }
-                Err(e) => {
-                    error!("can't join thread: {e:?}");
-                }
+                Ok(Err(title_path)) => error!(
+                    "failed to index title `{}`, check previous logs",
+                    title_path.display()
+                ),
+                Err(e) => error!("can't join thread: {e:?}"),
                 _ => (),
             }
         }
-    } else {
-        let mut indexed_categories_identity_paths = HashSet::new();
-        let mut indexed_titles_identity_paths = HashSet::new();
 
-        while let Some(result) = join_set.join_next().await {
-            match result {
-                Ok(Ok((category_identity_path, title_identity_path))) => {
-                    if let Some(cat_path) = category_identity_path {
-                        indexed_categories_identity_paths.insert(cat_path);
-                    }
-                    indexed_titles_identity_paths.insert(title_identity_path);
+        info!("finished first-time indexing, skipping cleanup");
+
+        return Some(());
+    }
+    let mut indexed_category_keys = HashSet::new();
+    let mut indexed_title_keys = HashSet::new();
+
+    while let Some(result) = join_set.join_next().await {
+        match result {
+            Ok(Ok((category_identity_path, title_identity_path))) => {
+                if let Some(ref cat_path) = category_identity_path {
+                    indexed_category_keys.insert(cat_path.clone());
                 }
-                Ok(Err((e, title_path))) => {
-                    error!("failed to index title `{}`: {e:?}", title_path.display());
-                }
-                Err(e) => {
-                    error!("can't join thread: {e:?}");
-                }
+                indexed_title_keys.insert((category_identity_path, title_identity_path));
             }
+            Ok(Err(title_path)) => {
+                error!(
+                    "failed to index title `{}`, check previous logs",
+                    title_path.display()
+                );
+            }
+            Err(e) => error!("can't join thread: {e:?}"),
         }
-
-        // TODO: rm invalid titles from DB
     }
 
-    info!("finished indexing library");
+    let read_txn = app_state
+        .db
+        .content
+        .begin_read()
+        .okay(|e| error!("can't begin read transaction: {e:?}"))?;
+
+    let indexed_titles_to_chaps = {
+        let mut join_set = JoinSet::new();
+
+        let titles_table = Arc::new(
+            read_txn
+                .open_table(database::content::TITLES)
+                .okay(|e| error!("can't open titles table: {e:?}"))?,
+        );
+
+        for title_key in indexed_title_keys.iter() {
+            let titles_table = titles_table.clone();
+            let title_key = title_key.clone();
+            join_set.spawn(async move {
+                titles_table
+                    .get(&title_key)
+                    .okay(|e| error!("can't get TitleInfo `{title_key:?}`: {e:?}"))
+                    .flatten()
+                    .and_then(|info| Some((title_key, info.value().chapters)))
+            });
+        }
+
+        join_set
+            .join_all()
+            .await
+            .into_iter()
+            .filter_map(|t| t)
+            .collect::<Vec<_>>()
+    };
+
+    let indexed_chaps_to_pages = {
+        let indexed_chap_keys = indexed_titles_to_chaps
+            .iter()
+            .flat_map(
+                |((category_identity_path, title_identity_path), chapter_ips)| {
+                    if let Some(chapter_ips) = chapter_ips {
+                        return chapter_ips
+                            .iter()
+                            .map(|chapter_identity_path| {
+                                chapter_key(
+                                    category_identity_path.clone(),
+                                    title_identity_path.clone(),
+                                    Some(chapter_identity_path.clone()),
+                                )
+                            })
+                            .collect::<Vec<_>>();
+                    }
+
+                    vec![chapter_key(
+                        category_identity_path.clone(),
+                        title_identity_path.clone(),
+                        None,
+                    )]
+                },
+            )
+            .collect::<Vec<_>>();
+
+        let mut join_set = JoinSet::new();
+
+        let chapters_table = Arc::new(
+            read_txn
+                .open_table(database::content::CHAPTERS)
+                .okay(|e| error!("can't open chapters table: {e:?}"))?,
+        );
+
+        for chap_key in indexed_chap_keys {
+            let chapters_table = chapters_table.clone();
+            join_set.spawn(async move {
+                chapters_table
+                    .get(&chap_key)
+                    .okay(|e| error!("can't get ChapterInfo `{chap_key:?}`: {e:?}"))
+                    .flatten()
+                    .map(|info| (chap_key, info.value().pages))
+            });
+        }
+
+        join_set
+            .join_all()
+            .await
+            .into_iter()
+            .filter_map(|t| t)
+            .collect::<Vec<_>>()
+    };
+
+    let indexed_chap_keys = indexed_chaps_to_pages
+        .iter()
+        .map(|(chap_key, _)| chap_key.clone())
+        .collect::<HashSet<_>>();
+
+    let indexed_pages = indexed_chaps_to_pages
+        .into_iter()
+        .flat_map(
+            |((category_identity_path, title_identity_path, chapter_identity_path), page_ips)| {
+                page_ips.into_iter().map(move |page_identity_path| {
+                    page_key(
+                        category_identity_path.clone(),
+                        title_identity_path.clone(),
+                        chapter_identity_path.clone(),
+                        page_identity_path,
+                    )
+                })
+            },
+        )
+        .collect::<HashSet<_>>();
+
+    let write_txn = app_state
+        .db
+        .content
+        .begin_write()
+        .okay(|e| error!("can't begin write transaction: {e:?}"))?;
+
+    let mut categories_table = write_txn
+        .open_table(database::content::CATEGORIES)
+        .okay(|e| error!("can't open categories table: {e:?}"))?;
+    categories_table.retain(|key, _| indexed_category_keys.contains(&key));
+    drop(categories_table);
+
+    let mut titles_table = write_txn
+        .open_table(database::content::TITLES)
+        .okay(|e| error!("can't open titles table: {e:?}"))?;
+    titles_table.retain(|key, _| indexed_title_keys.contains(&key));
+    drop(titles_table);
+
+    let mut chapters_table = write_txn
+        .open_table(database::content::CHAPTERS)
+        .okay(|e| error!("can't open chapters table: {e:?}"))?;
+    chapters_table.retain(|key, _| indexed_chap_keys.contains(&key));
+    drop(chapters_table);
+
+    let mut pages_table = write_txn
+        .open_table(database::content::PAGES)
+        .okay(|e| error!("can't open pages table: {e:?}"))?;
+    pages_table.retain(|key, _| indexed_pages.contains(&key));
+    drop(pages_table);
+
+    if let Err(e) = write_txn.commit() {
+        error!("can't commit write transaction: {e:?}");
+    }
+
+    info!("finished re-indexing library");
+
+    Some(())
 }
