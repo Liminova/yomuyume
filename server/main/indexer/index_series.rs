@@ -14,7 +14,10 @@ use crate::{
     AppState,
     database::{
         self,
-        content::{CategoryIdentityPath, PageIdentityPath, TitleIdentityPath},
+        content::{
+            CategoryIdentityPath, PageIdentityPath, TitleIdentityPath, chapter_key, page_key,
+            title_key,
+        },
     },
     indexer::{
         dir_entry_guesser::{IndexedChapterKind, PartialIndexedChapter},
@@ -91,6 +94,7 @@ pub async fn index_series(
         let chapters_table = chapters_table.clone();
         let pages_table = pages_table.clone();
         let title_path = title_path.clone();
+        let category_identity_path = category_identity_path.clone();
         let title_identity_path = title_identity_path.clone();
         let app_state = app_state.clone();
 
@@ -103,7 +107,8 @@ pub async fn index_series(
                 .okay(|e| error!("can't convert chapter path to relative: {e:?}"))?;
 
             let chapter_info = chapters_table
-                .get((
+                .get(chapter_key(
+                    category_identity_path.clone(),
                     title_identity_path.clone(),
                     Some(chapter_identity_path.clone()),
                 ))
@@ -121,7 +126,8 @@ pub async fn index_series(
                                 .iter()
                                 .filter_map(|page_identity_path| {
                                     pages_table
-                                        .get((
+                                        .get(page_key(
+                                            category_identity_path.clone(),
                                             title_identity_path.clone(),
                                             Some(chapter_identity_path.clone()),
                                             page_identity_path.clone(),
@@ -250,7 +256,10 @@ pub async fn index_series(
         }
 
         let chapters_in_db = titles_table
-            .get((category_identity_path.clone(), title_identity_path.clone()))
+            .get(title_key(
+                category_identity_path.clone(),
+                title_identity_path.clone(),
+            ))
             .okay(|e| warn!("can't get TitleInfo: {e:?}"))?
             .map(|t| t.value().chapters)
             .flatten()
@@ -323,7 +332,8 @@ pub async fn index_series(
         .okay(|e| error!("can't open chapters table: {e:?}"))?;
     for indexed_chapter in &indexed_chapters {
         chapters_table.insert(
-            (
+            chapter_key(
+                category_identity_path.clone(),
                 title_identity_path.clone(),
                 Some(indexed_chapter.identity_path.clone()),
             ),
@@ -341,7 +351,11 @@ pub async fn index_series(
         );
     }
     for chapter_to_remove in chapters_to_remove {
-        chapters_table.remove((title_identity_path.clone(), Some(chapter_to_remove)));
+        chapters_table.remove(chapter_key(
+            category_identity_path.clone(),
+            title_identity_path.clone(),
+            Some(chapter_to_remove),
+        ));
     }
     drop(chapters_table);
 
@@ -358,7 +372,8 @@ pub async fn index_series(
         };
         for page in indexed_chapter.pages.upsert.into_iter() {
             pages_table.insert(
-                (
+                page_key(
+                    category_identity_path.clone(),
                     title_identity_path.clone(),
                     Some(indexed_chapter.identity_path.clone()),
                     page.identity_path,
@@ -374,7 +389,8 @@ pub async fn index_series(
             );
         }
         for page_to_delete in indexed_chapter.pages.delete {
-            pages_table.remove((
+            pages_table.remove(page_key(
+                category_identity_path.clone(),
                 title_identity_path.clone(),
                 Some(indexed_chapter.identity_path.clone()),
                 page_to_delete,

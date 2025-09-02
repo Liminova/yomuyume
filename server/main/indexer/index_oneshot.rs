@@ -7,7 +7,7 @@ use crate::{
     AppState,
     database::{
         self,
-        content::{CategoryIdentityPath, TitleIdentityPath},
+        content::{TitleKey, chapter_key, page_key, title_key},
     },
     indexer::utils::{
         find_chapter_cover::find_chapter_cover, index_archive_chap_pages::read_chap_pages_archive,
@@ -35,7 +35,7 @@ pub async fn index_oneshot(
     title_path: AbsolutePath,
     oneshot_type: OneshotType,
     parent_path: Option<AbsolutePath>,
-) -> Option<(Option<CategoryIdentityPath>, TitleIdentityPath)> {
+) -> Option<TitleKey> {
     let title_identity_path = title_path
         .to_relative(Some(
             parent_path
@@ -69,7 +69,10 @@ pub async fn index_oneshot(
             .open_table(database::content::TITLES)
             .okay(|e| error!("can't open titles table: {e:?}"))?;
         if let Some(old_last_modified) = titles_table
-            .get((category_identity_path.clone(), title_identity_path.clone()))
+            .get(title_key(
+                category_identity_path.clone(),
+                title_identity_path.clone(),
+            ))
             .okay(|e| error!("can't get title info: {e:?}"))?
             .map(|v| v.value().last_modified)
             .flatten()
@@ -81,7 +84,7 @@ pub async fn index_oneshot(
             })
             && old_last_modified >= new_last_modified
         {
-            return Some((category_identity_path, title_identity_path));
+            return Some(title_key(category_identity_path, title_identity_path));
         };
     }
 
@@ -103,7 +106,11 @@ pub async fn index_oneshot(
             .okay(|e| error!("can't open pages table: {e:?}"))?;
 
         let Some(page_identity_paths) = chapters_table
-            .get((title_identity_path.clone(), None))
+            .get(chapter_key(
+                category_identity_path.clone(),
+                title_identity_path.clone(),
+                None,
+            ))
             .okay(|e| error!("can't get chapter info: {e:?}"))?
             .map(|v| v.value().pages)
         else {
@@ -112,12 +119,17 @@ pub async fn index_oneshot(
 
         page_identity_paths
             .into_iter()
-            .filter_map(|page_path| {
+            .filter_map(|page_identity_path| {
                 pages_table
-                    .get((title_identity_path.clone(), None, page_path.clone()))
+                    .get(page_key(
+                        category_identity_path.clone(),
+                        title_identity_path.clone(),
+                        None,
+                        page_identity_path.clone(),
+                    ))
                     .okay(|e| warn!("can't get PageInfo: {e}"))
                     .flatten()
-                    .map(|p| (page_path, p.value()))
+                    .map(|p| (page_identity_path, p.value()))
             })
             .collect::<Vec<_>>()
     };
@@ -204,7 +216,7 @@ pub async fn index_oneshot(
         .open_table(database::content::TITLES)
         .okay(|e| error!("can't open titles table: {e:?}"))?;
     titles_table.insert(
-        (category_identity_path.clone(), title_identity_path.clone()),
+        title_key(category_identity_path.clone(), title_identity_path.clone()),
         database::content::TitleInfo {
             chapters: None,
             last_modified: title_path.last_modified().okay(|e| {
@@ -221,7 +233,11 @@ pub async fn index_oneshot(
         .open_table(database::content::CHAPTERS)
         .okay(|e| error!("can't open chapters table: {e:?}"))?;
     chapters_table.insert(
-        (title_identity_path.clone(), None),
+        chapter_key(
+            category_identity_path.clone(),
+            title_identity_path.clone(),
+            None,
+        ),
         database::content::ChapterInfo {
             pages: indexed_pages
                 .upsert
@@ -244,7 +260,12 @@ pub async fn index_oneshot(
         .okay(|e| error!("can't open pages table: {e:?}"))?;
     for page in indexed_pages.upsert.into_iter() {
         pages_table.insert(
-            (title_identity_path.clone(), None, page.identity_path),
+            page_key(
+                category_identity_path.clone(),
+                title_identity_path.clone(),
+                None,
+                page.identity_path,
+            ),
             database::content::PageInfo {
                 width: page.width,
                 height: page.height,
@@ -258,7 +279,12 @@ pub async fn index_oneshot(
         );
     }
     for page_to_delete in indexed_pages.delete {
-        pages_table.remove((title_identity_path.clone(), None, page_to_delete));
+        pages_table.remove(page_key(
+            category_identity_path.clone(),
+            title_identity_path.clone(),
+            None,
+            page_to_delete,
+        ));
     }
     drop(pages_table);
 
@@ -268,5 +294,5 @@ pub async fn index_oneshot(
 
     // TODO: write ComicInfo.xml into tantivy
 
-    Some((category_identity_path, title_identity_path))
+    Some(title_key(category_identity_path, title_identity_path))
 }
