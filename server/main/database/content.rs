@@ -23,7 +23,13 @@ pub type PageIdentityPath = String;
 pub const CATEGORIES: TableDef<CategoryIdentityPath, Vec<TitleIdentityPath>> =
     TableDef::new("categories");
 
-pub type ChapterNumber = u32;
+pub type TitleKey = (Option<CategoryIdentityPath>, TitleIdentityPath);
+pub const fn title_key(
+    category_identity_path: Option<CategoryIdentityPath>,
+    title_identity_path: TitleIdentityPath,
+) -> TitleKey {
+    (category_identity_path, title_identity_path)
+}
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, RedbJsonValue)]
@@ -34,22 +40,58 @@ pub struct TitleInfo {
     pub last_modified: Option<DateTime<Utc>>,
 }
 
-pub const TITLES: TableDef<(Option<CategoryIdentityPath>, TitleIdentityPath), TitleInfo> =
-    TableDef::new("titles");
+pub const TITLES: TableDef<TitleKey, TitleInfo> = TableDef::new("titles");
+
+pub type ChapterKey = (
+    Option<CategoryIdentityPath>,
+    TitleIdentityPath,
+    Option<ChapterIdentityPath>,
+);
+pub const fn chapter_key(
+    category_identity_path: Option<CategoryIdentityPath>,
+    title_identity_path: TitleIdentityPath,
+    chapter_identity_path: Option<ChapterIdentityPath>,
+) -> ChapterKey {
+    (
+        category_identity_path,
+        title_identity_path,
+        chapter_identity_path,
+    )
+}
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, RedbJsonValue)]
 pub struct ChapterInfo {
     pub pages: Vec<PageIdentityPath>,
-    pub fallback_vol_num: Option<ChapterNumber>,
+    pub fallback_vol_num: Option<u32>,
     pub cover: Option<(PageIdentityPath, HexColor)>,
 
     /// NOTE: same reason as above
     pub last_modified: Option<DateTime<Utc>>,
 }
 
-pub const CHAPTERS: TableDef<(TitleIdentityPath, Option<ChapterIdentityPath>), ChapterInfo> =
-    TableDef::new("chapters");
+pub const CHAPTERS: TableDef<ChapterKey, ChapterInfo> = TableDef::new("chapters");
+
+type PageKey = (
+    Option<CategoryIdentityPath>,
+    TitleIdentityPath,
+    Option<ChapterIdentityPath>,
+    PageIdentityPath,
+);
+
+pub const fn page_key(
+    category_identity_path: Option<CategoryIdentityPath>,
+    title_identity_path: TitleIdentityPath,
+    chapter_identity_path: Option<ChapterIdentityPath>,
+    page_identity_path: PageIdentityPath,
+) -> PageKey {
+    (
+        category_identity_path,
+        title_identity_path,
+        chapter_identity_path,
+        page_identity_path,
+    )
+}
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, RedbJsonValue)]
@@ -64,11 +106,4 @@ pub struct PageInfo {
     pub parent_path: PathBuf,
 }
 
-pub const PAGES: TableDef<
-    (
-        TitleIdentityPath,
-        Option<ChapterIdentityPath>,
-        PageIdentityPath,
-    ),
-    PageInfo,
-> = TableDef::new("pages");
+pub const PAGES: TableDef<PageKey, PageInfo> = TableDef::new("pages");

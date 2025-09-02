@@ -1,7 +1,7 @@
 use std::{fs::DirEntry, sync::Arc};
 
 use redb::ReadableDatabase;
-use tracing::warn;
+use tracing::{error, warn};
 
 use crate::{
     AppState,
@@ -9,13 +9,9 @@ use crate::{
         self,
         content::{CategoryIdentityPath, TitleIdentityPath},
     },
-    indexer::{
-        start_index::UpsertTitleErr,
-        utils::{
-            find_chapter_cover::find_chapter_cover,
-            index_archive_chap_pages::read_chap_pages_archive,
-            index_directory_chap_pages::read_chap_pages_dir,
-        },
+    indexer::utils::{
+        find_chapter_cover::find_chapter_cover, index_archive_chap_pages::read_chap_pages_archive,
+        index_directory_chap_pages::read_chap_pages_dir,
     },
     utils::{
         absolute_path::AbsolutePath,
@@ -39,13 +35,14 @@ pub async fn index_oneshot(
     title_path: AbsolutePath,
     oneshot_type: OneshotType,
     parent_path: Option<AbsolutePath>,
-) -> Result<(Option<CategoryIdentityPath>, TitleIdentityPath), UpsertTitleErr> {
+) -> Option<(Option<CategoryIdentityPath>, TitleIdentityPath)> {
     let title_identity_path = title_path
         .to_relative(Some(
             parent_path
                 .as_ref()
                 .unwrap_or(&app_state.config.library_path),
-        ))?
+        ))
+        .okay(|e| error!("can't convert title path to relative: {e:?}"))?
         .to_string_lossy()
         .to_string();
 
@@ -55,18 +52,25 @@ pub async fn index_oneshot(
             p.to_relative(Some(&app_state.config.library_path))
                 .map(|rp| rp.to_string_lossy().to_string())
         })
-        .transpose()?;
+        .transpose()
+        .okay(|e| error!("can't convert category path to relative: {e:?}"))?;
 
     'skip_process_when_db_is_newer: {
         if title_path.is_dir() || app_state.first_time_index_content {
             break 'skip_process_when_db_is_newer;
         }
 
-        let read_txn = app_state.db.content.begin_read().unwrap();
-        let titles_table = read_txn.open_table(database::content::TITLES).unwrap();
+        let read_txn = app_state
+            .db
+            .content
+            .begin_read()
+            .okay(|e| error!("can't begin read transaction: {e:?}"))?;
+        let titles_table = read_txn
+            .open_table(database::content::TITLES)
+            .okay(|e| error!("can't open titles table: {e:?}"))?;
         if let Some(old_last_modified) = titles_table
             .get((category_identity_path.clone(), title_identity_path.clone()))
-            .unwrap()
+            .okay(|e| error!("can't get title info: {e:?}"))?
             .map(|v| v.value().last_modified)
             .flatten()
             && let Some(new_last_modified) = title_path.last_modified().okay(|e| {
@@ -77,7 +81,7 @@ pub async fn index_oneshot(
             })
             && old_last_modified >= new_last_modified
         {
-            return Ok((category_identity_path, title_identity_path));
+            return Some((category_identity_path, title_identity_path));
         };
     }
 
@@ -86,13 +90,21 @@ pub async fn index_oneshot(
             break 'scoped vec![];
         }
 
-        let read_txn = app_state.db.user.begin_read().unwrap();
-        let chapters_table = read_txn.open_table(database::content::CHAPTERS).unwrap();
-        let pages_table = read_txn.open_table(database::content::PAGES).unwrap();
+        let read_txn = app_state
+            .db
+            .user
+            .begin_read()
+            .okay(|e| error!("can't begin read transaction: {e:?}"))?;
+        let chapters_table = read_txn
+            .open_table(database::content::CHAPTERS)
+            .okay(|e| error!("can't open chapters table: {e:?}"))?;
+        let pages_table = read_txn
+            .open_table(database::content::PAGES)
+            .okay(|e| error!("can't open pages table: {e:?}"))?;
 
         let Some(page_identity_paths) = chapters_table
             .get((title_identity_path.clone(), None))
-            .unwrap()
+            .okay(|e| error!("can't get chapter info: {e:?}"))?
             .map(|v| v.value().pages)
         else {
             break 'scoped vec![];
@@ -142,7 +154,7 @@ pub async fn index_oneshot(
         ),
 
         OneshotType::Directory(sub_entries) => (
-            read_chap_pages_dir(&app_state, &title_path, sub_entries, &pages_in_db).await?,
+            read_chap_pages_dir(&app_state, &title_path, Some(sub_entries), &pages_in_db).await?,
             title_path
                 .as_ref()
                 .join(COMICINFO)
@@ -168,13 +180,19 @@ pub async fn index_oneshot(
         ),
     };
 
-    let write_txn = app_state.db.content.begin_write().unwrap();
+    let write_txn = app_state
+        .db
+        .content
+        .begin_write()
+        .okay(|e| error!("can't begin write transaction: {e:?}"))?;
 
     if let Some(category_identity_path) = category_identity_path.clone() {
-        let mut categories_table = write_txn.open_table(database::content::CATEGORIES).unwrap();
+        let mut categories_table = write_txn
+            .open_table(database::content::CATEGORIES)
+            .okay(|e| error!("can't open categories table: {e:?}"))?;
         if let Some(existing_category) = categories_table
             .get_mut(category_identity_path.clone())
-            .unwrap()
+            .okay(|e| error!("can't get existing category: {e:?}"))?
         {
             existing_category.value().push(title_identity_path.clone());
         } else {
@@ -182,7 +200,9 @@ pub async fn index_oneshot(
         }
     }
 
-    let mut titles_table = write_txn.open_table(database::content::TITLES).unwrap();
+    let mut titles_table = write_txn
+        .open_table(database::content::TITLES)
+        .okay(|e| error!("can't open titles table: {e:?}"))?;
     titles_table.insert(
         (category_identity_path.clone(), title_identity_path.clone()),
         database::content::TitleInfo {
@@ -197,7 +217,9 @@ pub async fn index_oneshot(
     );
     drop(titles_table);
 
-    let mut chapters_table = write_txn.open_table(database::content::CHAPTERS).unwrap();
+    let mut chapters_table = write_txn
+        .open_table(database::content::CHAPTERS)
+        .okay(|e| error!("can't open chapters table: {e:?}"))?;
     chapters_table.insert(
         (title_identity_path.clone(), None),
         database::content::ChapterInfo {
@@ -217,7 +239,9 @@ pub async fn index_oneshot(
     );
     drop(chapters_table);
 
-    let mut pages_table = write_txn.open_table(database::content::PAGES).unwrap();
+    let mut pages_table = write_txn
+        .open_table(database::content::PAGES)
+        .okay(|e| error!("can't open pages table: {e:?}"))?;
     for page in indexed_pages.upsert.into_iter() {
         pages_table.insert(
             (title_identity_path.clone(), None, page.identity_path),
@@ -227,7 +251,9 @@ pub async fn index_oneshot(
                 color: page.color,
                 size: page.size,
                 last_modified: page.last_modified,
-                parent_path: title_path.to_relative(Some(&app_state.config.library_path))?,
+                parent_path: title_path
+                    .to_relative(Some(&app_state.config.library_path))
+                    .okay(|e| error!("can't convert title path to relative: {e:?}"))?,
             },
         );
     }
@@ -236,7 +262,11 @@ pub async fn index_oneshot(
     }
     drop(pages_table);
 
-    write_txn.commit().unwrap();
+    write_txn
+        .commit()
+        .okay(|e| error!("can't commit write transaction: {e:?}"))?;
 
-    Ok((category_identity_path, title_identity_path))
+    // TODO: write ComicInfo.xml into tantivy
+
+    Some((category_identity_path, title_identity_path))
 }
