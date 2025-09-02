@@ -17,7 +17,7 @@ pub struct PageToUpsert {
     pub last_modified: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct IndexedChapterPages {
     pub upsert: Vec<PageToUpsert>,
     pub delete: Vec<PageIdentityPath>,
