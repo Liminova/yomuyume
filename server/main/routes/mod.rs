@@ -18,7 +18,7 @@ use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
 };
 
-use crate::utils::constants::{SESSION_ID_COOKIE_NAME, SESSION_SECRET_COOKIE_NAME};
+use crate::utils::constants::CookieName;
 
 struct SecurityAddon;
 
@@ -26,13 +26,15 @@ impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         if let Some(components) = openapi.components.as_mut() {
             components.add_security_scheme(
-                SESSION_ID_COOKIE_NAME,
-                SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(SESSION_ID_COOKIE_NAME))),
+                CookieName::SessionID.as_ref(),
+                SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(
+                    CookieName::SessionID.as_ref(),
+                ))),
             );
             components.add_security_scheme(
-                SESSION_SECRET_COOKIE_NAME,
+                CookieName::SessionSecret.as_ref(),
                 SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(
-                    SESSION_SECRET_COOKIE_NAME,
+                    CookieName::SessionSecret.as_ref(),
                 ))),
             );
         }
