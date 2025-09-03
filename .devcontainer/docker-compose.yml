@@ -17,14 +17,14 @@ services:
             LISTEN_ADDRESS: 0.0.0.0:3000
 
             LIBRARY_PATH: /ymym/library
-            DATA_PATH: /tmp/ymym-data
+            DATA_PATH: /ymym/ymym-data
 
             FEATURE_NOMEDIA: 'false'
             FEATURE_KOMGA_ONESHOT: 'false'
             FEATURE_KOMGA_RECYCLE: 'false'
 
             RESCAN_INTERVAL_SECS: '21600' # 6 hours
-            RESCAN_THREAD: '8'
+            OPERATE_MODE: 'public'
 
             SMTP_HOST: smtp.example.com
             SMTP_USERNAME: user@example.com
