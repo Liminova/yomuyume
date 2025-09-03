@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use lettre::Address;
 use tracing::info;
 
 use crate::utils::{absolute_path::AbsolutePath, constants};
@@ -9,7 +10,7 @@ pub struct Smtp {
     pub host: String,
     pub username: String,
     pub password: String,
-    pub from_email: String,
+    pub from_email: Address,
     pub from_name: String,
 }
 
@@ -123,6 +124,7 @@ impl Config {
                     && let Some(username) = optional!("SMTP_USERNAME")
                     && let Some(password) = optional!("SMTP_PASSWORD")
                     && let Some(from_email) = optional!("SMTP_FROM_EMAIL")
+                    && let Ok(from_email) = from_email.parse::<Address>()
                 {
                     Some(Smtp {
                         host,
