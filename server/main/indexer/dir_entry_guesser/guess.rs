@@ -5,8 +5,8 @@ use crate::{
     indexer::dir_entry_guesser::{PartialIndexedChapter, has_series_pattern::HasPatternOfSeries},
     utils::{
         archive_file::{ArchiveFile, ArchiveFileError, ItemInArchive, ItemsInArchiveUtils},
-        okay::MapErrorThenOk,
         pathbuf_utils::PathBufUtils,
+        result_utils::ResultUtils,
     },
 };
 

@@ -10,8 +10,8 @@ use crate::{
     database::{self, content::PageIdentityPath},
     indexer::utils::{IndexedChapterPages, PageToUpsert},
     utils::{
-        absolute_path::AbsolutePath, average_color::AverageColor, okay::MapErrorThenOk,
-        pathbuf_utils::PathBufUtils,
+        absolute_path::AbsolutePath, average_color::AverageColor, pathbuf_utils::PathBufUtils,
+        result_utils::ResultUtils,
     },
 };
 

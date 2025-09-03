@@ -7,8 +7,8 @@ use crate::{
     utils::{
         absolute_path::ToAbsolute,
         archive_file::{ArchiveFile, ItemsInArchiveUtils},
-        okay::MapErrorThenOk,
         pathbuf_utils::PathBufUtils,
+        result_utils::ResultUtils,
     },
 };
 

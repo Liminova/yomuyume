@@ -16,7 +16,7 @@ use crate::{
         absolute_path::AbsolutePath,
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
         average_color::AverageColor,
-        okay::MapErrorThenOk,
+        result_utils::ResultUtils,
     },
 };
 

@@ -29,7 +29,7 @@ use crate::{
     },
     utils::{
         absolute_path::AbsolutePath, archive_file::ArchiveFile, average_color::HexColor,
-        comic_info::ComicInfo, constants::COMICINFO, okay::MapErrorThenOk,
+        comic_info::ComicInfo, constants::COMICINFO, result_utils::ResultUtils,
     },
 };
 

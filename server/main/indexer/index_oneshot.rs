@@ -18,7 +18,7 @@ use crate::{
         archive_file::{ArchiveFile, ItemInArchive},
         comic_info::ComicInfo,
         constants::COMICINFO,
-        okay::MapErrorThenOk,
+        result_utils::ResultUtils,
     },
 };
 

@@ -22,7 +22,7 @@ use crate::{
     utils::{
         absolute_path::{AbsolutePath, ToAbsolute},
         archive_file::ItemInArchive,
-        okay::MapErrorThenOk,
+        result_utils::ResultUtils,
     },
 };
 

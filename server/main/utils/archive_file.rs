@@ -20,7 +20,7 @@ use tokio::io::AsyncRead;
 use tracing::warn;
 
 use crate::utils::{
-    constants::SUPPORTED_ARCHIVE_FORMATS, okay::MapErrorThenOk, string_utils::StringUtils,
+    constants::SUPPORTED_ARCHIVE_FORMATS, result_utils::ResultUtils, string_utils::StringUtils,
 };
 
 const SZ_BIN: &[u8] = include_bytes!("7zz");
