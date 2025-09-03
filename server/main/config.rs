@@ -14,6 +14,27 @@ pub struct Smtp {
     pub from_name: String,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum OperateMode {
+    Public,
+    RequireRegister,
+    InviteOnly,
+}
+
+impl From<&str> for OperateMode {
+    fn from(s: &str) -> Self {
+        match s.trim().to_lowercase().as_str() {
+            "public" => OperateMode::Public,
+            "require_register" => OperateMode::RequireRegister,
+            "invite_only" => OperateMode::InviteOnly,
+            _ => {
+                tracing::warn!("unknown OPERATE_MODE: {}, using public", s);
+                OperateMode::Public
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub listen_address: String,
@@ -26,6 +47,7 @@ pub struct Config {
     pub feature_komga_recycle: bool,
 
     pub rescan_interval: tokio::time::Duration,
+    pub operate_mode: OperateMode,
 
     pub smtp: Option<Smtp>,
 }
@@ -118,6 +140,7 @@ impl Config {
             rescan_interval: tokio::time::Duration::from_secs(
                 optional!(num: "RESCAN_INTERVAL_SECS", 6 * 60 * 60),
             ),
+            operate_mode: OperateMode::from(optional!("OPERATE_MODE", "public").as_str()),
 
             smtp: {
                 if let Some(host) = optional!("SMTP_HOST")
