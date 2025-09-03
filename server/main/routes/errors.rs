@@ -5,18 +5,25 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-use crate::utils::archive_file::ArchiveFileError;
+use crate::{routes::user::MailerError, utils::archive_file::ArchiveFileError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum InternalErr {
-    #[error("")]
-    DB,
+    #[error("database transaction error: {0}")]
+    DBTransactionError(#[from] redb::TransactionError),
+    #[error("database table error: {0}")]
+    DBTableError(#[from] redb::TableError),
+    #[error("database storage error: {0}")]
+    DBStorageError(#[from] redb::StorageError),
+    #[error("database commit error: {0}")]
+    DBCommitError(#[from] redb::CommitError),
+
     #[error("IO error: {0}")]
     IO(std::io::Error),
     #[error("archive error: {0}")]
     Archive(ArchiveFileError),
     #[error("mailer error: {0}")]
-    Mailer(String),
+    Mailer(#[from] MailerError),
 
     #[error("cache error: can't get {0} to read, this should not happen")]
     ReadCache(String),
@@ -29,14 +36,13 @@ pub enum InternalErr {
     ChapterNoPage(i64),
 
     #[error("can't generate secure id: {0}")]
-    SecureID(argon2::password_hash::rand_core::Error),
+    SecureID(#[from] argon2::password_hash::rand_core::Error),
     #[error("can't hash password: {0}")]
     PasswordHash(argon2::password_hash::errors::Error),
 }
 
 impl IntoResponse for InternalErr {
     fn into_response(self) -> Response {
-        tracing::error!("In case I forgot to call tracing::error: {self:?}");
         (StatusCode::INTERNAL_SERVER_ERROR, format!("{self}")).into_response()
     }
 }
@@ -61,7 +67,7 @@ pub enum RequestErr {
     #[error("invalid email")]
     InvalidEmail,
     #[error("email is already used")]
-    SomeoneUseThisEmail,
+    EmailAlreadyUsed,
     #[error(
         "password must be between 8 and 100 characters long and contain at least one uppercase letter, one lowercase letter, one number and one special character"
     )]
