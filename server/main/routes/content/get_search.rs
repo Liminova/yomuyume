@@ -88,7 +88,7 @@ pub struct SearchResponse {
         ("tag_ids" = Option<Vec<String>>, Query, description = "Tag ids"),
         ("release_year" = Option<i64>, Query, description = "Release year"),
     ),
-    security(("session-id" = [], "session-secret" = [])))
+    security(("user-id" = [], "session-secret" = [])))
 ]
 pub async fn get_search(
     State(app_state): State<Arc<AppState>>,

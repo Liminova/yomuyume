@@ -41,7 +41,7 @@ pub struct BasePageResponse {
     params(
         ("chapter_id" = i64, Path, description = "Chapter ID")
     ),
-    security(("session-id" = [], "session-secret" = [])))
+    security(("user-id" = [], "session-secret" = [])))
 ]
 pub async fn get_pages(
     State(app_state): State<Arc<AppState>>,

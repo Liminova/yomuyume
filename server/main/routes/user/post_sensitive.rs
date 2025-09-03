@@ -63,7 +63,7 @@ pub struct SensitiveRequest {
         (status = 429, description = "Too many requests"),
         (status = 500, description = "Internal server error", body = String),
     ),
-    security(("session-id" = [], "session-secret" = [])))
+    security(("user-id" = [], "session-secret" = [])))
 ]
 #[allow(clippy::cognitive_complexity)]
 pub async fn post_sensitive(

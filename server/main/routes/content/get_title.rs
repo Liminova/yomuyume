@@ -47,7 +47,7 @@ pub struct TitleResponse {
     params(
         ("title_id" = i64, Path, description = "Title ID")
     ),
-    security(("session-id" = [], "session-secret" = [])))
+    security(("user-id" = [], "session-secret" = [])))
 ]
 pub async fn get_title(
     State(app_state): State<Arc<AppState>>,

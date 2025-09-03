@@ -27,7 +27,7 @@ use crate::{
     params(
         ("page_id" = i64, Path, description = "Page ID")
     ),
-    security(("session-id" = [], "session-secret" = [])))
+    security(("user-id" = [], "session-secret" = [])))
 ]
 pub async fn get_page_file(
     State(app_state): State<Arc<AppState>>,

@@ -25,7 +25,7 @@ use crate::{
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String)
     ),
-    security(("session-id" = [], "session-secret" = [])))
+    security(("user-id" = [], "session-secret" = [])))
 ]
 pub async fn put_favorite(
     State(app_state): State<Arc<AppState>>,
@@ -61,7 +61,7 @@ pub async fn put_favorite(
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String)
     ),
-    security(("session-id" = [], "session-secret" = [])))
+    security(("user-id" = [], "session-secret" = [])))
 ]
 pub async fn put_bookmark(
     State(app_state): State<Arc<AppState>>,
@@ -97,7 +97,7 @@ pub async fn put_bookmark(
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String)
     ),
-    security(("session-id" = [], "session-secret" = [])))
+    security(("user-id" = [], "session-secret" = [])))
 ]
 pub async fn delete_favorite(
     State(data): State<Arc<AppState>>,
@@ -130,7 +130,7 @@ pub async fn delete_favorite(
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String)
     ),
-    security(("session-id" = [], "session-secret" = [])))
+    security(("user-id" = [], "session-secret" = [])))
 ]
 pub async fn delete_bookmark(
     State(data): State<Arc<AppState>>,
