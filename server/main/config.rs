@@ -18,6 +18,7 @@ pub struct Smtp {
 pub enum OperateMode {
     Public,
     RequireRegister,
+    // TOOD: not implemented
     InviteOnly,
 }
 
