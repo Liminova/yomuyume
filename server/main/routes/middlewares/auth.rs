@@ -8,167 +8,82 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
-use chrono::{Duration, Utc};
+use redb::ReadableDatabase;
+use tracing::error;
 
 use crate::{
-    routes::errors::{InternalErr, RequestErr},
-    traits::chrono_utils::ChronoUtils,
-    utils::{
-        app_state::AppState,
-        cacher::{CachedSessionBuilder, CachedUserBuilder},
-        constants::{
-            SESSION_EXPIRED_AFTER, SESSION_ID_COOKIE_NAME, SESSION_SECRET_COOKIE_NAME,
-            SESSION_UPDATE_LAST_USED_AT_IF_OLDER_THAN_SECONDS,
-        },
-    },
+    AppState,
+    config::OperateMode,
+    database,
+    routes::{UserIDExtension, errors::InternalErr},
+    utils::constants::CookieName,
 };
 
-/// A middleware that checks `session-id` and `session-secret` cookies.
-///
-/// Added possible response codes:
-/// - [`StatusCode::UNAUTHORIZED`]: if the cookies are invalid.
-/// - [`StatusCode::INTERNAL_SERVER_ERROR`]: if there's an error while querying
-///   the database to check the cookies.
+/// Middleware checks `user-id` and `session-secret` cookies validity.
 pub async fn auth(
     cookie_jar: CookieJar,
     State(app_state): State<Arc<AppState>>,
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, InternalErr> {
-    let provided_session_id = match cookie_jar
-        .get(SESSION_ID_COOKIE_NAME)
-        .ok_or(RequestErr::MissingSessionID)
-        .map(|c| c.value_trimmed().to_string())
-        .and_then(|s| s.parse::<i64>().map_err(RequestErr::CantParseSessionID))
-    {
-        Ok(i) => i.into(),
-        Err(e) => return Ok((StatusCode::UNAUTHORIZED, e).into_response()),
-    };
-    let Some(provided_session_secret) = cookie_jar
-        .get(SESSION_SECRET_COOKIE_NAME)
+    req.extensions_mut().insert(UserIDExtension(None));
+
+    let Some(provided_user_id) = cookie_jar
+        .get(CookieName::UserID.as_ref())
         .map(|c| c.value_trimmed().to_string())
     else {
-        return Ok((StatusCode::UNAUTHORIZED, RequestErr::MissingSessionSecret).into_response());
+        if app_state.config.operate_mode == OperateMode::Public {
+            return Ok(next.run(req).await);
+        }
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
     };
 
-    // fetch using id from mem/db
-    let (user_id, session_last_used_at, session_secret) = 'scoped: {
-        if let Some(cached_session) = app_state.cacher.sessions.get(&provided_session_id) {
-            break 'scoped (
-                cached_session.user_id,
-                cached_session.last_used_at,
-                cached_session.secret.clone(),
-            );
+    let Some(provided_session_secret) = cookie_jar
+        .get(CookieName::SessionSecret.as_ref())
+        .map(|c| c.value_trimmed().to_string())
+    else {
+        if app_state.config.operate_mode == OperateMode::Public {
+            return Ok(next.run(req).await);
         }
-
-        if let Some(r) = sqlx::query!(
-            "SELECT u.id AS user_id,
-                u.username AS username,
-                u.email AS email,
-                u.profile_picture AS profile_picture,
-                u.ip_address AS ip_address,
-                u.updated_at AS updated_at,
-                u.verified_at AS verified_at,
-                s.last_used_at,
-                s.session_secret
-            FROM session_tokens AS s
-                JOIN users AS u ON s.user_id = u.id
-            WHERE s.id = $1
-                AND s.session_secret = $2",
-            provided_session_id.as_ref(),
-            provided_session_secret.as_str()
-        )
-        .fetch_optional(&app_state.pool)
-        .await
-        .map_err(|e| {
-            tracing::error!("{e}");
-            InternalErr::DB(e)
-        })? {
-            let new_cached_user = CachedUserBuilder::default()
-                .username(r.username)
-                .email(r.email)
-                .profile_picture(r.profile_picture)
-                .ip_address(r.ip_address)
-                .updated_at(r.updated_at)
-                .verified_at(r.verified_at)
-                .build();
-
-            let user_id = r.user_id.into();
-            let session_last_used_at = r.last_used_at;
-            let session_secret = r.session_secret;
-
-            app_state.cacher.users.insert(user_id, new_cached_user);
-            app_state.cacher.sessions.insert(
-                provided_session_id,
-                CachedSessionBuilder::default()
-                    .user_id(user_id)
-                    .secret(session_secret.clone())
-                    .last_used_at(session_last_used_at)
-                    .build(),
-            );
-
-            break 'scoped (user_id, session_last_used_at, session_secret);
-        }
-
-        return Ok((StatusCode::UNAUTHORIZED, RequestErr::InvalidSession).into_response());
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
     };
 
-    if provided_session_secret != session_secret {
-        return Ok((StatusCode::UNAUTHORIZED, RequestErr::InvalidSession).into_response());
-    }
-
-    let now = Utc::now();
-    let token_expired =
-        session_last_used_at.outside(&now, &Duration::seconds(SESSION_EXPIRED_AFTER));
-    if token_expired {
-        app_state.cacher.sessions.remove(&provided_session_id);
-        sqlx::query!(
-            "DELETE FROM session_tokens
-            WHERE id = $1",
-            provided_session_id.as_ref()
-        )
-        .execute(&app_state.pool)
-        .await
+    if app_state
+        .db
+        .user
+        .begin_read()
         .map_err(|e| {
-            tracing::error!("{e}");
-            InternalErr::DB(e)
-        })?;
-
-        return Ok((StatusCode::UNAUTHORIZED, RequestErr::SessionExpired).into_response());
-    }
-
-    let need_update_last_used_at = session_last_used_at.outside(
-        &now,
-        &Duration::seconds(SESSION_UPDATE_LAST_USED_AT_IF_OLDER_THAN_SECONDS),
-    );
-    if need_update_last_used_at {
-        sqlx::query!(
-            "UPDATE session_tokens
-            SET last_used_at = $1
-            WHERE id = $2",
-            now,
-            provided_session_id.as_ref()
-        )
-        .execute(&app_state.pool)
-        .await
+            error!("can't begin read transaction: {e:?}");
+            InternalErr::DBTransactionError(e)
+        })?
+        .open_multimap_table(database::user::SESSIONS)
         .map_err(|e| {
-            tracing::error!("{e}");
-            InternalErr::DB(e)
-        })?;
+            error!("can't open sessions table: {e:?}");
+            InternalErr::DBTableError(e)
+        })?
+        .get(&provided_user_id)
+        .map_err(|e| {
+            error!("can't query sessions table: {e:?}");
+            InternalErr::DBStorageError(e)
+        })?
+        .find(|s| match s.as_ref().map(|s| s.value()) {
+            Ok(s) => s.session_secret == provided_session_secret,
+            Err(e) => {
+                error!("can't read session entry: {e:?}");
+                false
+            }
+        })
+        .is_some()
+    {
+        req.extensions_mut()
+            .insert(UserIDExtension(Some(provided_user_id)));
 
-        app_state
-            .cacher
-            .sessions
-            .get_mut(&provided_session_id)
-            .ok_or_else(|| {
-                let e = InternalErr::WriteCache("session".to_string());
-                tracing::error!("{e}");
-                e
-            })?
-            .value_mut()
-            .last_used_at = now;
+        return Ok(next.run(req).await);
+    };
+
+    if app_state.config.operate_mode == OperateMode::Public {
+        Ok(next.run(req).await)
+    } else {
+        Ok(StatusCode::UNAUTHORIZED.into_response())
     }
-
-    req.extensions_mut().insert(user_id);
-    Ok(next.run(req).await)
 }
