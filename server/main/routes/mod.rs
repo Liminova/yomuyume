@@ -12,13 +12,12 @@ use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
-use errors::InternalErr;
 use utoipa::{
     Modify, OpenApi,
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
 };
 
-use crate::utils::constants::CookieName;
+use crate::{database::user::UserID, utils::constants::CookieName};
 
 struct SecurityAddon;
 
@@ -26,9 +25,9 @@ impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         if let Some(components) = openapi.components.as_mut() {
             components.add_security_scheme(
-                CookieName::SessionID.as_ref(),
+                CookieName::UserID.as_ref(),
                 SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(
-                    CookieName::SessionID.as_ref(),
+                    CookieName::UserID.as_ref(),
                 ))),
             );
             components.add_security_scheme(
@@ -136,14 +135,10 @@ fn check_pass(password_hash: impl AsRef<str>, password_input: impl AsRef<str>) -
     })
 }
 
-fn hash_pass(input: &[u8]) -> Result<String, InternalErr> {
+fn hash_pass(input: impl AsRef<str>) -> Result<String, argon2::password_hash::Error> {
     Argon2::default()
-        .hash_password(input, &SaltString::generate(&mut OsRng))
+        .hash_password(input.as_ref().as_bytes(), &SaltString::generate(&mut OsRng))
         .map(|hash| hash.to_string())
-        .map_err(|e| {
-            tracing::error!("{e}");
-            InternalErr::PasswordHash(e)
-        })
 }
 
 fn is_strong(input: &str) -> bool {
