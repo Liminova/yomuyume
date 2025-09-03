@@ -2309,9 +2309,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "redb-json-derive"
+name = "redb-macros"
 version = "0.1.0"
 dependencies = [
+ "heck",
  "proc-macro2",
  "quote",
  "syn",
@@ -3782,7 +3783,7 @@ dependencies = [
  "quick-xml",
  "rayon",
  "redb",
- "redb-json-derive",
+ "redb-macros",
  "regex",
  "serde",
  "serde_json",

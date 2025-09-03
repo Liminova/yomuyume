@@ -3,7 +3,7 @@ members = [
     "server/main",
     "server/frontend-spa",
     "server/api-endpoints",
-    "server/redb-json-derive",
+    "server/redb-macros",
 ]
 resolver = "2"
 
