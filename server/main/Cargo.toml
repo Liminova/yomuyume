@@ -26,11 +26,11 @@ serde_json = "1.0.108"
 serde_with = "3.12.0"
 tantivy = "0.25.0"
 thiserror = "2.0.2"
-tokio = { version = "1.32.0", features = ["full"] }
+tokio = { version = "1.47.1", features = ["full"] }
 tokio-util = { version = "0.7.12", features = ["io"] }
 tower-http = { version = "0.6.2", features = ["tracing", "trace", "cors"] }
 tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter", "ansi"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "ansi"] }
 utoipa = { version = "5.3.1", features = ["axum_extras", "chrono"] }
 utoipa-redoc = { version = "6.0.0", features = ["axum"] }
 
