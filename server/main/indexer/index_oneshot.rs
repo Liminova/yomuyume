@@ -74,8 +74,7 @@ pub async fn index_oneshot(
                 title_identity_path.clone(),
             ))
             .okay(|e| error!("can't get title info: {e:?}"))?
-            .map(|v| v.value().last_modified)
-            .flatten()
+            .and_then(|v| v.value().last_modified)
             && let Some(new_last_modified) = title_path.last_modified().okay(|e| {
                 warn!(
                     "can't get last modified of title {}: {e}",

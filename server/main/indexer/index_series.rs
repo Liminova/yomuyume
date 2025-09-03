@@ -61,16 +61,13 @@ pub async fn index_series(
         .to_string_lossy()
         .to_string();
 
-    let category_identity_path = parent_path
-        .as_ref()
-        .map(|p| {
-            p.to_relative(Some(&app_state.config.library_path))
-                .map(|p| p.to_string_lossy().to_string())
-                .okay(|e| {
-                    warn!("can't convert category path to relative: {e:?}");
-                })
-        })
-        .flatten();
+    let category_identity_path = parent_path.as_ref().and_then(|p| {
+        p.to_relative(Some(&app_state.config.library_path))
+            .map(|p| p.to_string_lossy().to_string())
+            .okay(|e| {
+                warn!("can't convert category path to relative: {e:?}");
+            })
+    });
 
     let mut join_set = JoinSet::new();
 
@@ -261,8 +258,7 @@ pub async fn index_series(
                 title_identity_path.clone(),
             ))
             .okay(|e| warn!("can't get TitleInfo: {e:?}"))?
-            .map(|t| t.value().chapters)
-            .flatten()
+            .and_then(|t| t.value().chapters)
             .unwrap_or_default();
 
         let chapters_in_title = indexed_chapters
