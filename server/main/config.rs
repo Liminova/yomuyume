@@ -57,7 +57,7 @@ macro_rules! optional {
             .parse()
             .map_err(|e| {
                 tracing::warn!(
-                    "failed to parse {} as a number: {}, using {}",
+                    "can't parse {} as a number: {}, using {}",
                     $env,
                     e,
                     $default
@@ -72,7 +72,7 @@ macro_rules! optional {
             .parse()
             .map_err(|e| {
                 tracing::warn!(
-                    "failed to parse {} as a boolean: {}, using {}",
+                    "can't parse {} as a boolean: {}, using {}",
                     $env,
                     e,
                     $default
