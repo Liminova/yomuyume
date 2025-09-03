@@ -134,7 +134,7 @@ pub async fn start_index(app_state: Arc<AppState>) -> Option<()> {
         while let Some(result) = join_set.join_next().await {
             match result {
                 Ok(Err(title_path)) => error!(
-                    "failed to index title `{}`, check previous logs",
+                    "can't index title `{}`, check previous logs",
                     title_path.display()
                 ),
                 Err(e) => error!("can't join thread: {e:?}"),
@@ -159,7 +159,7 @@ pub async fn start_index(app_state: Arc<AppState>) -> Option<()> {
             }
             Ok(Err(title_path)) => {
                 error!(
-                    "failed to index title `{}`, check previous logs",
+                    "can't index title `{}`, check previous logs",
                     title_path.display()
                 );
             }
