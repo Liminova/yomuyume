@@ -17,12 +17,12 @@ pub fn derive_redb_json_value(input: TokenStream) -> TokenStream {
             fn from_bytes<'a>(data: &'a [u8]) -> Self::SelfType<'a>
             where Self: 'a {
                 serde_json::from_slice(data)
-                    .unwrap_or_else(|e| panic!("Failed to deserialize {} from DB: {e}", stringify!(#name)))
+                    .unwrap_or_else(|e| panic!("can't deserialize {} from DB: {e}", stringify!(#name)))
             }
             fn as_bytes<'a, 'b: 'a>(value: &'a Self::SelfType<'b>) -> Self::AsBytes<'a>
             where Self: 'b {
                 serde_json::to_vec(value)
-                    .unwrap_or_else(|e| panic!("Failed to serialize {} to DB: {e}", stringify!(#name)))
+                    .unwrap_or_else(|e| panic!("can't serialize {} to DB: {e}", stringify!(#name)))
             }
             fn type_name() -> redb::TypeName {
                 redb::TypeName::new(stringify!(#name))
