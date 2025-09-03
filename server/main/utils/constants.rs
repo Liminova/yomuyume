@@ -1,3 +1,5 @@
+use chrono::Duration;
+
 pub const SUPPORTED_ARCHIVE_FORMATS: [&str; 5] = ["zip", "cbz", "rar", "cbr", "7z"];
 pub const SUPPORTED_IMAGE_FORMATS: [&str; 9] = [
     "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
@@ -10,8 +12,19 @@ pub const CATEGORY_INFO_SCHEMA: &str =
     r#"<?xml-model href="https://delnegend.com/categoryinfo-1.0.xsd"?>"#;
 pub const CATEGORYINFO: &str = "CategoryInfo.xml";
 
-pub const TEMP_CODE_REQUEST_RATE_LIMIT: i64 = 60 * 5; // 5 minutes per request
-pub const TEMP_CODE_EXPIRED_AFTER: i64 = 60 * 5; // 5 minutes after request
+pub enum ForgotPasswordLimit {
+    Cooldown,
+    ExpiredAfter,
+}
+
+impl From<ForgotPasswordLimit> for Duration {
+    fn from(value: ForgotPasswordLimit) -> Self {
+        match value {
+            ForgotPasswordLimit::Cooldown => Duration::minutes(5),
+            ForgotPasswordLimit::ExpiredAfter => Duration::minutes(5),
+        }
+    }
+}
 
 pub const VERSION_NAMES: [&str; 31] = [
     "Highly Responsive to Prayers",
