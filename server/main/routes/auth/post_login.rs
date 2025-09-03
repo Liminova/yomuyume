@@ -1,30 +1,30 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     Json,
-    extract::{ConnectInfo, State},
-    http::{HeaderMap, StatusCode, header},
+    extract::State,
+    http::{StatusCode, header},
     response::{AppendHeaders, IntoResponse, Response},
 };
 use axum_extra::extract::cookie::{Cookie, SameSite};
+use redb::ReadableDatabase;
 use serde::{Deserialize, Serialize};
+use tracing::error;
 use utoipa::ToSchema;
 
 use crate::{
-    routes::{
-        check_pass,
-        errors::{InternalErr, RequestErr},
-    },
+    AppState, database,
+    routes::{check_pass, errors::InternalErr},
     utils::{
-        app_state::AppState,
-        constants::{LOGIN_PATH, SESSION_ID_COOKIE_NAME, SESSION_SECRET_COOKIE_NAME},
+        constants::{CookieName, LOGIN_PATH},
+        nanoid::nanoid,
+        result_utils::ResultUtils,
     },
 };
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct LoginRequest {
-    /// username or email
-    pub login: String,
+    pub email: String,
     pub password: String,
 }
 
@@ -39,91 +39,68 @@ pub struct LoginRequest {
     ))
 ]
 pub async fn post_login(
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    headers: HeaderMap,
     State(app_state): State<Arc<AppState>>,
     query: Json<LoginRequest>,
 ) -> Result<Response, InternalErr> {
-    let Some((user_id, password_hash)) = sqlx::query!(
-        "SELECT id,
-            password_hash
-        FROM users
-        WHERE username = $1
-            OR email = $1",
-        query.login
-    )
-    .fetch_optional(&app_state.pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("{e}");
-        InternalErr::DB(e)
-    })?
-    .map(|user| (user.id, user.password_hash)) else {
-        return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCredentials).into_response());
+    let read_txn = app_state
+        .db
+        .user
+        .begin_read()
+        .log_err(|e| error!("can't begin read transaction: {e}"))?;
+
+    let Some(user_id) = read_txn
+        .open_table(database::user::USER_EMAIL_TO_ID)
+        .log_err(|e| error!("can't open users table: {e}"))?
+        .get(&query.email)
+        .log_err(|e| error!("can't query users table: {e}"))?
+        .map(|r| r.value())
+    else {
+        return Ok((StatusCode::BAD_REQUEST, "invalid email or password").into_response());
     };
 
-    if !check_pass(&password_hash, &query.password) {
-        return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCredentials).into_response());
-    }
+    if read_txn
+        .open_table(database::user::USERS)
+        .log_err(|e| error!("can't open users table: {e}"))?
+        .get(&user_id)
+        .log_err(|e| error!("can't query users table: {e}"))?
+        .map(|r| r.value().password_hash)
+        .filter(|password_hash| check_pass(password_hash, &query.password))
+        .is_none()
+    {
+        return Ok((StatusCode::BAD_REQUEST, "invalid email or password").into_response());
+    };
 
-    let ip_address = app_state
-        .config
-        .reverse_proxy_ip_header
-        .as_ref()
-        .and_then(|header| {
-            headers
-                .get(header)
-                .or_else(|| headers.get(header.to_ascii_lowercase()))
-        })
-        .and_then(|value| value.to_str().ok())
-        .map_or_else(|| addr.ip().to_string(), |ip_str| ip_str.to_string());
+    let session_secret = nanoid();
 
-    let user_agent = headers
-        .get("user-agent")
-        .or_else(|| headers.get("User-Agent"))
-        .and_then(|value| value.to_str().ok())
-        .map(|user_agent_str| user_agent_str.to_string());
+    let write_txn = app_state
+        .db
+        .user
+        .begin_write()
+        .log_err(|e| error!("can't begin write transaction: {e}"))?;
 
-    let session_secret = app_state.id_generator.secure().map_err(|e| {
-        tracing::error!("{e}");
-        InternalErr::SecureID(e)
-    })?;
+    write_txn
+        .open_multimap_table(database::user::SESSIONS)
+        .log_err(|e| error!("can't open sessions table: {e}"))?
+        .insert(
+            &user_id,
+            &database::user::Session {
+                // TODO: detect device name/type
+                device: None,
+                session_secret: session_secret.clone(),
+            },
+        )
+        .log_err(|e| error!("can't insert session entry: {e}"))?;
 
-    let session_id = sqlx::query!(
-        "INSERT INTO session_tokens (
-                id,
-                session_secret,
-                user_id,
-                user_agent,
-                ip_address,
-                last_used_at
-            )
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id",
-        app_state.id_generator.snowflake().await.map_err(|e| {
-            tracing::error!("{e}");
-            InternalErr::Snowflake(e)
-        })?,
-        session_secret.as_str(),
-        user_id,
-        user_agent,
-        ip_address.as_str(),
-        chrono::Utc::now(),
-    )
-    .fetch_one(&app_state.pool)
-    .await
-    .map(|r| r.id)
-    .map_err(|e| {
-        tracing::error!("{e}");
-        InternalErr::DB(e)
-    })?;
+    write_txn
+        .commit()
+        .log_err(|e| error!("can't commit write transaction: {e}"))?;
 
     Ok((
         StatusCode::OK,
         AppendHeaders([
             (
                 header::SET_COOKIE,
-                Cookie::build((SESSION_ID_COOKIE_NAME, session_id.to_string()))
+                Cookie::build((CookieName::UserID.as_ref(), user_id))
                     .path("/")
                     .secure(true)
                     .http_only(true)
@@ -132,7 +109,7 @@ pub async fn post_login(
             ),
             (
                 header::SET_COOKIE,
-                Cookie::build((SESSION_SECRET_COOKIE_NAME, session_secret))
+                Cookie::build((CookieName::SessionSecret.as_ref(), session_secret))
                     .path("/")
                     .secure(true)
                     .http_only(true)

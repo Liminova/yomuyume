@@ -9,13 +9,15 @@ use axum_extra::extract::{
     CookieJar,
     cookie::{Cookie, SameSite},
 };
+use redb::ReadableDatabase;
+use tracing::error;
 
 use crate::{
-    routes::errors::{InternalErr, RequestErr},
-    structs::ids::SessionID,
+    AppState, database,
+    routes::errors::InternalErr,
     utils::{
-        app_state::AppState,
-        constants::{LOGOUT_PATH, SESSION_ID_COOKIE_NAME, SESSION_SECRET_COOKIE_NAME},
+        constants::{CookieName, LOGOUT_PATH},
+        result_utils::ResultUtils,
     },
 };
 
@@ -25,7 +27,6 @@ use crate::{
     path = LOGOUT_PATH,
     responses(
         (status = 200, description = "Logout successful"),
-        (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
     ),
     security(("user-id" = [], "session-secret" = [])))
@@ -34,41 +35,53 @@ pub async fn get_logout(
     cookie_jar: CookieJar,
     State(app_state): State<Arc<AppState>>,
 ) -> Result<Response, InternalErr> {
-    let Some(session_id): Option<SessionID> = cookie_jar
-        .get(SESSION_ID_COOKIE_NAME)
-        .and_then(|cookie| cookie.to_string().parse::<i64>().ok())
-        .map(|id| id.into())
-    else {
-        return Ok((StatusCode::UNAUTHORIZED, RequestErr::YouDontEvenLoggedIn).into_response());
-    };
+    if let Some(provided_user_id) = cookie_jar
+        .get(CookieName::UserID.as_ref())
+        .map(|c| c.value_trimmed().to_string())
+        && let Some(provided_session_secret) = cookie_jar
+            .get(CookieName::SessionSecret.as_ref())
+            .map(|c| c.value_trimmed().to_string())
+        && let Some(session) = app_state
+            .db
+            .user
+            .begin_read()
+            .log_err(|e| error!("can't begin read transaction: {e}"))?
+            .open_multimap_table(database::user::SESSIONS)
+            .log_err(|e| error!("can't open sessions table: {e}"))?
+            .get(&provided_user_id)
+            .log_err(|e| error!("can't get session: {e}"))?
+            .find_map(|r| match r.map(|r| r.value()) {
+                Ok(session) if session.session_secret == provided_session_secret => Some(session),
+                Ok(_) => None,
+                Err(e) => {
+                    error!("can't read session: {e}");
+                    None
+                }
+            })
+    {
+        let write_txn = app_state
+            .db
+            .user
+            .begin_write()
+            .log_err(|e| error!("can't begin write transaction: {e}"))?;
 
-    let Some(session_secret) = cookie_jar
-        .get(SESSION_SECRET_COOKIE_NAME)
-        .map(|cookie| cookie.to_string())
-    else {
-        return Ok((StatusCode::UNAUTHORIZED, RequestErr::YouDontEvenLoggedIn).into_response());
-    };
+        write_txn
+            .open_multimap_table(database::user::SESSIONS)
+            .log_err(|e| error!("can't open sessions table: {e}"))?
+            .remove(&provided_user_id, &session)
+            .log_err(|e| error!("can't remove session: {e}"))?;
 
-    sqlx::query!(
-        "DELETE FROM session_tokens WHERE id = $1 AND session_secret = $2",
-        session_id.as_ref(),
-        session_secret.as_str()
-    )
-    .execute(&app_state.pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("{e}");
-        InternalErr::DB(e)
-    })?;
-
-    app_state.cacher.sessions.remove(&session_id);
+        write_txn
+            .commit()
+            .log_err(|e| error!("can't commit write transaction: {e}"))?;
+    }
 
     Ok((
         StatusCode::OK,
         AppendHeaders([
             (
                 header::SET_COOKIE,
-                Cookie::build((SESSION_ID_COOKIE_NAME, ""))
+                Cookie::build((CookieName::UserID.as_ref(), ""))
                     .path("/")
                     .secure(true)
                     .http_only(true)
@@ -77,7 +90,7 @@ pub async fn get_logout(
             ),
             (
                 header::SET_COOKIE,
-                Cookie::build((SESSION_SECRET_COOKIE_NAME, ""))
+                Cookie::build((CookieName::SessionSecret.as_ref(), ""))
                     .path("/")
                     .secure(true)
                     .http_only(true)

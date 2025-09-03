@@ -1,26 +1,28 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     Json,
-    extract::{ConnectInfo, State},
-    http::{HeaderMap, StatusCode},
+    extract::State,
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
-use email_address::EmailAddress;
+use redb::ReadableDatabase;
 use serde::{Deserialize, Serialize};
+use tracing::error;
 use utoipa::ToSchema;
 
 use crate::{
+    AppState, database,
     routes::{
         errors::{InternalErr, RequestErr},
         hash_pass, is_strong,
     },
-    utils::{app_state::AppState, constants::REGISTER_PATH},
+    utils::{constants::REGISTER_PATH, nanoid::nanoid, result_utils::ResultUtils},
 };
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct RegisterRequest {
-    pub username: String,
+    pub username: Option<String>,
     pub email: String,
     pub password: String,
 }
@@ -37,68 +39,68 @@ pub struct RegisterRequest {
     ))
 ]
 pub async fn post_register(
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    headers: HeaderMap,
     State(app_state): State<Arc<AppState>>,
     query: Json<RegisterRequest>,
 ) -> Result<Response, InternalErr> {
-    if !EmailAddress::is_valid(&query.email) {
+    let Ok(email) = query.email.parse::<lettre::Address>() else {
         return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidEmail).into_response());
-    }
+    };
 
-    if sqlx::query!(
-        r#"SELECT EXISTS(
-                SELECT 1
-                FROM users
-                WHERE email = $1
-            ) AS "exists!""#,
-        query.email.to_string().to_ascii_lowercase()
-    )
-    .fetch_one(&app_state.pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("{e}");
-        InternalErr::DB(e)
-    })?
-    .exists
+    if app_state
+        .db
+        .user
+        .begin_read()
+        .log_err(|e| error!("can't begin read transaction: {}", e))?
+        .open_table(database::user::USER_EMAIL_TO_ID)
+        .log_err(|e| error!("can't open users table: {}", e))?
+        .get(&email.to_string())
+        .log_err(|e| error!("can't get user by email: {}", e))?
+        .is_some()
     {
-        return Ok((StatusCode::CONFLICT, RequestErr::SomeoneUseThisEmail).into_response());
+        return Ok((StatusCode::CONFLICT, RequestErr::EmailAlreadyUsed).into_response());
     }
 
     if !is_strong(&query.password) {
         return Ok((StatusCode::BAD_REQUEST, RequestErr::WeakPassword).into_response());
     }
 
-    let ip_addr = app_state
-        .config
-        .reverse_proxy_ip_header
-        .as_ref()
-        .and_then(|header| {
-            headers
-                .get(header)
-                .or_else(|| headers.get(header.to_ascii_lowercase()))
-        })
-        .and_then(|value| value.to_str().ok())
-        .map_or_else(|| addr.ip().to_string(), |ip_str| ip_str.to_string());
-
-    sqlx::query!(
-        "INSERT INTO users (id, username, email, password_hash, ip_address)
-        VALUES ($1, $2, $3, $4, $5)",
-        app_state.id_generator.snowflake().await.map_err(|e| {
-            tracing::error!("{e}");
-            InternalErr::Snowflake(e)
-        })?,
-        query.username.as_str(),
-        query.email.to_string().to_ascii_lowercase(),
-        hash_pass(query.password.as_bytes())?,
-        ip_addr,
-    )
-    .execute(&app_state.pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("{e}");
-        InternalErr::DB(e)
+    let password_hash = hash_pass(&query.password).map_err(|e| {
+        error!("can't hash password: {}", e);
+        InternalErr::PasswordHash(e)
     })?;
+
+    let write_txn = app_state
+        .db
+        .user
+        .begin_write()
+        .log_err(|e| error!("can't begin write transaction: {}", e))?;
+
+    let user_id = nanoid();
+
+    write_txn
+        .open_table(database::user::USERS)
+        .log_err(|e| error!("can't open users table: {}", e))?
+        .insert(
+            user_id.clone(),
+            database::user::UserInfo {
+                name: None,
+                email: email.to_string(),
+                password_hash,
+                profile_picture: None,
+                verified_at: None,
+            },
+        )
+        .log_err(|e| error!("can't insert new user: {}", e))?;
+
+    write_txn
+        .open_table(database::user::USER_EMAIL_TO_ID)
+        .log_err(|e| error!("can't open user email to id table: {}", e))?
+        .insert(email.to_string(), user_id)
+        .log_err(|e| error!("can't insert new user email to id mapping: {}", e))?;
+
+    write_txn
+        .commit()
+        .log_err(|e| error!("can't commit write transaction: {}", e))?;
 
     Ok(StatusCode::OK.into_response())
 }

@@ -6,21 +6,22 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use chrono::{Duration, Utc};
+use chrono::Utc;
+use lettre::Address;
+use redb::{ReadTransaction, ReadableDatabase};
 use serde::{Deserialize, Serialize};
+use tracing::{error, info};
 use utoipa::ToSchema;
 
 use crate::{
-    routes::{
-        errors::{InternalErr, RequestErr},
-        hash_pass, is_strong,
-        user::Mailer,
-    },
-    structs::db_enums::TempCodePurpose as CodePurpose,
-    traits::chrono_utils::ChronoUtils,
+    AppState,
+    database::{self, user::UserID},
+    routes::{errors::InternalErr, hash_pass, user::Mailer},
     utils::{
-        app_state::AppState,
-        constants::{FORGOT_PATH, TEMP_CODE_EXPIRED_AFTER, TEMP_CODE_REQUEST_RATE_LIMIT},
+        chrono_utils::ChronoUtils,
+        constants::{FORGOT_PATH, ForgotPasswordLimit},
+        nanoid::nanoid,
+        result_utils::ResultUtils,
     },
 };
 
@@ -41,7 +42,6 @@ pub struct ForgotRequest {
     responses(
         (status = 200, description = "Request successful"),
         (status = 400, description = "Bad request", body = String),
-        (status = 418, description = "What are you trying to do?",),
         (status = 500, description = "Internal server error", body = String),
     ))
 ]
@@ -49,172 +49,170 @@ pub async fn post_forgot(
     State(app_state): State<Arc<AppState>>,
     query: Json<ForgotRequest>,
 ) -> Result<Response, InternalErr> {
+    let read_txn = app_state
+        .db
+        .user
+        .begin_read()
+        .log_err(|e| error!("can't begin read transaction: {e}"))?;
+
+    let Ok(email) = query.email.parse::<lettre::Address>() else {
+        return Ok((StatusCode::BAD_REQUEST, "Invalid email").into_response());
+    };
+
+    let Some(user_id) = read_txn
+        .open_table(database::user::USER_EMAIL_TO_ID)
+        .log_err(|e| error!("can't open users table: {e}"))?
+        .get(&query.email)
+        .log_err(|e| error!("can't get user by email: {e}"))?
+        .map(|r| r.value())
+    else {
+        return Ok((StatusCode::BAD_REQUEST, "Invalid email").into_response());
+    };
+
+    match (&query.code, &query.new_password) {
+        (Some(code), Some(new_password)) => {
+            reset(&app_state, read_txn, user_id, code, new_password).await
+        }
+        (None, None) => request(&app_state, read_txn, user_id, email).await,
+        _ => return Ok((StatusCode::BAD_REQUEST, "Invalid request").into_response()),
+    }
+}
+
+async fn request(
+    app_state: &Arc<AppState>,
+    read_txn: ReadTransaction,
+    user_id: UserID,
+    email: Address,
+) -> Result<Response, InternalErr> {
+    let mailer = app_state.config.smtp.as_ref().map(Mailer::from);
     let now = Utc::now();
 
-    match (query.code.as_deref(), query.new_password.as_deref()) {
-        (None, None) => {
-            let mailer = Mailer::from(&app_state.config).map_err(|e| {
-                tracing::error!("{e}");
-                InternalErr::Mailer(e)
-            })?;
-
-            // too many request
-            let Some((user_id, created_at)) = sqlx::query!(
-                r#"SELECT u.id AS user_id,
-                    tc.created_at AS "created_at?"
-                FROM users u
-                    LEFT JOIN temp_codes tc ON u.id = tc.user_id
-                    AND tc.purpose = $1
-                WHERE u.email = $2
-                LIMIT 1"#,
-                CodePurpose::ResetPassword as CodePurpose,
-                &query.email,
-            )
-            .fetch_optional(&app_state.pool)
-            .await
-            .map(|r| r.map(|r| (r.user_id, r.created_at)))
-            .map_err(|e| {
-                tracing::error!("{e}");
-                InternalErr::DB(e)
-            })?
-            else {
-                return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidEmail).into_response());
-            };
-            if created_at
-                .is_some_and(|r| r.inside(&now, &Duration::seconds(TEMP_CODE_REQUEST_RATE_LIMIT)))
-            {
-                return Ok(StatusCode::TOO_MANY_REQUESTS.into_response());
-            }
-
-            let code = sqlx::query!(
-                "INSERT INTO temp_codes (id, purpose, user_id, code, created_at)
-                VALUES ($1, $2, $3, $4, $5) ON CONFLICT (purpose, user_id) DO
-                UPDATE
-                SET created_at = $5
-                RETURNING code",
-                app_state.id_generator.snowflake().await.map_err(|e| {
-                    tracing::error!("{e}");
-                    InternalErr::Snowflake(e)
-                })?,
-                CodePurpose::ResetPassword as CodePurpose,
-                &user_id,
-                app_state.id_generator.secure().map_err(|e| {
-                    tracing::error!("{e}");
-                    InternalErr::SecureID(e)
-                })?,
-                now
-            )
-            .fetch_one(&app_state.pool)
-            .await
-            .map_err(|e| {
-                tracing::error!("{e}");
-                InternalErr::DB(e)
-            })?
-            .code;
-
-            let (username, email) = app_state
-                .cacher
-                .users
-                .get(&user_id.into())
-                .ok_or_else(|| {
-                    let e = InternalErr::ReadCache("user".to_string());
-                    tracing::error!("{e}");
-                    e
-                })
-                .map(|u| (u.username.clone(), u.email.clone()))?;
-
-            mailer.send(
-                &username,
-                &email,
-                "Yomuyume - forgot password",
-                format!(
-                    "Hello, {username}!\n\n\
-                    You have requested to reset your password. Please copy the following code into the app to continue:\n\n\
-                    {code}\n\n\
-                    If you don't recognize this action or don't own this account, ignore this email.\n\n\
-                    Best regards,\n\
-                    Yomuyume.",
-                ),
-            )
-            .map_err(|e| {
-                tracing::error!("{e}");
-                InternalErr::Mailer(e)
-            })?;
-        }
-
-        (Some(code), Some(new_password)) => {
-            let Some((user_id, created_at)) = sqlx::query!(
-                r#"WITH u AS (
-                    SELECT u.id AS id
-                    FROM users u
-                    WHERE u.email = $1
-                ),
-                deleted_code AS (
-                    DELETE FROM temp_codes tc
-                    WHERE tc.code = $2
-                        AND tc.purpose = $3
-                        AND tc.user_id IN (
-                            SELECT id
-                            FROM u
-                        )
-                    RETURNING tc.created_at
-                )
-                SELECT u.id as user_id,
-                    COALESCE(dc.created_at, null) as created_at
-                FROM u
-                    LEFT JOIN deleted_code dc ON true"#,
-                &query.email,
-                &code,
-                CodePurpose::ResetPassword as CodePurpose,
-            )
-            .fetch_optional(&app_state.pool)
-            .await
-            .map_err(|e| {
-                tracing::error!("{e}");
-                InternalErr::DB(e)
-            })?
-            .map(|r| (r.user_id, r.created_at)) else {
-                return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidEmail).into_response());
-            };
-
-            if let Some(created_at) = created_at {
-                if created_at.outside(&now, &Duration::seconds(TEMP_CODE_EXPIRED_AFTER)) {
-                    return Ok((StatusCode::BAD_REQUEST, RequestErr::ExpiredCode).into_response());
-                }
-            } else {
-                return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidCode).into_response());
-            }
-
-            if !is_strong(new_password) {
-                return Ok((StatusCode::BAD_REQUEST, RequestErr::WeakPassword).into_response());
-            }
-
-            sqlx::query!(
-                "UPDATE users
-                SET password_hash = $1,
-                    updated_at = $2
-                WHERE id = $3",
-                hash_pass(new_password.as_bytes()).map_err(|e| {
-                    tracing::error!("{e}");
-                    e
-                })?,
-                &now,
-                user_id
-            )
-            .execute(&app_state.pool)
-            .await
-            .map_err(|e| {
-                tracing::error!("{e}");
-                InternalErr::DB(e)
-            })?;
-
-            if let Some(mut u) = app_state.cacher.users.get_mut(&user_id.into()) {
-                u.updated_at = Some(now);
-            }
-        }
-
-        _ => return Ok(StatusCode::IM_A_TEAPOT.into_response()),
+    if read_txn
+        .open_table(database::user::FORGOT_PASSWORD)
+        .log_err(|e| error!("can't open forgot password table: {e}"))?
+        .get(&user_id)
+        .log_err(|e| error!("can't get forgot password requests: {e}"))?
+        .filter(|r| {
+            r.value()
+                .created_at
+                .inside(&now, &ForgotPasswordLimit::Cooldown.into())
+        })
+        .is_some()
+    {
+        return Ok(StatusCode::TOO_MANY_REQUESTS.into_response());
     }
+
+    let username = read_txn
+        .open_table(database::user::USERS)
+        .log_err(|e| error!("can't open users table: {e}"))?
+        .get(&user_id)
+        .log_err(|e| error!("can't get user info: {e}"))?
+        .and_then(|r| r.value().name);
+
+    let code = nanoid();
+
+    let write_txn = app_state
+        .db
+        .user
+        .begin_write()
+        .log_err(|e| error!("can't begin write transaction: {e}"))?;
+
+    write_txn
+        .open_table(database::user::FORGOT_PASSWORD)
+        .log_err(|e| error!("can't open forgot password table: {e}"))?
+        .insert(
+            &user_id,
+            database::user::ForgotPassword {
+                created_at: now,
+                code: code.clone(),
+            },
+        )
+        .log_err(|e| error!("can't insert forgot password request: {e}"))?;
+
+    write_txn
+        .commit()
+        .log_err(|e| error!("can't commit transaction: {e}"))?;
+
+    if let Some(mailer) =
+        mailer.and_then(|mailer| mailer.okay(|e| error!("can't create mailer: {e}")))
+    {
+        mailer.send(
+            username,
+            email,
+            "Yomuyume - reset password",
+            format!(
+                "You have requested to reset your password. Please copy the following code into the app to continue:\n\n\
+                {code}\n\n\
+                If you don't recognize this action or don't own this account, ignore this email.",
+            ),
+        ).log_err(|e| error!("can't send forgot password email: {e}"))?;
+    } else {
+        info!(
+            "Forgot password code for user {}: {code}",
+            email.to_string()
+        );
+    }
+
+    Ok(StatusCode::OK.into_response())
+}
+
+async fn reset(
+    app_state: &Arc<AppState>,
+    read_txn: ReadTransaction,
+    user_id: UserID,
+    code: &str,
+    new_password: &str,
+) -> Result<Response, InternalErr> {
+    let Some(forgot_password) = read_txn
+        .open_table(database::user::FORGOT_PASSWORD)
+        .log_err(|e| error!("can't open forgot password table: {e}"))?
+        .get(&user_id)
+        .log_err(|e| error!("can't get forgot password requests: {e}"))?
+        .map(|r| r.value())
+    else {
+        return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
+    };
+
+    if code != forgot_password.code {
+        return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
+    }
+
+    if forgot_password
+        .created_at
+        .outside(&Utc::now(), &ForgotPasswordLimit::ExpiredAfter.into())
+    {
+        return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
+    }
+
+    let new_password_hash = hash_pass(new_password).map_err(|e| {
+        error!("can't hash new password: {e}");
+        InternalErr::PasswordHash(e)
+    })?;
+
+    let write_txn = app_state
+        .db
+        .user
+        .begin_write()
+        .log_err(|e| error!("can't begin write transaction: {e}"))?;
+
+    write_txn
+        .open_table(database::user::FORGOT_PASSWORD)
+        .log_err(|e| error!("can't open forgot password table: {e}"))?
+        .remove(&user_id)
+        .log_err(|e| error!("can't remove forgot password request: {e}"))?;
+
+    write_txn
+        .open_table(database::user::USERS)
+        .log_err(|e| error!("can't open users table: {e}"))?
+        .get_mut(&user_id)
+        .log_err(|e| error!("can't get user info: {e}"))?
+        .map(|r| {
+            r.value().password_hash = new_password_hash;
+        });
+
+    write_txn
+        .commit()
+        .log_err(|e| error!("can't commit transaction: {e}"))?;
 
     Ok(StatusCode::OK.into_response())
 }
