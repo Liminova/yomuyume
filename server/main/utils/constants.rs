@@ -48,14 +48,14 @@ pub const VERSION_NAMES: [&str; 31] = [
 ];
 
 pub enum CookieName {
-    SessionID,
+    UserID,
     SessionSecret,
 }
 
 impl AsRef<str> for CookieName {
     fn as_ref(&self) -> &str {
         match self {
-            CookieName::SessionID => "session-id",
+            CookieName::UserID => "user-id",
             CookieName::SessionSecret => "session-secret",
         }
     }
