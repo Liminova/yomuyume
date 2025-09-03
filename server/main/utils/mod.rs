@@ -6,7 +6,7 @@ pub mod chrono_utils;
 pub mod comic_info;
 pub mod constants;
 pub mod nanoid;
-pub mod okay;
 pub mod pathbuf_utils;
+pub mod result_utils;
 pub mod string_utils;
 pub mod try_find_map;
