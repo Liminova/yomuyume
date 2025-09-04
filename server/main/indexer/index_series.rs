@@ -65,8 +65,6 @@ pub async fn index_series(
             })
     });
 
-    let mut join_set = JoinSet::new();
-
     let read_txn = app_state
         .db
         .content
@@ -83,6 +81,8 @@ pub async fn index_series(
             .open_table(database::content::CHAPTERS)
             .okay(|e| error!("can't open chapters table: {e:?}"))?,
     );
+
+    let mut join_set = JoinSet::new();
 
     for partial_indexed_chapter in partial_indexed_chapters {
         let chapters_table = chapters_table.clone();
