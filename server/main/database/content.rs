@@ -31,7 +31,7 @@ pub type TitleKey = (Option<CategoryIdentityPath>, TitleIdentityPath);
 pub struct TitleInfo {
     pub chapters: Option<Vec<ChapterIdentityPath>>,
 
-    /// NOTE: planned to use for archive title to decide wether to index or skip
+    /// Used for archive title to decide wether to index or skip
     pub last_modified: Option<DateTime<Utc>>,
 }
 
