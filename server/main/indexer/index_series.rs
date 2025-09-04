@@ -87,6 +87,7 @@ pub async fn index_series(
             .open_table(database::content::CHAPTERS)
             .okay(|e| error!("can't open chapters table: {e:?}"))?,
     );
+
     for partial_indexed_chapter in partial_indexed_chapters {
         let chapters_table = chapters_table.clone();
         let pages_table = pages_table.clone();
