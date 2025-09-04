@@ -65,23 +65,29 @@ pub async fn index_oneshot(
             .content
             .begin_read()
             .okay(|e| error!("can't begin read transaction: {e:?}"))?;
+
         let titles_table = read_txn
             .open_table(database::content::TITLES)
             .okay(|e| error!("can't open titles table: {e:?}"))?;
-        if let Some(old_last_modified) = titles_table
+
+        let old_last_modified = titles_table
             .get(title_key(
                 category_identity_path.clone(),
                 title_identity_path.clone(),
             ))
             .okay(|e| error!("can't get title info: {e:?}"))?
-            .and_then(|v| v.value().last_modified)
-            && let Some(new_last_modified) = title_path.last_modified().okay(|e| {
-                warn!(
-                    "can't get last modified of title {}: {e}",
-                    title_path.display()
-                )
-            })
-            && old_last_modified >= new_last_modified
+            .and_then(|v| v.value().last_modified);
+
+        let new_last_modified = title_path.last_modified().okay(|e| {
+            warn!(
+                "can't get last modified of title {}: {e}",
+                title_path.display()
+            )
+        });
+
+        if let Some(old) = old_last_modified
+            && let Some(new) = new_last_modified
+            && old >= new
         {
             return Some(title_key(category_identity_path, title_identity_path));
         };
