@@ -130,7 +130,7 @@ pub async fn start_index(app_state: Arc<AppState>) -> Option<()> {
         }
     }
 
-    if app_state.first_time_index_content {
+    if app_state.indexer.first_time {
         while let Some(result) = join_set.join_next().await {
             match result {
                 Ok(Err(title_path)) => error!(

@@ -56,7 +56,7 @@ pub async fn index_oneshot(
         .okay(|e| error!("can't convert category path to relative: {e:?}"))?;
 
     'skip_process_when_db_is_newer: {
-        if title_path.is_dir() || app_state.first_time_index_content {
+        if title_path.is_dir() || app_state.indexer.first_time {
             break 'skip_process_when_db_is_newer;
         }
 
@@ -88,7 +88,7 @@ pub async fn index_oneshot(
     }
 
     let pages_in_db = 'scoped: {
-        if app_state.first_time_index_content {
+        if app_state.indexer.first_time {
             break 'scoped vec![];
         }
 

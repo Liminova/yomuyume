@@ -18,6 +18,8 @@ pub struct Indexer {
 
     pub reader: IndexReader,
     pub writer: Mutex<IndexWriter>,
+
+    pub first_time: bool,
 }
 
 impl std::fmt::Debug for Indexer {
@@ -43,6 +45,7 @@ impl Indexer {
     pub fn new(
         index_path: impl AsRef<Path>,
         memory_budget_in_bytes: usize,
+        first_time: bool,
     ) -> tantivy::Result<Self> {
         let mut schema_builder = Schema::builder();
 
@@ -68,6 +71,7 @@ impl Indexer {
                 .reader_builder()
                 .reload_policy(ReloadPolicy::OnCommitWithDelay)
                 .try_into()?,
+            first_time,
         })
     }
 }

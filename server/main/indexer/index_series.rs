@@ -113,7 +113,7 @@ pub async fn index_series(
                 .map(|v| v.value());
 
             let pages_in_db = app_state
-                .first_time_index_content
+                .indexer.first_time
                 .then(|| Vec::new())
                 .unwrap_or_else(|| {
                     chapter_info
@@ -248,7 +248,7 @@ pub async fn index_series(
             .okay(|e| error!("can't open titles table: {e:?}"))?,
     );
     let chapters_to_remove = 'scoped: {
-        if app_state.first_time_index_content {
+        if app_state.indexer.first_time {
             break 'scoped Vec::new();
         }
 
