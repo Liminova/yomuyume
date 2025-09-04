@@ -225,8 +225,6 @@ pub async fn index_series(
             }
         });
     }
-    drop(chapters_table);
-    drop(pages_table);
 
     let indexed_chapters = join_set
         .join_all()
@@ -272,7 +270,6 @@ pub async fn index_series(
             .filter(|c| !chapters_in_title.contains(c))
             .collect::<Vec<_>>()
     };
-    drop(titles_table);
 
     let write_txn = app_state
         .db
