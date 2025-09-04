@@ -146,6 +146,7 @@ pub async fn start_index(app_state: Arc<AppState>) -> Option<()> {
 
         return Some(());
     }
+
     let mut indexed_category_keys = HashSet::new();
     let mut indexed_title_keys = HashSet::new();
 
