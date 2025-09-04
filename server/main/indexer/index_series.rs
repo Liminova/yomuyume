@@ -279,121 +279,125 @@ pub async fn index_series(
         .begin_write()
         .okay(|e| error!("can't begin write transaction: {e:?}"))?;
 
-    let mut categories_table = write_txn
-        .open_table(database::content::CATEGORIES)
-        .okay(|e| error!("can't open categories table: {e:?}"))?;
-    if let Some(ref category_identity_path) = category_identity_path
-        && let Some(category) = categories_table
-            .get_mut(category_identity_path.clone())
-            .okay(|e| error!("can't get mut Category: {e:?}"))?
-    {
-        if !category.value().contains(&title_identity_path) {
-            category.value().push(title_identity_path.clone());
+    '_category: {
+        let mut categories_table = write_txn
+            .open_table(database::content::CATEGORIES)
+            .okay(|e| error!("can't open categories table: {e:?}"))?;
+        if let Some(ref category_identity_path) = category_identity_path
+            && let Some(category) = categories_table
+                .get_mut(category_identity_path.clone())
+                .okay(|e| error!("can't get mut Category: {e:?}"))?
+        {
+            if !category.value().contains(&title_identity_path) {
+                category.value().push(title_identity_path.clone());
+            }
+        } else if let Some(category_identity_path) = category_identity_path.clone() {
+            categories_table.insert(category_identity_path, vec![title_identity_path.clone()]);
         }
-    } else if let Some(category_identity_path) = category_identity_path.clone() {
-        categories_table.insert(category_identity_path, vec![title_identity_path.clone()]);
     }
-    drop(categories_table);
 
-    let mut titles_table = write_txn
-        .open_table(database::content::TITLES)
-        .okay(|e| error!("can't open titles table: {e:?}"))?;
-    titles_table.insert(
-        (category_identity_path.clone(), title_identity_path.clone()),
-        database::content::TitleInfo {
-            chapters: Some(
-                indexed_chapters
-                    .iter()
-                    .map(|c| c.identity_path.clone())
-                    .collect::<Vec<_>>(),
-            ),
-            // TODO: handle directory
-            last_modified: title_path
-                .is_file()
-                .then(|| {
-                    title_path.last_modified().okay(|e| {
-                        warn!(
-                            "can't get last modified of title {}: {e}",
-                            title_path.display()
-                        );
+    '_title: {
+        let mut titles_table = write_txn
+            .open_table(database::content::TITLES)
+            .okay(|e| error!("can't open titles table: {e:?}"))?;
+        titles_table.insert(
+            (category_identity_path.clone(), title_identity_path.clone()),
+            database::content::TitleInfo {
+                chapters: Some(
+                    indexed_chapters
+                        .iter()
+                        .map(|c| c.identity_path.clone())
+                        .collect::<Vec<_>>(),
+                ),
+                // TODO: handle directory
+                last_modified: title_path
+                    .is_file()
+                    .then(|| {
+                        title_path.last_modified().okay(|e| {
+                            warn!(
+                                "can't get last modified of title {}: {e}",
+                                title_path.display()
+                            )
+                        })
                     })
-                })
-                .flatten(),
-        },
-    );
-    drop(titles_table);
-
-    let mut chapters_table = write_txn
-        .open_table(database::content::CHAPTERS)
-        .okay(|e| error!("can't open chapters table: {e:?}"))?;
-    for indexed_chapter in &indexed_chapters {
-        chapters_table.insert(
-            chapter_key(
-                category_identity_path.clone(),
-                title_identity_path.clone(),
-                Some(indexed_chapter.identity_path.clone()),
-            ),
-            database::content::ChapterInfo {
-                pages: indexed_chapter
-                    .pages
-                    .upsert
-                    .iter()
-                    .map(|p| p.identity_path.clone())
-                    .collect(),
-                fallback_vol_num: Some(indexed_chapter.fallback_vol_num),
-                cover: indexed_chapter.cover.clone(),
-                last_modified: indexed_chapter.last_modified,
+                    .flatten(),
             },
         );
     }
-    for chapter_to_remove in chapters_to_remove {
-        chapters_table.remove(chapter_key(
-            category_identity_path.clone(),
-            title_identity_path.clone(),
-            Some(chapter_to_remove),
-        ));
-    }
-    drop(chapters_table);
 
-    let mut pages_table = write_txn
-        .open_table(database::content::PAGES)
-        .okay(|e| error!("can't open pages table: {e:?}"))?;
-    for indexed_chapter in indexed_chapters {
-        let parent_path = match indexed_chapter.path.to_relative(Some(&title_path)) {
-            Ok(path) => path,
-            Err(e) => {
-                warn!("can't convert chapter path to relative: {e:?}");
-                continue;
-            }
-        };
-        for page in indexed_chapter.pages.upsert.into_iter() {
-            pages_table.insert(
-                page_key(
+    '_chapter: {
+        let mut chapters_table = write_txn
+            .open_table(database::content::CHAPTERS)
+            .okay(|e| error!("can't open chapters table: {e:?}"))?;
+        for indexed_chapter in &indexed_chapters {
+            chapters_table.insert(
+                chapter_key(
                     category_identity_path.clone(),
                     title_identity_path.clone(),
                     Some(indexed_chapter.identity_path.clone()),
-                    page.identity_path,
                 ),
-                database::content::PageInfo {
-                    width: page.width,
-                    height: page.height,
-                    color: page.color,
-                    size: page.size,
-                    last_modified: page.last_modified,
-                    parent_path: parent_path.clone(),
+                database::content::ChapterInfo {
+                    pages: indexed_chapter
+                        .pages
+                        .upsert
+                        .iter()
+                        .map(|p| p.identity_path.clone())
+                        .collect(),
+                    fallback_vol_num: Some(indexed_chapter.fallback_vol_num),
+                    cover: indexed_chapter.cover.clone(),
+                    last_modified: indexed_chapter.last_modified,
                 },
             );
         }
-        for page_to_delete in indexed_chapter.pages.delete {
-            pages_table.remove(page_key(
+        for chapter_to_remove in chapters_to_remove {
+            chapters_table.remove(chapter_key(
                 category_identity_path.clone(),
                 title_identity_path.clone(),
-                Some(indexed_chapter.identity_path.clone()),
-                page_to_delete,
+                Some(chapter_to_remove),
             ));
         }
     }
-    drop(pages_table);
+
+    '_page: {
+        let mut pages_table = write_txn
+            .open_table(database::content::PAGES)
+            .okay(|e| error!("can't open pages table: {e:?}"))?;
+        for indexed_chapter in indexed_chapters {
+            let parent_path = match indexed_chapter.path.to_relative(Some(&title_path)) {
+                Ok(path) => path,
+                Err(e) => {
+                    warn!("can't convert chapter path to relative: {e:?}");
+                    continue;
+                }
+            };
+            for page in indexed_chapter.pages.upsert.into_iter() {
+                pages_table.insert(
+                    page_key(
+                        category_identity_path.clone(),
+                        title_identity_path.clone(),
+                        Some(indexed_chapter.identity_path.clone()),
+                        page.identity_path,
+                    ),
+                    database::content::PageInfo {
+                        width: page.width,
+                        height: page.height,
+                        color: page.color,
+                        size: page.size,
+                        last_modified: page.last_modified,
+                        parent_path: parent_path.clone(),
+                    },
+                );
+            }
+            for page_to_delete in indexed_chapter.pages.delete {
+                pages_table.remove(page_key(
+                    category_identity_path.clone(),
+                    title_identity_path.clone(),
+                    Some(indexed_chapter.identity_path.clone()),
+                    page_to_delete,
+                ));
+            }
+        }
+    }
 
     write_txn
         .commit()

@@ -211,81 +211,84 @@ pub async fn index_oneshot(
         }
     }
 
-    let mut titles_table = write_txn
-        .open_table(database::content::TITLES)
-        .okay(|e| error!("can't open titles table: {e:?}"))?;
-    titles_table.insert(
-        title_key(category_identity_path.clone(), title_identity_path.clone()),
-        database::content::TitleInfo {
-            chapters: None,
-            last_modified: title_path.last_modified().okay(|e| {
-                warn!(
-                    "can't get last modified of title {}: {e}",
-                    title_path.display()
-                )
-            }),
-        },
-    );
-    drop(titles_table);
-
-    let mut chapters_table = write_txn
-        .open_table(database::content::CHAPTERS)
-        .okay(|e| error!("can't open chapters table: {e:?}"))?;
-    chapters_table.insert(
-        chapter_key(
-            category_identity_path.clone(),
-            title_identity_path.clone(),
-            None,
-        ),
-        database::content::ChapterInfo {
-            pages: indexed_pages
-                .upsert
-                .iter()
-                .map(|p| p.identity_path.clone())
-                .collect(),
-            cover: find_chapter_cover(
-                &indexed_pages,
-                comic_info.as_ref().map(|ci| ci.pages().as_slice()),
-                &pages_in_db,
-            ),
-            fallback_vol_num: None,
-            last_modified: None,
-        },
-    );
-    drop(chapters_table);
-
-    let mut pages_table = write_txn
-        .open_table(database::content::PAGES)
-        .okay(|e| error!("can't open pages table: {e:?}"))?;
-    for page in indexed_pages.upsert.into_iter() {
-        pages_table.insert(
-            page_key(
-                category_identity_path.clone(),
-                title_identity_path.clone(),
-                None,
-                page.identity_path,
-            ),
-            database::content::PageInfo {
-                width: page.width,
-                height: page.height,
-                color: page.color,
-                size: page.size,
-                last_modified: page.last_modified,
-                parent_path: title_path
-                    .to_relative(Some(&app_state.config.library_path))
-                    .okay(|e| error!("can't convert title path to relative: {e:?}"))?,
+    '_title: {
+        let mut titles_table = write_txn
+            .open_table(database::content::TITLES)
+            .okay(|e| error!("can't open titles table: {e:?}"))?;
+        titles_table.insert(
+            title_key(category_identity_path.clone(), title_identity_path.clone()),
+            database::content::TitleInfo {
+                chapters: None,
+                last_modified: title_path.last_modified().okay(|e| {
+                    warn!(
+                        "can't get last modified of title {}: {e}",
+                        title_path.display()
+                    )
+                }),
             },
         );
     }
-    for page_to_delete in indexed_pages.delete {
-        pages_table.remove(page_key(
-            category_identity_path.clone(),
-            title_identity_path.clone(),
-            None,
-            page_to_delete,
-        ));
+
+    '_chapter: {
+        let mut chapters_table = write_txn
+            .open_table(database::content::CHAPTERS)
+            .okay(|e| error!("can't open chapters table: {e:?}"))?;
+        chapters_table.insert(
+            chapter_key(
+                category_identity_path.clone(),
+                title_identity_path.clone(),
+                None,
+            ),
+            database::content::ChapterInfo {
+                pages: indexed_pages
+                    .upsert
+                    .iter()
+                    .map(|p| p.identity_path.clone())
+                    .collect(),
+                cover: find_chapter_cover(
+                    &indexed_pages,
+                    comic_info.as_ref().map(|ci| ci.pages().as_slice()),
+                    &pages_in_db,
+                ),
+                fallback_vol_num: None,
+                last_modified: None,
+            },
+        );
     }
-    drop(pages_table);
+
+    '_pages: {
+        let mut pages_table = write_txn
+            .open_table(database::content::PAGES)
+            .okay(|e| error!("can't open pages table: {e:?}"))?;
+        for page in indexed_pages.upsert.into_iter() {
+            pages_table.insert(
+                page_key(
+                    category_identity_path.clone(),
+                    title_identity_path.clone(),
+                    None,
+                    page.identity_path,
+                ),
+                database::content::PageInfo {
+                    width: page.width,
+                    height: page.height,
+                    color: page.color,
+                    size: page.size,
+                    last_modified: page.last_modified,
+                    parent_path: title_path
+                        .to_relative(Some(&app_state.config.library_path))
+                        .okay(|e| error!("can't convert title path to relative: {e:?}"))?,
+                },
+            );
+        }
+        for page_to_delete in indexed_pages.delete {
+            pages_table.remove(page_key(
+                category_identity_path.clone(),
+                title_identity_path.clone(),
+                None,
+                page_to_delete,
+            ));
+        }
+    }
 
     write_txn
         .commit()
