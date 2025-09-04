@@ -17,8 +17,7 @@ use crate::{
     utils::{
         absolute_path::AbsolutePath,
         archive_file::{ArchiveFile, ItemInArchive},
-        comic_info::ComicInfo,
-        constants::COMICINFO,
+        pathbuf_utils::PathBufUtils,
         result_utils::ResultUtils,
     },
 };
@@ -140,55 +139,23 @@ pub async fn index_oneshot(
                 .await?,
             title_path
                 .as_ref()
-                .read_file_from_archive(COMICINFO)
+                .read_comic_info_from_archive()
                 .okay(|e| {
                     warn!(
                         "can't read ComicInfo.xml from oneshot {}: {e}",
                         title_path.display()
                     )
-                })
-                .and_then(|b| {
-                    String::from_utf8(b).okay(|e| {
-                        warn!(
-                            "can't convert ComicInfo.xml from oneshot {} to UTF-8: {e}",
-                            title_path.display()
-                        )
-                    })
-                })
-                .and_then(|s| {
-                    ComicInfo::from_str(&s).okay(|e| {
-                        warn!(
-                            "can't parse ComicInfo.xml from oneshot {}: {e}",
-                            title_path.display()
-                        )
-                    })
                 }),
         ),
 
         OneshotType::Directory(sub_entries) => (
             read_chap_pages_dir(&app_state, &title_path, Some(sub_entries), &pages_in_db).await?,
-            title_path
-                .as_ref()
-                .join(COMICINFO)
-                .exists()
-                .then(|| {
-                    std::fs::read_to_string(title_path.as_ref().join(COMICINFO))
-                        .okay(|e| {
-                            warn!(
-                                "can't read ComicInfo.xml from oneshot {}: {e}",
-                                title_path.display()
-                            )
-                        })
-                        .and_then(|s| {
-                            ComicInfo::from_str(&s).okay(|e| {
-                                warn!(
-                                    "can't parse ComicInfo.xml from oneshot {}: {e}",
-                                    title_path.display()
-                                )
-                            })
-                        })
-                })
-                .unwrap_or_default(),
+            title_path.as_ref().read_comic_info_from_dir().okay(|e| {
+                warn!(
+                    "can't read ComicInfo.xml from oneshot {}: {e}",
+                    title_path.display()
+                )
+            }),
         ),
     };
 
