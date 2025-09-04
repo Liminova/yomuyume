@@ -193,12 +193,17 @@ pub async fn index_oneshot(
             title_key(category_identity_path.clone(), title_identity_path.clone()),
             database::content::TitleInfo {
                 chapters: None,
-                last_modified: title_path.last_modified().okay(|e| {
-                    warn!(
-                        "can't get last modified of title {}: {e}",
-                        title_path.display()
-                    )
-                }),
+                last_modified: title_path
+                    .is_file()
+                    .then(|| {
+                        title_path.last_modified().okay(|e| {
+                            warn!(
+                                "can't get last modified of title {}: {e}",
+                                title_path.display()
+                            );
+                        })
+                    })
+                    .flatten(),
             },
         );
     }
