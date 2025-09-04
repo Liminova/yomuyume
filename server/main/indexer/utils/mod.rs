@@ -1,3 +1,4 @@
+pub mod comic_info_to_tantivy;
 pub mod find_chapter_cover;
 pub mod index_archive_chap_pages;
 pub mod index_directory_chap_pages;
