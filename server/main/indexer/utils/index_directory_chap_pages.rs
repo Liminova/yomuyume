@@ -124,7 +124,7 @@ pub async fn read_chap_pages_dir(
     }
 
     let to_delete = 'scoped: {
-        if app_state.first_time_index_content {
+        if app_state.indexer.first_time {
             break 'scoped Vec::new();
         }
 
