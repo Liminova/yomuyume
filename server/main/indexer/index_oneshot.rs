@@ -230,7 +230,6 @@ pub async fn index_oneshot(
                     &pages_in_db,
                 ),
                 fallback_vol_num: None,
-                last_modified: None,
             },
         );
     }
