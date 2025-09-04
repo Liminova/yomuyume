@@ -15,9 +15,7 @@ use crate::{
         index_directory_chap_pages::read_chap_pages_dir,
     },
     utils::{
-        absolute_path::AbsolutePath,
-        archive_file::{ArchiveFile, ItemInArchive},
-        pathbuf_utils::PathBufUtils,
+        absolute_path::AbsolutePath, archive_file::ItemInArchive, pathbuf_utils::PathBufUtils,
         result_utils::ResultUtils,
     },
 };
