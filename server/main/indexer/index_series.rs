@@ -1,8 +1,3 @@
-// mod handle_archive_chapter;
-// mod handle_directory_chapter;
-// mod try_everything_as_cover;
-// mod try_get_configured_cover;
-
 use std::{collections::HashSet, sync::Arc};
 
 use chrono::{DateTime, Utc};
