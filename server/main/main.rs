@@ -33,7 +33,6 @@ use axum::{
     response::IntoResponse,
     routing::{get, post, put},
 };
-use tantivy::IndexReader;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
@@ -68,8 +67,7 @@ use frontend_spa::{Content, get_file};
 pub struct AppState {
     pub db: Database,
     pub config: Config,
-    pub index_reader: IndexReader,
-    pub first_time_index_content: bool,
+    pub indexer: Indexer,
 }
 
 impl std::fmt::Debug for AppState {
@@ -94,18 +92,25 @@ async fn main() -> Result<(), String> {
     let config = Config::new();
 
     let index_path = config.data_path.as_ref().join("index");
-    let memory_budget_in_bytes = 50_000_000;
-    let indexer =
-        Indexer::new(&index_path, memory_budget_in_bytes).expect("can't initialize tantivy");
-
     let user_db_path = config.data_path.as_ref().join("user.redb");
     let content_db_path = config.data_path.as_ref().join("content.redb");
+
+    let memory_budget_in_bytes = 50_000_000;
     let first_time_index_content = !content_db_path.exists();
-    let app_state = Arc::new(AppState {
-        db: Database::new(user_db_path, content_db_path).expect("can't initialize redb"),
-        index_reader: indexer.reader.clone(),
-        config,
+
+    let indexer = Indexer::new(
+        &index_path,
+        memory_budget_in_bytes,
         first_time_index_content,
+    )
+    .expect("can't initialize tantivy");
+
+    let db = Database::new(user_db_path, content_db_path).expect("can't initialize redb");
+
+    let app_state = Arc::new(AppState {
+        db,
+        indexer,
+        config,
     });
 
     let app = Router::new()
