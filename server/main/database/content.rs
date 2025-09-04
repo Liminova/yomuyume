@@ -50,9 +50,6 @@ pub struct ChapterInfo {
     pub pages: Vec<PageIdentityPath>,
     pub fallback_vol_num: Option<u32>,
     pub cover: Option<(PageIdentityPath, HexColor)>,
-
-    /// NOTE: same reason as above
-    pub last_modified: Option<DateTime<Utc>>,
 }
 
 pub const CHAPTERS: TableDef<ChapterKey, ChapterInfo> = TableDef::new("chapters");
