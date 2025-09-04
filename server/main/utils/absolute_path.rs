@@ -76,23 +76,27 @@ impl AbsolutePath {
         }
     }
 
-    /// Syntax sugar for `<abs_path>.as_ref().metadata()`
+    /// Alias of `.as_ref().metadata()`
     pub fn metadata(&self) -> Result<std::fs::Metadata, std::io::Error> {
         self.0.metadata()
     }
 
+    /// Alias of `.as_ref().last_modified()`
     pub fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedErr> {
         self.0.last_modified()
     }
 
+    /// Alias of `.as_ref().is_file()`
     pub fn is_file(&self) -> bool {
         self.0.is_file()
     }
 
+    /// Alias of `.as_ref().is_dir()`
     pub fn is_dir(&self) -> bool {
         self.0.is_dir()
     }
 
+    /// Alias of `.as_ref().display()`
     pub fn display(&self) -> impl Display + '_ {
         self.0.display()
     }
