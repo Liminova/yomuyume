@@ -22,7 +22,8 @@ use crate::{
     indexer::{
         dir_entry_guesser::{IndexedChapterKind, PartialIndexedChapter},
         utils::{
-            IndexedChapterPages, find_chapter_cover::find_chapter_cover,
+            IndexedChapterPages, comic_info_to_tantivy::comic_info_to_tantivy,
+            find_chapter_cover::find_chapter_cover,
             index_archive_chap_pages::read_chap_pages_archive,
             index_directory_chap_pages::read_chap_pages_dir,
         },
@@ -401,7 +402,29 @@ pub async fn index_series(
         .commit()
         .okay(|e| error!("can't commit write transaction: {e:?}"))?;
 
-    // TODO: write ComicInfo.xml into tantivy
+    let comic_info = std::fs::read_to_string(title_path.as_ref().join(COMICINFO))
+        .okay(|e| {
+            warn!(
+                "can't read ComicInfo.xml from title {}: {e}",
+                title_path.display()
+            )
+        })
+        .and_then(|s| {
+            ComicInfo::from_str(&s).okay(|e| {
+                warn!(
+                    "can't parse ComicInfo.xml from title {}: {e}",
+                    title_path.display()
+                )
+            })
+        });
+
+    comic_info_to_tantivy(
+        &app_state,
+        comic_info.as_ref(),
+        &title_identity_path,
+        category_identity_path.as_ref().map(|s| s.as_str()),
+        title_path.as_ref(),
+    );
 
     Some((category_identity_path, title_identity_path))
 }

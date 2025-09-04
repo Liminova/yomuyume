@@ -10,7 +10,8 @@ use crate::{
         content::{TitleKey, chapter_key, page_key, title_key},
     },
     indexer::utils::{
-        find_chapter_cover::find_chapter_cover, index_archive_chap_pages::read_chap_pages_archive,
+        comic_info_to_tantivy::comic_info_to_tantivy, find_chapter_cover::find_chapter_cover,
+        index_archive_chap_pages::read_chap_pages_archive,
         index_directory_chap_pages::read_chap_pages_dir,
     },
     utils::{
@@ -294,7 +295,14 @@ pub async fn index_oneshot(
         .commit()
         .okay(|e| error!("can't commit write transaction: {e:?}"))?;
 
-    // TODO: write ComicInfo.xml into tantivy
+    comic_info_to_tantivy(
+        &app_state,
+        comic_info.as_ref(),
+        &title_identity_path,
+        category_identity_path.as_ref().map(|s| s.as_str()),
+        title_path.as_ref(),
+    )
+    .await;
 
     Some(title_key(category_identity_path, title_identity_path))
 }

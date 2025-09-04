@@ -130,6 +130,14 @@ pub async fn start_index(app_state: Arc<AppState>) -> Option<()> {
         }
     }
 
+    app_state
+        .indexer
+        .writer
+        .lock()
+        .await
+        .commit()
+        .okay(|e| error!("can't commit changes to tantivy: {e:?}"));
+
     if app_state.indexer.first_time {
         while let Some(result) = join_set.join_next().await {
             match result {
