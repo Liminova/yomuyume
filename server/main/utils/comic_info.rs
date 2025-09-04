@@ -8,30 +8,29 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_with::skip_serializing_none;
 
 use crate::utils::constants::COMICINFO_SCHEMA;
 
+#[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct ComicInfo {
     #[serde(
         rename = "Title",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub title: Option<String>,
     #[serde(
         rename = "Series",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub series: Option<String>,
     #[serde(
         rename = "Number",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub number: Option<String>,
     #[serde(
@@ -49,15 +48,13 @@ pub struct ComicInfo {
     #[serde(
         rename = "AlternateSeries",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub alternate_series: Option<String>,
     #[serde(
         rename = "AlternateNumber",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub alternate_number: Option<String>,
     #[serde(
@@ -69,15 +66,13 @@ pub struct ComicInfo {
     #[serde(
         rename = "Summary",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub summary: Option<String>,
     #[serde(
         rename = "Notes",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub notes: Option<String>,
     #[serde(
@@ -101,78 +96,67 @@ pub struct ComicInfo {
     #[serde(
         rename = "Writer",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub writer: Option<String>,
     #[serde(
         rename = "Penciller",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub penciller: Option<String>,
     #[serde(
         rename = "Inker",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub inker: Option<String>,
     #[serde(
         rename = "Colorist",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub colorist: Option<String>,
     #[serde(
         rename = "Letterer",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub letterer: Option<String>,
     #[serde(
         rename = "CoverArtist",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub cover_artist: Option<String>,
     #[serde(
         rename = "Editor",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub editor: Option<String>,
     #[serde(
         rename = "Translator",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub translator: Option<String>,
     #[serde(
         rename = "Publisher",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub publisher: Option<String>,
     #[serde(
         rename = "Imprint",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub imprint: Option<String>,
     #[serde(
         rename = "Genre",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub genre: Option<String>,
     #[serde(
@@ -186,25 +170,21 @@ pub struct ComicInfo {
     #[serde(
         rename = "Web",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub web: Option<String>,
     #[serde(rename = "PageCount", default, skip_serializing_if = "int32_is_zero")]
     pub page_count: i32,
-    // TODO: maybe use isolang crate?
     #[serde(
         rename = "LanguageISO",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub language_iso: Option<String>,
     #[serde(
         rename = "Format",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub format: Option<String>,
     #[serde(
@@ -219,50 +199,43 @@ pub struct ComicInfo {
     #[serde(
         rename = "Characters",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub characters: Option<String>,
     #[serde(
         rename = "Teams",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub teams: Option<String>,
     #[serde(
         rename = "Locations",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub locations: Option<String>,
     #[serde(
         rename = "ScanInformation",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub scan_information: Option<String>,
     #[serde(
         rename = "StoryArc",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub story_arc: Option<String>,
     #[serde(
         rename = "StoryArcNumber",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub story_arc_number: Option<String>,
     #[serde(
         rename = "SeriesGroup",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub series_group: Option<String>,
     #[serde(
@@ -281,29 +254,25 @@ pub struct ComicInfo {
         rename = "CommunityRating",
         default,
         serialize_with = "Rating::serializer",
-        deserialize_with = "Rating::deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "Rating::deserializer"
     )]
     pub community_rating: Option<Rating>,
     #[serde(
         rename = "MainCharacterOrTeam",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub main_character_or_team: Option<String>,
     #[serde(
         rename = "Review",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub review: Option<String>,
     #[serde(
         rename = "GTIN",
         default,
-        deserialize_with = "option_string_deserializer",
-        skip_serializing_if = "Option::is_none"
+        deserialize_with = "option_string_deserializer"
     )]
     pub gtin: Option<String>,
 }
@@ -363,10 +332,7 @@ fn option_string_deserializer<'de, D: Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Option<String>, D::Error> {
     let s = String::deserialize(deserializer)?.trim().to_string();
-    if s.is_empty() {
-        return Ok(None);
-    }
-    Ok(Some(s))
+    Ok(s.is_empty().then_some(s))
 }
 
 fn tags_deserializer<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<String>, D::Error> {
