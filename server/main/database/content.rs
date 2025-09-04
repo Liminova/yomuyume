@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use crate::utils::average_color::HexColor;
 use chrono::{DateTime, Utc};
 use redb::TableDefinition as TableDef;
-use redb_json_derive::RedbJsonValue;
+use redb_macros::{RedbJsonValue, key_function};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -23,13 +23,8 @@ pub type PageIdentityPath = String;
 pub const CATEGORIES: TableDef<CategoryIdentityPath, Vec<TitleIdentityPath>> =
     TableDef::new("categories");
 
+#[key_function]
 pub type TitleKey = (Option<CategoryIdentityPath>, TitleIdentityPath);
-pub const fn title_key(
-    category_identity_path: Option<CategoryIdentityPath>,
-    title_identity_path: TitleIdentityPath,
-) -> TitleKey {
-    (category_identity_path, title_identity_path)
-}
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, RedbJsonValue)]
@@ -42,22 +37,12 @@ pub struct TitleInfo {
 
 pub const TITLES: TableDef<TitleKey, TitleInfo> = TableDef::new("titles");
 
+#[key_function]
 pub type ChapterKey = (
     Option<CategoryIdentityPath>,
     TitleIdentityPath,
     Option<ChapterIdentityPath>,
 );
-pub const fn chapter_key(
-    category_identity_path: Option<CategoryIdentityPath>,
-    title_identity_path: TitleIdentityPath,
-    chapter_identity_path: Option<ChapterIdentityPath>,
-) -> ChapterKey {
-    (
-        category_identity_path,
-        title_identity_path,
-        chapter_identity_path,
-    )
-}
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, RedbJsonValue)]
@@ -72,26 +57,13 @@ pub struct ChapterInfo {
 
 pub const CHAPTERS: TableDef<ChapterKey, ChapterInfo> = TableDef::new("chapters");
 
+#[key_function]
 type PageKey = (
     Option<CategoryIdentityPath>,
     TitleIdentityPath,
     Option<ChapterIdentityPath>,
     PageIdentityPath,
 );
-
-pub const fn page_key(
-    category_identity_path: Option<CategoryIdentityPath>,
-    title_identity_path: TitleIdentityPath,
-    chapter_identity_path: Option<ChapterIdentityPath>,
-    page_identity_path: PageIdentityPath,
-) -> PageKey {
-    (
-        category_identity_path,
-        title_identity_path,
-        chapter_identity_path,
-        page_identity_path,
-    )
-}
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, RedbJsonValue)]
