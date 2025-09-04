@@ -71,24 +71,28 @@ pub async fn read_chap_pages_archive(
         let mut width_height_color = partial
             .par_iter()
             .filter_map(|p| {
-                let img_buffer =
-                    chapter_path
-                        .as_ref()
-                        .read_file_from_archive(&p.path)
-                        .okay(|e| {
-                            warn!("can't read {} from archive: {e}", p.path);
-                        })?;
-
-                let img = image::ImageReader::new(Cursor::new(img_buffer))
-                    .with_guessed_format()
-                    .okay(|e| warn!("can't guess {} format: {e}", p.path))?
-                    .decode()
-                    .okay(|e| warn!("can't decode {}: {e}", p.path))?;
-
-                let (width, height) = img.dimensions();
-                let color = img.average_color();
-
-                Some((p.path.clone(), (width, height, color)))
+                chapter_path
+                    .as_ref()
+                    .read_file_from_archive(&p.path)
+                    .okay(|e| {
+                        warn!("can't read {} from archive: {e}", p.path);
+                    })
+                    .map(Cursor::new)
+                    .map(image::ImageReader::new)
+                    .and_then(|img| {
+                        img.with_guessed_format()
+                            .okay(|e| warn!("can't guess {} format: {e}", p.path))
+                    })
+                    .and_then(|img| {
+                        img.decode().okay(|e| {
+                            warn!("can't decode {}: {e}", p.path);
+                        })
+                    })
+                    .map(|img| {
+                        let (width, height) = img.dimensions();
+                        let color = img.average_color();
+                        (&p.path, (width, height, color))
+                    })
             })
             .collect::<HashMap<_, _>>();
 
