@@ -11,7 +11,8 @@
 				"Vue.volar",
 				"fill-labs.dependi",
 				"tamasfe.even-better-toml",
-				"esbenp.prettier-vscode"
+				"esbenp.prettier-vscode",
+				"yy0931.vscode-sqlite3-editor"
 			]
 		}
 	},
