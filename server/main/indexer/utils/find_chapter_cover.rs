@@ -8,8 +8,6 @@ pub fn find_chapter_cover_page_id(
     comic_info_pages: Option<&[ComicPageInfo]>,
     pages_in_db: &[PageInDB],
 ) -> Option<String> {
-    type PagePath = String;
-
     let pages_have_avg_color = {
         let mut tmp = pages_in_db
             .iter()

@@ -12,8 +12,6 @@ use crate::{
     },
 };
 
-type IndexedTitleId = String;
-
 pub async fn index_category(
     app_state: Arc<AppState>,
     path: AbsolutePath,
