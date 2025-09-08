@@ -17,7 +17,6 @@
 )]
 
 mod config;
-mod database;
 mod indexer;
 mod routes;
 mod utils;
@@ -41,7 +40,6 @@ use utoipa_redoc::{Redoc, Servable};
 
 use crate::{
     config::Config,
-    database::Database,
     indexer::Indexer,
     routes::{
         ApiDoc,
@@ -49,34 +47,22 @@ use crate::{
         content::{get_categories, get_pages, get_search, get_tags, get_title},
         file::{get_cover_file, get_page_file},
         middlewares::auth::auth,
-        user::{
-            delete_bookmark, delete_favorite, get_whoami, post_modify, post_sensitive,
-            put_bookmark, put_favorite, put_progress,
-        },
-        utils::{get_scanning_progress, get_status, post_status},
+        user::{get_whoami, post_modify, put_progress},
+        utils::{get_status, post_status},
     },
     utils::constants::{
-        BOOKMARK_PATH, FAVORITE_PATH, FORGOT_PATH, GET_CATEGORIES_PATH, GET_COVER_FILE_PATH,
-        GET_PAGE_FILE_PATH, GET_PAGES_PATH, GET_SCANNING_PROGRESS_PATH, GET_STATUS_PATH,
-        GET_TAGS_PATH, GET_TITLE_PATH, LOGIN_PATH, LOGOUT_PATH, REGISTER_PATH, SEARCH_PATH,
-        USER_MODIFY_PATH, USER_PROGRESS_PATH, USER_SENSITIVE_PATH, WHOAMI_PATH,
+        FORGOT_PATH, GET_CATEGORIES_PATH, GET_COVER_FILE_PATH, GET_PAGE_FILE_PATH, GET_PAGES_PATH,
+        GET_SEARCH_PATH, GET_STATUS_PATH, GET_TAGS_PATH, GET_TITLE_PATH, GET_WHOAMI_PATH,
+        LOGIN_PATH, LOGOUT_PATH, POST_USER_MODIFY_PATH, PUT_READ_PROGRESS_PATH, REGISTER_PATH,
     },
 };
 use frontend_spa::{Content, get_file};
 
+#[derive(Debug)]
 pub struct AppState {
-    pub db: Database,
+    pub pool: sqlx::SqlitePool,
     pub config: Config,
     pub indexer: Indexer,
-}
-
-impl std::fmt::Debug for AppState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AppState")
-            .field("db", &self.db)
-            .field("config", &self.config)
-            .finish()
-    }
 }
 
 #[tokio::main]
@@ -90,28 +76,24 @@ async fn main() -> Result<(), String> {
         .init();
 
     let config = Config::new();
-
-    let index_path = config.data_path.as_ref().join("index");
-    let user_db_path = config.data_path.as_ref().join("user.redb");
-    let content_db_path = config.data_path.as_ref().join("content.redb");
-
-    let memory_budget_in_bytes = 50_000_000;
-    let first_time_index_content = !content_db_path.exists();
-
-    let indexer = Indexer::new(
-        &index_path,
-        memory_budget_in_bytes,
-        first_time_index_content,
-    )
-    .expect("can't initialize tantivy");
-
-    let db = Database::new(user_db_path, content_db_path).expect("can't initialize redb");
-
     let app_state = Arc::new(AppState {
-        db,
-        indexer,
+        pool: sqlx::SqlitePool::connect(&config.database_url)
+            .await
+            .expect("can't connect to database"),
+        indexer: Indexer::new(&config.tantivy_dir.as_ref(), config.tantivy_memory)
+            .expect("can't initialize tantivy"),
         config,
     });
+
+    #[cfg(not(debug_assertions))]
+    {
+        let migrator = sqlx::migrate!("../../migrations");
+        info!("applying {} migrations", migrator.iter().len());
+        migrator
+            .run(&app_state.pool)
+            .await
+            .expect("database migration failed");
+    }
 
     let app = Router::new()
         .route(REGISTER_PATH, post(post_register))
@@ -121,23 +103,18 @@ async fn main() -> Result<(), String> {
         .merge(
             Router::new()
                 // content
-                .route(SEARCH_PATH, post(get_search))
+                .route(GET_SEARCH_PATH, post(get_search))
                 .route(GET_CATEGORIES_PATH, get(get_categories))
                 .route(GET_TITLE_PATH, get(get_title))
                 .route(GET_PAGES_PATH, get(get_pages))
                 .route(GET_TAGS_PATH, get(get_tags))
                 // user
-                .route(WHOAMI_PATH, get(get_whoami))
-                .route(USER_SENSITIVE_PATH, post(post_sensitive))
-                .route(USER_MODIFY_PATH, post(post_modify))
-                .route(BOOKMARK_PATH, put(put_bookmark).delete(delete_bookmark))
-                .route(FAVORITE_PATH, put(put_favorite).delete(delete_favorite))
-                .route(USER_PROGRESS_PATH, put(put_progress))
+                .route(GET_WHOAMI_PATH, get(get_whoami))
+                .route(POST_USER_MODIFY_PATH, post(post_modify))
+                .route(PUT_READ_PROGRESS_PATH, put(put_progress))
                 // file
                 .route(GET_PAGE_FILE_PATH, get(get_page_file))
                 .route(GET_COVER_FILE_PATH, get(get_cover_file))
-                // misc
-                .route(GET_SCANNING_PROGRESS_PATH, get(get_scanning_progress))
                 // middleware
                 .layer(apply(app_state.clone(), auth)),
         )
