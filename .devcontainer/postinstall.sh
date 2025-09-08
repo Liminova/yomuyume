@@ -111,3 +111,8 @@ else
     [[ -f server/main/utils/7zz ]] || { echo "7z not found"; exit 1; }
 fi
 rm -f /tmp/7z.tar.xz
+
+# sqlx-cli
+cargo install sqlx-cli
+sqlx completions zsh > ~/.sqlx.zsh
+echo '[[ -f ~/.sqlx.zsh ]] && source ~/.sqlx.zsh' >> ~/.zshrc
