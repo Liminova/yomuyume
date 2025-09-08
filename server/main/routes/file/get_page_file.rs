@@ -22,28 +22,26 @@ use crate::{
     path = GET_PAGE_FILE_PATH,
     responses(
         (status = 200, description = "Fetch page successful", body = Vec<u8>),
-        (status = 401, description = "Unauthorized", body = String),
         (status = 404, description = "Page not found", body = String),
         (status = 500, description = "Internal server error", body = String),
     ),
     params(
         ("page_id" = i64, Path, description = "Page ID")
-    ),
-    security(("user-id" = [], "session-secret" = [])))
-]
+    )
+)]
 pub async fn get_page_file(
     State(app_state): State<Arc<AppState>>,
     Path(page_id): Path<i64>,
 ) -> Result<Response, InternalError> {
     let Some((parent_path, page_path, page_filesize)) = sqlx::query!(
         "SELECT p.path AS page_path,
-                c.path AS chapter_path,
-                t.path AS title_path,
-                p.size AS size
-            FROM pages p
-                JOIN chapters c ON c.id = p.chapter_id
-                JOIN titles t ON t.id = c.title_id
-            WHERE p.id = ?",
+            c.path AS chapter_path,
+            t.path AS title_path,
+            p.size AS size
+        FROM pages p
+            JOIN chapters c ON c.id = p.chapter_id
+            JOIN titles t ON t.id = c.title_id
+        WHERE p.id = ?",
         page_id
     )
     .fetch_optional(&app_state.pool)
