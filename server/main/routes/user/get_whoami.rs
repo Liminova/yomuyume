@@ -8,82 +8,65 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use tracing::error;
 use utoipa::ToSchema;
 
 use crate::{
-    routes::errors::InternalErr,
-    structs::ids::UserID,
-    utils::{app_state::AppState, constants::WHOAMI_PATH},
+    AppState,
+    routes::{UserIDExtension, errors::InternalError},
+    utils::{constants::GET_WHOAMI_PATH, result_utils::ResultUtils},
 };
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct WhoAmIResponse {
-    pub user_id: i64,
+    pub user_id: String,
     pub username: String,
     pub email: String,
-    pub profile_picture: Option<String>,
-    pub ip_address: String,
-    pub updated_at: Option<String>,
+    pub created_at: Option<String>,
     pub verified_at: Option<String>,
 }
 
 /// Get current logged in user
 #[utoipa::path(
     get,
-    path = WHOAMI_PATH,
+    path = GET_WHOAMI_PATH,
     responses(
-        (status = 200, description = "Get whoami successful", body = WhoAmIResponse),
-        (status = 401, description = "Unauthorized", body = String),
+        (status = 200, description = "Who am I response", body = WhoAmIResponse),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "User not found"),
         (status = 500, description = "Internal server error", body = String),
     ),
-    security(("user-id" = [], "session-secret" = [])))
-]
+    security(("user-id" = [], "session-secret" = []))
+)]
 pub async fn get_whoami(
     State(app_state): State<Arc<AppState>>,
-    Extension(user_id): Extension<UserID>,
-) -> Result<Response, InternalErr> {
-    if let Some(cached_user) = app_state.cacher.users.get(&user_id) {
-        return Ok((
-            StatusCode::OK,
-            Json(WhoAmIResponse {
-                user_id: user_id.as_ref(),
-                username: cached_user.username.clone(),
-                email: cached_user.email.clone(),
-                profile_picture: cached_user.profile_picture.clone(),
-                ip_address: cached_user.ip_address.clone(),
-                updated_at: cached_user.updated_at.map(|d| d.to_rfc3339()),
-                verified_at: cached_user.verified_at.map(|v| v.to_string()),
-            }),
-        )
-            .into_response());
-    }
+    Extension(user_id): Extension<UserIDExtension>,
+) -> Result<Response, InternalError> {
+    let Some(user_id) = user_id.0 else {
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
+    };
 
     if let Some(user) = sqlx::query!(
-        "SELECT id, username, email, profile_picture, ip_address, updated_at, verified_at
-         FROM users WHERE id = $1",
-        user_id.as_ref()
+        "SELECT id, username, email, created_at, verified_at FROM users WHERE id = ?",
+        user_id
     )
     .fetch_optional(&app_state.pool)
     .await
-    .map_err(|e| {
-        tracing::error!("{e}");
-        InternalErr::DB(e)
-    })? {
+    .log_err(|e| error!("can't query user info: {e:?}"))?
+    {
         return Ok((
             StatusCode::OK,
             Json(WhoAmIResponse {
                 user_id: user.id,
                 username: user.username,
                 email: user.email,
-                profile_picture: user.profile_picture,
-                ip_address: user.ip_address,
-                updated_at: user.updated_at.map(|d| d.to_rfc3339()),
+                created_at: user.created_at.map(|c| c.to_string()),
                 verified_at: user.verified_at.map(|v| v.to_string()),
             }),
         )
             .into_response());
     }
 
-    Ok((StatusCode::NOT_FOUND, "User not found").into_response())
+    Ok(StatusCode::NOT_FOUND.into_response())
 }
