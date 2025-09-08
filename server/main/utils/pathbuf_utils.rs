@@ -5,12 +5,13 @@ use tracing::warn;
 
 use crate::utils::{
     archive_file::{ArchiveFile, ArchiveFileError},
+    category_info::CategoryInfo,
     comic_info::ComicInfo,
     constants::{CATEGORYINFO, COMICINFO, SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS},
 };
 
 #[derive(Debug, thiserror::Error)]
-pub enum LastModifiedErr {
+pub enum LastModifiedError {
     #[error("can't get metadata: {0:?}")]
     GetMetadataErr(std::io::Error),
     #[error("can't get modified time of file {0}: {1:?}")]
@@ -18,7 +19,7 @@ pub enum LastModifiedErr {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ReadComicInfoErr {
+pub enum ReadComicInfoError {
     #[error("can't read from disk: {0:?}")]
     Read(#[from] std::io::Error),
     #[error("can't decode: {0:?}")]
@@ -26,7 +27,21 @@ pub enum ReadComicInfoErr {
     #[error("archive error: {0}")]
     ArchiveFileError(#[from] ArchiveFileError),
     #[error("expected ComicInfo.xml to be a file")]
-    ExpectedFile,
+    ExpectComicInfoFile,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ReadCategoryInfoError {
+    #[error("can't read from disk: {0:?}")]
+    Read(#[from] std::io::Error),
+    #[error("can't decode: {0:?}")]
+    Decode(#[from] quick_xml::DeError),
+    #[error("archive error: {0}")]
+    ArchiveFileError(#[from] ArchiveFileError),
+    #[error("expected CategoryInfo.xml to be a file")]
+    ExpectCategoryInfoFile,
+    #[error("expected the path to be a directory")]
+    ExpectPathDir,
 }
 
 pub trait PathBufUtils {
@@ -37,11 +52,12 @@ pub trait PathBufUtils {
     fn has_oneshot_flag(&self, feature_enabled: bool) -> bool;
     fn contains_nomedia_file(&self, feature_enabled: bool) -> bool;
     fn contains_category_info_file(&self) -> bool;
-    fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedErr>;
+    fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedError>;
     fn create_file_if_not_exists(&self) -> Result<(), std::io::Error>;
-    fn read_comic_info(&self) -> Result<ComicInfo, ReadComicInfoErr>;
-    fn read_comic_info_from_dir(&self) -> Result<ComicInfo, ReadComicInfoErr>;
-    fn read_comic_info_from_archive(&self) -> Result<ComicInfo, ReadComicInfoErr>;
+    fn read_category_info(&self) -> Result<CategoryInfo, ReadCategoryInfoError>;
+    fn read_comic_info(&self) -> Result<ComicInfo, ReadComicInfoError>;
+    fn read_comic_info_from_dir(&self) -> Result<ComicInfo, ReadComicInfoError>;
+    fn read_comic_info_from_archive(&self) -> Result<ComicInfo, ReadComicInfoError>;
 }
 
 impl PathBufUtils for PathBuf {
@@ -106,12 +122,12 @@ impl PathBufUtils for PathBuf {
     }
 
     /// Get the last modified time of the path
-    fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedErr> {
+    fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedError> {
         Ok(DateTime::<Utc>::from(
             self.metadata()
-                .map_err(LastModifiedErr::GetMetadataErr)?
+                .map_err(LastModifiedError::GetMetadataErr)?
                 .modified()
-                .map_err(|e| LastModifiedErr::GetModifiedErr(self.display().to_string(), e))?,
+                .map_err(|e| LastModifiedError::GetModifiedErr(self.display().to_string(), e))?,
         )
         .with_nanosecond(0)
         .unwrap_or_default())
@@ -128,8 +144,29 @@ impl PathBufUtils for PathBuf {
         Ok(())
     }
 
+    fn read_category_info(&self) -> Result<CategoryInfo, ReadCategoryInfoError> {
+        if self.is_file() {
+            return Err(ReadCategoryInfoError::ExpectPathDir);
+        }
+        let category_info_path = self.join(CATEGORYINFO);
+        if !category_info_path.exists() {
+            return Ok(CategoryInfo::default());
+        }
+        if category_info_path.is_dir() {
+            warn!(
+                "Expected file but found directory: {}",
+                category_info_path.display()
+            );
+            return Err(ReadCategoryInfoError::ExpectCategoryInfoFile);
+        }
+
+        Ok(CategoryInfo::from_str(&std::fs::read_to_string(
+            category_info_path,
+        )?)?)
+    }
+
     /// Read and return ComicInfo from disk if it's exists and is a file
-    fn read_comic_info(&self) -> Result<ComicInfo, ReadComicInfoErr> {
+    fn read_comic_info(&self) -> Result<ComicInfo, ReadComicInfoError> {
         if self.is_file() {
             self.read_comic_info_from_dir()
         } else {
@@ -137,7 +174,7 @@ impl PathBufUtils for PathBuf {
         }
     }
 
-    fn read_comic_info_from_dir(&self) -> Result<ComicInfo, ReadComicInfoErr> {
+    fn read_comic_info_from_dir(&self) -> Result<ComicInfo, ReadComicInfoError> {
         let comic_info_path = self.join(COMICINFO);
         if !comic_info_path.exists() {
             return Ok(ComicInfo::default());
@@ -147,7 +184,7 @@ impl PathBufUtils for PathBuf {
                 "Expected file but found directory: {}",
                 comic_info_path.display()
             );
-            return Err(ReadComicInfoErr::ExpectedFile);
+            return Err(ReadComicInfoError::ExpectComicInfoFile);
         }
 
         Ok(ComicInfo::from_str(&std::fs::read_to_string(
@@ -155,11 +192,11 @@ impl PathBufUtils for PathBuf {
         )?)?)
     }
 
-    fn read_comic_info_from_archive(&self) -> Result<ComicInfo, ReadComicInfoErr> {
+    fn read_comic_info_from_archive(&self) -> Result<ComicInfo, ReadComicInfoError> {
         Ok(self
             .read_file_from_archive(COMICINFO)
-            .map_err(ReadComicInfoErr::ArchiveFileError)
+            .map_err(ReadComicInfoError::ArchiveFileError)
             .map(|b| String::from(String::from_utf8_lossy(&b)))
-            .and_then(|s| ComicInfo::from_str(&s).map_err(ReadComicInfoErr::Decode))?)
+            .and_then(|s| ComicInfo::from_str(&s).map_err(ReadComicInfoError::Decode))?)
     }
 }
