@@ -8,10 +8,12 @@ use axum::{
 };
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
+use tracing::error;
 
 use crate::{
-    routes::errors::InternalErr,
-    utils::{app_state::AppState, archive_file::ArchiveFile, constants::GET_PAGE_FILE_PATH},
+    AppState,
+    routes::errors::InternalError,
+    utils::{archive_file::ArchiveFile, constants::GET_PAGE_FILE_PATH, result_utils::ResultUtils},
 };
 
 /// Get page file
@@ -32,25 +34,21 @@ use crate::{
 pub async fn get_page_file(
     State(app_state): State<Arc<AppState>>,
     Path(page_id): Path<i64>,
-) -> Result<Response, InternalErr> {
-    let Some((parent_path, page_path, page_filesize, chapter_is_dir)) = sqlx::query!(
-        r#"SELECT p.path AS page_path,
+) -> Result<Response, InternalError> {
+    let Some((parent_path, page_path, page_filesize)) = sqlx::query!(
+        "SELECT p.path AS page_path,
                 c.path AS chapter_path,
                 t.path AS title_path,
-                p.filesize AS page_filesize,
-                c.is_dir AS "chapter_is_dir!"
+                p.size AS size
             FROM pages p
-                JOIN chapters c ON p.chapter_id = c.id
-                JOIN titles t ON c.title_id = t.id
-            WHERE p.id = $1"#,
+                JOIN chapters c ON c.id = p.chapter_id
+                JOIN titles t ON t.id = c.title_id
+            WHERE p.id = ?",
         page_id
     )
     .fetch_optional(&app_state.pool)
     .await
-    .map_err(|e| {
-        tracing::error!("{e}");
-        InternalErr::DB(e)
-    })?
+    .log_err(|e| error!("can't query page file: {e}"))?
     .map(|r| {
         let parent_path = app_state
             .config
@@ -59,36 +57,38 @@ pub async fn get_page_file(
             .join(r.title_path)
             .join(r.chapter_path);
 
-        (parent_path, r.page_path, r.page_filesize, r.chapter_is_dir)
+        (parent_path, r.page_path, r.size)
     }) else {
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    let header = [(
+    let mut header = header::HeaderMap::new();
+    header.insert(
         header::CONTENT_TYPE,
         match page_path.split('.').next_back().unwrap_or_default() {
-            "" => "image".to_string(),
-            "jpg" => "image/jpeg".to_string(),
-            v => format!("image/{v}"),
+            "" => "image".parse().unwrap(),
+            "jpg" => "image/jpeg".parse().unwrap(),
+            v => format!("image/{v}").parse().unwrap(),
         },
-    )];
+    );
+    if let Some(size) = page_filesize {
+        header.insert(header::CONTENT_LENGTH, size.into());
+    }
 
-    let body = if chapter_is_dir {
+    let body = if parent_path.is_dir() {
         let file_path = parent_path.join(page_path);
-        let file = File::open(&file_path).await.map_err(|e| {
-            tracing::error!(file_path = ?file_path, "{e}");
-            InternalErr::IO(e)
-        })?;
+        let file = File::open(&file_path)
+            .await
+            .log_err(|e| error!("can't open page file {file_path:?}: {e}"))?;
         let stream = ReaderStream::new(file);
 
         Body::from_stream(stream)
     } else {
         let stream = parent_path
-            .stream_file_from_archive(page_path, page_filesize)
-            .map_err(|e| {
-                tracing::error!("{e}");
-                InternalErr::Archive(e)
-            })?;
+            .stream_file_from_archive(&page_path)
+            .await
+            .log_err(|e| error!("can't open page file {parent_path:?}::{page_path}: {e}"))
+            .map(ReaderStream::new)?;
 
         Body::from_stream(stream)
     };
