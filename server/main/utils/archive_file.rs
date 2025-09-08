@@ -6,17 +6,12 @@
 use std::{
     collections::HashMap,
     ffi::OsStr,
-    io::{BufReader, Read, Write},
+    io::{Read, Write},
     path::PathBuf,
-    pin::Pin,
     sync::Arc,
-    task::Poll,
 };
 
-use axum::body::Bytes;
 use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Timelike, Utc};
-use futures_core::Stream;
-use tokio::io::AsyncRead;
 use tracing::warn;
 
 use crate::utils::{
@@ -34,13 +29,11 @@ fn get_7z() -> Result<std::process::Command, ArchiveFileError> {
     Ok(std::process::Command::new(&sz_cli_path))
 }
 
-async fn get_7z_async() -> Result<tokio::process::Command, ArchiveFileError> {
+fn get_7z_async() -> Result<tokio::process::Command, ArchiveFileError> {
     let sz_cli_path = std::env::temp_dir().join("7z");
 
     if !std::path::Path::new(&sz_cli_path).exists() {
-        tokio::fs::write(&sz_cli_path, SZ_BIN)
-            .await
-            .map_err(ArchiveFileError::CantSpawn7zAsync)?;
+        std::fs::write(&sz_cli_path, SZ_BIN).map_err(ArchiveFileError::CantSpawn7zAsync)?;
     }
     Ok(tokio::process::Command::new(&sz_cli_path))
 }
@@ -189,22 +182,15 @@ pub trait ArchiveFile {
     /// Upsert a buffer to a specified file in the archive.
     fn upsert_file_to_archive(
         &self,
-        file_name: impl ToString,
+        file_name: &str,
         content: Arc<Vec<u8>>,
     ) -> Result<(), ArchiveFileError>;
 
-    /// Consume the [`PathBuf`] and returns a [`Stream`]-able object that can be pass to
-    /// [`axum::body::Body::from_stream`] to stream the content of a specified
-    /// file in the archive directly without extracting the whole file.
-    ///
-    /// To avoid an additional call to the 7z CLI, the file size is manually
-    /// provided, it's just to tell clients what the size of file they get,
-    /// not affecting the streaming process.
-    fn stream_file_from_archive(
-        self,
-        file_name: impl ToString,
-        filesize: Option<i64>,
-    ) -> Result<impl AsyncRead, ArchiveFileError>;
+    /// Get a stream of a specified file in the archive.
+    async fn stream_file_from_archive(
+        &self,
+        file_name: &str,
+    ) -> Result<tokio::process::ChildStdout, ArchiveFileError>;
 }
 
 impl ArchiveFile for PathBuf {
@@ -447,7 +433,7 @@ impl ArchiveFile for PathBuf {
 
     fn upsert_file_to_archive(
         &self,
-        file_name: impl ToString,
+        file_name: &str,
         content: Arc<Vec<u8>>,
     ) -> Result<(), ArchiveFileError> {
         self.validate()?;
@@ -485,14 +471,13 @@ impl ArchiveFile for PathBuf {
         Ok(())
     }
 
-    fn stream_file_from_archive(
-        self,
-        file_name: impl ToString,
-        filesize: Option<i64>,
-    ) -> Result<impl AsyncRead, ArchiveFileError> {
+    async fn stream_file_from_archive(
+        &self,
+        file_name: &str,
+    ) -> Result<tokio::process::ChildStdout, ArchiveFileError> {
         self.validate()?;
 
-        let mut child = get_7z()?
+        let mut child = get_7z_async()?
             .arg("e")
             .arg(format!("{}", self.display()))
             .arg("-so")
@@ -501,85 +486,11 @@ impl ArchiveFile for PathBuf {
             .stderr(std::process::Stdio::piped())
             .spawn()
             .map_err(ArchiveFileError::CantSpawn7z)?;
-        let buf = BufReader::new(
-            child
-                .stdout
-                .take()
-                .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?,
-        );
 
-        Ok(ArchiveFileStream {
-            reader: buf,
-            filesize,
-        })
-    }
-}
-
-// TODO: The ArchiveItemStream and ArchiveFileStream should serve the same
-// purpose, which is to allow Axum to stream file content from the archive without
-// fully extract it to memory; the only difference is the first one uses a trait
-// from futures-core, while the other one is from tokio.
-//
-// At the time of writing, the codebase is going through a heavy rewrite, so I
-// cannot test it, but eventually we want to minimize the app's dependencies.
-
-#[derive(Debug)]
-struct ArchiveItemStream {
-    reader: BufReader<std::process::ChildStdout>,
-    filesize: Option<i64>,
-}
-
-impl Stream for ArchiveItemStream {
-    type Item = Result<Bytes, ArchiveFileError>;
-
-    fn poll_next(
-        mut self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> Poll<Option<Self::Item>> {
-        let _ = cx;
-        let mut buf = vec![0; 65536];
-        match self.reader.read(&mut buf) {
-            Ok(0) => Poll::Ready(None),
-            Ok(n) => Poll::Ready(Some(Ok(Bytes::from(buf[..n].to_vec())))),
-            Err(e) => Poll::Ready(Some(Err(ArchiveFileError::CantReadStdout(e)))),
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (
-            0,
-            self.filesize.and_then(|filesize| match filesize {
-                size if size <= 0 => None,
-                size if size as usize > usize::MAX => None,
-                size => Some(size as usize),
-            }),
-        )
-    }
-}
-
-#[derive(Debug)]
-struct ArchiveFileStream {
-    reader: BufReader<std::process::ChildStdout>,
-    filesize: Option<i64>,
-}
-
-impl AsyncRead for ArchiveFileStream {
-    fn poll_read(
-        self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-        buf: &mut tokio::io::ReadBuf<'_>,
-    ) -> Poll<std::io::Result<()>> {
-        let _ = cx;
-        let unfilled = buf.initialize_unfilled();
-        let this = Pin::into_inner(self);
-        match this.reader.read(unfilled) {
-            Ok(0) => Poll::Ready(Ok(())),
-            Ok(n) => {
-                buf.advance(n);
-                Poll::Ready(Ok(()))
-            }
-            Err(e) => Poll::Ready(Err(e)),
-        }
+        Ok(child
+            .stdout
+            .take()
+            .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?)
     }
 }
 
