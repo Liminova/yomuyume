@@ -1,4 +1,4 @@
-use image::{DynamicImage, GenericImageView, Pixel, Rgb};
+use image::{DynamicImage, GenericImageView, Pixel};
 use serde::{Deserialize, Serialize};
 
 pub trait AverageColor {
@@ -14,15 +14,22 @@ impl From<HexColor> for String {
     }
 }
 
-impl From<Rgb<u8>> for HexColor {
-    fn from(rgb: Rgb<u8>) -> Self {
-        HexColor((rgb[0], rgb[1], rgb[2]))
+impl ToString for HexColor {
+    fn to_string(&self) -> String {
+        format!("#{:02x}{:02x}{:02x}", self.0.0, self.0.1, self.0.2)
     }
 }
 
-impl From<(u8, u8, u8)> for HexColor {
-    fn from(tup: (u8, u8, u8)) -> Self {
-        HexColor(tup)
+impl HexColor {
+    pub fn from_str(s: &str) -> Option<Self> {
+        let s = s.strip_prefix('#').unwrap_or(s);
+        if s.len() != 6 {
+            return None;
+        }
+        let r = u8::from_str_radix(&s[0..2], 16).ok()?;
+        let g = u8::from_str_radix(&s[2..4], 16).ok()?;
+        let b = u8::from_str_radix(&s[4..6], 16).ok()?;
+        Some(HexColor((r, g, b)))
     }
 }
 
