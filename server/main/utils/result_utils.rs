@@ -1,32 +1,33 @@
-use std::fmt::{Debug, Display};
-
-pub trait ResultUtils<T, E: Display + Debug> {
+pub trait ResultUtils<T, E> {
     fn okay<F: FnOnce(E)>(self, f: F) -> Option<T>;
     fn log_err<F: FnOnce(&E)>(self, f: F) -> Result<T, E>;
 }
 
-impl<T, E: Display + Debug> ResultUtils<T, E> for Result<T, E> {
-    /// Provide an owned error then map to Option
-    ///
-    /// Same as [`Result::map_err`] + [`Result::ok`]
+impl<T, E> ResultUtils<T, E> for Result<T, E> {
+    /// Syntax sugar for [`Result::map_err`] + [`Result::ok`]
     fn okay<F: FnOnce(E)>(self, f: F) -> Option<T> {
-        match self {
-            Ok(v) => Some(v),
-            Err(e) => {
-                f(e);
-                None
-            }
-        }
+        self.map_err(f).ok()
     }
 
     /// Provide a reference error for tracing calls then forward it
     fn log_err<F: FnOnce(&E)>(self, f: F) -> Result<T, E> {
-        match self {
-            Ok(v) => Ok(v),
-            Err(e) => {
-                f(&e);
-                Err(e)
-            }
-        }
+        self.map_err(|e| {
+            f(&e);
+            e
+        })
+    }
+}
+
+pub trait OptionUtils<T> {
+    fn log_err<F: FnOnce()>(self, f: F) -> Option<T>;
+}
+
+impl<T> OptionUtils<T> for Option<T> {
+    /// Provide a closure for tracing calls then forward it
+    fn log_err<F: FnOnce()>(self, f: F) -> Option<T> {
+        self.or_else(|| {
+            f();
+            None
+        })
     }
 }
