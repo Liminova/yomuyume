@@ -1,16 +1,4 @@
 {
-    "sqltools.connections": [
-        {
-            "previewLimit": 50,
-            "server": "postgres",
-            "port": 5432,
-            "driver": "PostgreSQL",
-            "name": "main",
-            "database": "ymym",
-            "username": "postgres",
-            "password": "postgres"
-        }
-    ],
     "[markdown]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
     },
