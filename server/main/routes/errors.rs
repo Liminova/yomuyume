@@ -5,43 +5,36 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-use crate::{routes::user::MailerError, utils::archive_file::ArchiveFileError};
+use crate::{
+    routes::user::MailerError,
+    utils::{archive_file::ArchiveFileError, pathbuf_utils::ReadCategoryInfoError},
+};
 
 #[derive(Debug, thiserror::Error)]
-pub enum InternalErr {
-    #[error("database transaction error: {0}")]
-    DBTransactionError(#[from] redb::TransactionError),
-    #[error("database table error: {0}")]
-    DBTableError(#[from] redb::TableError),
-    #[error("database storage error: {0}")]
-    DBStorageError(#[from] redb::StorageError),
-    #[error("database commit error: {0}")]
-    DBCommitError(#[from] redb::CommitError),
-
+pub enum InternalError {
     #[error("IO error: {0}")]
-    IO(std::io::Error),
+    IO(#[from] std::io::Error),
     #[error("archive error: {0}")]
-    Archive(ArchiveFileError),
+    Archive(#[from] ArchiveFileError),
     #[error("mailer error: {0}")]
     Mailer(#[from] MailerError),
-
-    #[error("cache error: can't get {0} to read, this should not happen")]
-    ReadCache(String),
-    #[error("cache error: can't get {0} to write, this should not happen")]
-    WriteCache(String),
 
     #[error("title w/ ID {0} has no chapter, this should not happen")]
     NoChapter(i64),
     #[error("chapter w/ ID {0} has no page, this should not happen")]
     ChapterNoPage(i64),
 
-    #[error("can't generate secure id: {0}")]
-    SecureID(#[from] argon2::password_hash::rand_core::Error),
+    #[error("database error: {0}")]
+    Database(#[from] sqlx::Error),
+
     #[error("can't hash password: {0}")]
     PasswordHash(argon2::password_hash::errors::Error),
+
+    #[error("can't read category info: {0}")]
+    ReadCategoryInfo(#[from] ReadCategoryInfoError),
 }
 
-impl IntoResponse for InternalErr {
+impl IntoResponse for InternalError {
     fn into_response(self) -> Response {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("{self}")).into_response()
     }
