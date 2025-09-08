@@ -154,39 +154,24 @@ pub enum ArchiveFileError {
 }
 
 pub trait ArchiveFile {
-    /// Check if the archive is a valid archive and supported.
     fn validate(&self) -> Result<(), ArchiveFileError>;
 
-    /// Compress files in [`paths`] into [`PathBuf`].
-    ///
-    /// [`paths`]: Vec<PathBuf>
-    /// [`target_path`]: PathBuf
     fn _create_zip_file(&self, paths: &[PathBuf]) -> Result<(), ArchiveFileError>
     where
         Self: Sized;
-
-    /// List all files in the archive.
-    ///
-    /// https://superuser.com/a/1073272
     fn list_files_in_archive(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError>;
 
-    /// Read the content of a specified file in the archive. If the file doesn't
-    /// exist, return an empty buffer.
-    ///
-    /// https://superuser.com/a/148501
     fn read_file_from_archive(
         &self,
         file_name: impl AsRef<OsStr>,
     ) -> Result<Vec<u8>, ArchiveFileError>;
 
-    /// Upsert a buffer to a specified file in the archive.
     fn upsert_file_to_archive(
         &self,
         file_name: &str,
         content: Arc<Vec<u8>>,
     ) -> Result<(), ArchiveFileError>;
 
-    /// Get a stream of a specified file in the archive.
     async fn stream_file_from_archive(
         &self,
         file_name: &str,
@@ -194,6 +179,7 @@ pub trait ArchiveFile {
 }
 
 impl ArchiveFile for PathBuf {
+    /// Check if the archive is a valid archive and supported.
     fn validate(&self) -> Result<(), ArchiveFileError> {
         if !self.exists() {
             return Err(ArchiveFileError::NotExists(self.clone()));
@@ -214,6 +200,10 @@ impl ArchiveFile for PathBuf {
         Ok(())
     }
 
+    /// Compress files in [`paths`] into [`PathBuf`].
+    ///
+    /// [`paths`]: Vec<PathBuf>
+    /// [`target_path`]: PathBuf
     fn _create_zip_file(&self, items: &[PathBuf]) -> Result<(), ArchiveFileError> {
         assert!(!self.exists());
 
@@ -268,6 +258,9 @@ impl ArchiveFile for PathBuf {
         Ok(())
     }
 
+    /// List all files in the archive.
+    ///
+    /// https://superuser.com/a/1073272
     fn list_files_in_archive(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError> {
         self.validate()?;
 
@@ -382,6 +375,10 @@ impl ArchiveFile for PathBuf {
         Ok(files)
     }
 
+    /// Read the content of a specified file in the archive. If the file doesn't
+    /// exist, return an empty buffer.
+    ///
+    /// https://superuser.com/a/148501
     fn read_file_from_archive(
         &self,
         file_name: impl AsRef<OsStr>,
@@ -431,6 +428,7 @@ impl ArchiveFile for PathBuf {
         Ok(stdout_buf)
     }
 
+    /// Upsert a buffer to a specified file in the archive.
     fn upsert_file_to_archive(
         &self,
         file_name: &str,
@@ -471,6 +469,7 @@ impl ArchiveFile for PathBuf {
         Ok(())
     }
 
+    /// Get a stream of a specified file in the archive.
     async fn stream_file_from_archive(
         &self,
         file_name: &str,
