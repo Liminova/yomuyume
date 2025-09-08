@@ -11,26 +11,26 @@ use crate::{
 
 pub async fn comic_info_to_tantivy(
     app_state: &Arc<AppState>,
-    ci_ref: Option<&ComicInfo>,
     title_identity_path: &str,
     category_identity_path: Option<&str>,
+    comic_info: Option<&ComicInfo>,
     title_path: &Path,
 ) {
     let mut doc = TantivyDocument::default();
     doc.add_text(
         app_state.indexer.fields.title,
-        ci_ref
+        comic_info
             .and_then(|ci| ci.title.as_ref())
             .map(|t| t.as_str())
             .unwrap_or(title_identity_path),
     );
-    if let Some(author) = ci_ref.and_then(|ci| ci.writer.as_ref()) {
+    if let Some(author) = comic_info.and_then(|ci| ci.writer.as_ref()) {
         doc.add_text(app_state.indexer.fields.author, author);
     }
-    if let Some(desc) = ci_ref.and_then(|ci| ci.summary.as_ref()) {
+    if let Some(desc) = comic_info.and_then(|ci| ci.summary.as_ref()) {
         doc.add_text(app_state.indexer.fields.description, desc);
     }
-    if let Some(tags) = ci_ref.map(|ci| &ci.tags) {
+    if let Some(tags) = comic_info.map(|ci| &ci.tags) {
         for tag in tags {
             doc.add_text(app_state.indexer.fields.tag, tag);
         }
@@ -42,7 +42,7 @@ pub async fn comic_info_to_tantivy(
             category_identity_path,
         );
     }
-    if let Some(release_date) = ci_ref
+    if let Some(release_date) = comic_info
         .map(|ci| (ci.year, ci.month as u32, ci.day as u32))
         .and_then(|(year, month, day)| {
             chrono::NaiveDate::from_ymd_opt(year, month as u32, day as u32)
