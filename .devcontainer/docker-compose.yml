@@ -19,6 +19,7 @@ services:
             LIBRARY_PATH: /ymym/library
             DATABASE_URL: sqlite:///ymym/library/yomuyume.db?mode=rwc
             TANTIVY_DIR: /tmp/ymym-tantivy/
+            TANTIVY_MEMORY_MB: '50'
 
             FEATURE_NOMEDIA: 'false'
             FEATURE_KOMGA_ONESHOT: 'false'
