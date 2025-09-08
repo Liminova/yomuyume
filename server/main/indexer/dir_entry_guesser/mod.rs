@@ -13,7 +13,7 @@ pub enum IndexedChapterKind {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PartialIndexedChapter {
-    pub fallback_vol_num: u32,
+    pub fallback_vol_num: i32,
     pub path: AbsolutePath,
     pub kind: IndexedChapterKind,
 }
