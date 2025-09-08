@@ -7,14 +7,13 @@ use axum::{
     response::{AppendHeaders, IntoResponse, Response},
 };
 use axum_extra::extract::cookie::{Cookie, SameSite};
-use redb::ReadableDatabase;
 use serde::{Deserialize, Serialize};
 use tracing::error;
 use utoipa::ToSchema;
 
 use crate::{
-    AppState, database,
-    routes::{check_pass, errors::InternalErr},
+    AppState,
+    routes::{check_pass, errors::InternalError},
     utils::{
         constants::{CookieName, LOGIN_PATH},
         nanoid::nanoid,
@@ -41,59 +40,31 @@ pub struct LoginRequest {
 pub async fn post_login(
     State(app_state): State<Arc<AppState>>,
     query: Json<LoginRequest>,
-) -> Result<Response, InternalErr> {
-    let read_txn = app_state
-        .db
-        .user
-        .begin_read()
-        .log_err(|e| error!("can't begin read transaction: {e}"))?;
-
-    let Some(user_id) = read_txn
-        .open_table(database::user::USER_EMAIL_TO_ID)
-        .log_err(|e| error!("can't open users table: {e}"))?
-        .get(&query.email)
-        .log_err(|e| error!("can't query users table: {e}"))?
-        .map(|r| r.value())
-    else {
-        return Ok((StatusCode::BAD_REQUEST, "invalid email or password").into_response());
+) -> Result<Response, InternalError> {
+    let Some((user_id, password_hash)) = sqlx::query!(
+        "SELECT id, password_hash FROM users WHERE email = ?",
+        query.email
+    )
+    .fetch_optional(&app_state.pool)
+    .await
+    .log_err(|e| error!("can't query user by email: {e}"))?
+    .map(|r| (r.id, r.password_hash)) else {
+        return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
     };
 
-    if read_txn
-        .open_table(database::user::USERS)
-        .log_err(|e| error!("can't open users table: {e}"))?
-        .get(&user_id)
-        .log_err(|e| error!("can't query users table: {e}"))?
-        .map(|r| r.value().password_hash)
-        .filter(|password_hash| check_pass(password_hash, &query.password))
-        .is_none()
-    {
-        return Ok((StatusCode::BAD_REQUEST, "invalid email or password").into_response());
-    };
+    if !check_pass(&password_hash, &query.password) {
+        return Ok((StatusCode::BAD_REQUEST, "invalid password").into_response());
+    }
 
     let session_secret = nanoid();
-
-    let write_txn = app_state
-        .db
-        .user
-        .begin_write()
-        .log_err(|e| error!("can't begin write transaction: {e}"))?;
-
-    write_txn
-        .open_multimap_table(database::user::SESSIONS)
-        .log_err(|e| error!("can't open sessions table: {e}"))?
-        .insert(
-            &user_id,
-            &database::user::Session {
-                // TODO: detect device name/type
-                device: None,
-                session_secret: session_secret.clone(),
-            },
-        )
-        .log_err(|e| error!("can't insert session entry: {e}"))?;
-
-    write_txn
-        .commit()
-        .log_err(|e| error!("can't commit write transaction: {e}"))?;
+    sqlx::query!(
+        "INSERT INTO sessions (secret, user_id) VALUES (?, ?)",
+        session_secret,
+        user_id
+    )
+    .execute(&app_state.pool)
+    .await
+    .log_err(|e| error!("can't create session: {e}"))?;
 
     Ok((
         StatusCode::OK,

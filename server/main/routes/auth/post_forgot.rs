@@ -6,17 +6,16 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use chrono::Utc;
+use chrono::{TimeZone, Utc};
 use lettre::Address;
-use redb::{ReadTransaction, ReadableDatabase};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 use utoipa::ToSchema;
 
 use crate::{
     AppState,
-    database::{self, user::UserID},
-    routes::{errors::InternalErr, hash_pass, user::Mailer},
+    database::user::UserID,
+    routes::{errors::InternalError, hash_pass, user::Mailer},
     utils::{
         chrono_utils::ChronoUtils,
         constants::{FORGOT_PATH, ForgotPasswordLimit},
@@ -48,90 +47,75 @@ pub struct ForgotRequest {
 pub async fn post_forgot(
     State(app_state): State<Arc<AppState>>,
     query: Json<ForgotRequest>,
-) -> Result<Response, InternalErr> {
-    let read_txn = app_state
-        .db
-        .user
-        .begin_read()
-        .log_err(|e| error!("can't begin read transaction: {e}"))?;
-
+) -> Result<Response, InternalError> {
     let Ok(email) = query.email.parse::<lettre::Address>() else {
-        return Ok((StatusCode::BAD_REQUEST, "Invalid email").into_response());
+        return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
     };
+    let email_str = email.to_string();
 
-    let Some(user_id) = read_txn
-        .open_table(database::user::USER_EMAIL_TO_ID)
-        .log_err(|e| error!("can't open users table: {e}"))?
-        .get(&query.email)
-        .log_err(|e| error!("can't get user by email: {e}"))?
-        .map(|r| r.value())
+    let Some(user_id) = sqlx::query!("SELECT id FROM users WHERE email = ?", email_str)
+        .fetch_optional(&app_state.pool)
+        .await
+        .log_err(|e| error!("can't query user by email: {e}"))?
+        .map(|r| r.id)
     else {
-        return Ok((StatusCode::BAD_REQUEST, "Invalid email").into_response());
+        return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
     };
 
     match (&query.code, &query.new_password) {
-        (Some(code), Some(new_password)) => {
-            reset(&app_state, read_txn, user_id, code, new_password).await
-        }
-        (None, None) => request(&app_state, read_txn, user_id, email).await,
-        _ => return Ok((StatusCode::BAD_REQUEST, "Invalid request").into_response()),
+        (Some(code), Some(new_password)) => reset(&app_state, user_id, code, new_password).await,
+        (None, None) => request(&app_state, user_id, email).await,
+        _ => return Ok((StatusCode::BAD_REQUEST, "invalid request").into_response()),
     }
 }
 
 async fn request(
     app_state: &Arc<AppState>,
-    read_txn: ReadTransaction,
     user_id: UserID,
     email: Address,
-) -> Result<Response, InternalErr> {
+) -> Result<Response, InternalError> {
     let mailer = app_state.config.smtp.as_ref().map(Mailer::from);
     let now = Utc::now();
 
-    if read_txn
-        .open_table(database::user::FORGOT_PASSWORD)
-        .log_err(|e| error!("can't open forgot password table: {e}"))?
-        .get(&user_id)
-        .log_err(|e| error!("can't get forgot password requests: {e}"))?
-        .filter(|r| {
-            r.value()
-                .created_at
-                .inside(&now, &ForgotPasswordLimit::Cooldown.into())
-        })
-        .is_some()
+    if let Some(existing_request) = sqlx::query!(
+        "SELECT created_at FROM forgot_password_requests WHERE user_id = ?",
+        user_id
+    )
+    .fetch_optional(&app_state.pool)
+    .await
+    .log_err(|e| error!("can't query existing forgot password request: {e}"))?
+        && Utc
+            .from_utc_datetime(&existing_request.created_at)
+            .inside(&now, &ForgotPasswordLimit::Cooldown.into())
     {
+        #[cfg(debug_assertions)]
+        tracing::debug!(
+            "forgot password request cooldown for user {} | now {} | prev {}",
+            email,
+            now,
+            existing_request.created_at
+        );
         return Ok(StatusCode::TOO_MANY_REQUESTS.into_response());
-    }
-
-    let username = read_txn
-        .open_table(database::user::USERS)
-        .log_err(|e| error!("can't open users table: {e}"))?
-        .get(&user_id)
-        .log_err(|e| error!("can't get user info: {e}"))?
-        .and_then(|r| r.value().name);
+    };
 
     let code = nanoid();
 
-    let write_txn = app_state
-        .db
-        .user
-        .begin_write()
-        .log_err(|e| error!("can't begin write transaction: {e}"))?;
+    let now_to_insert = now.naive_utc();
+    sqlx::query!(
+        "INSERT OR REPLACE INTO forgot_password_requests (code, user_id, created_at) VALUES (?, ?, ?)",
+        code,
+        user_id,
+        now_to_insert
+    )
+    .execute(&app_state.pool)
+    .await
+    .log_err(|e| error!("can't insert forgot password request: {e}"))?;
 
-    write_txn
-        .open_table(database::user::FORGOT_PASSWORD)
-        .log_err(|e| error!("can't open forgot password table: {e}"))?
-        .insert(
-            &user_id,
-            database::user::ForgotPassword {
-                created_at: now,
-                code: code.clone(),
-            },
-        )
-        .log_err(|e| error!("can't insert forgot password request: {e}"))?;
-
-    write_txn
-        .commit()
-        .log_err(|e| error!("can't commit transaction: {e}"))?;
+    let username = sqlx::query!("SELECT username FROM users WHERE id = ?", user_id)
+        .fetch_optional(&app_state.pool)
+        .await
+        .log_err(|e| error!("can't query username by id: {e}"))?
+        .map(|r| r.username);
 
     if let Some(mailer) =
         mailer.and_then(|mailer| mailer.okay(|e| error!("can't create mailer: {e}")))
@@ -148,7 +132,7 @@ async fn request(
         ).log_err(|e| error!("can't send forgot password email: {e}"))?;
     } else {
         info!(
-            "Forgot password code for user {}: {code}",
+            "forgot password code for user {}: {code}",
             email.to_string()
         );
     }
@@ -158,60 +142,59 @@ async fn request(
 
 async fn reset(
     app_state: &Arc<AppState>,
-    read_txn: ReadTransaction,
     user_id: UserID,
     code: &str,
     new_password: &str,
-) -> Result<Response, InternalErr> {
-    let Some(forgot_password) = read_txn
-        .open_table(database::user::FORGOT_PASSWORD)
-        .log_err(|e| error!("can't open forgot password table: {e}"))?
-        .get(&user_id)
-        .log_err(|e| error!("can't get forgot password requests: {e}"))?
-        .map(|r| r.value())
+) -> Result<Response, InternalError> {
+    let Some(existing_request) = sqlx::query!(
+        "SELECT code, created_at FROM forgot_password_requests WHERE user_id = ?",
+        user_id
+    )
+    .fetch_optional(&app_state.pool)
+    .await
+    .log_err(|e| error!("can't query existing forgot password request: {e}"))?
     else {
-        return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
+        return Ok((StatusCode::BAD_REQUEST, "no forgot password request found").into_response());
     };
 
-    if code != forgot_password.code {
-        return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
-    }
-
-    if forgot_password
-        .created_at
-        .outside(&Utc::now(), &ForgotPasswordLimit::ExpiredAfter.into())
+    if code != existing_request.code
+        || Utc
+            .from_utc_datetime(&existing_request.created_at)
+            .outside(&Utc::now(), &ForgotPasswordLimit::ExpiredAfter.into())
     {
         return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
     }
 
+    let mut tx = app_state
+        .pool
+        .begin()
+        .await
+        .log_err(|e| error!("can't begin SQL transaction: {e}"))?;
+
+    sqlx::query!(
+        "DELETE FROM forgot_password_requests WHERE user_id = ?",
+        user_id
+    )
+    .execute(&mut *tx)
+    .await
+    .log_err(|e| error!("can't delete used forgot password request: {e}"))?;
+
     let new_password_hash = hash_pass(new_password).map_err(|e| {
         error!("can't hash new password: {e}");
-        InternalErr::PasswordHash(e)
+        InternalError::PasswordHash(e)
     })?;
 
-    let write_txn = app_state
-        .db
-        .user
-        .begin_write()
-        .log_err(|e| error!("can't begin write transaction: {e}"))?;
+    sqlx::query!(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        new_password_hash,
+        user_id
+    )
+    .execute(&mut *tx)
+    .await
+    .log_err(|e| error!("can't update user password: {e}"))?;
 
-    write_txn
-        .open_table(database::user::FORGOT_PASSWORD)
-        .log_err(|e| error!("can't open forgot password table: {e}"))?
-        .remove(&user_id)
-        .log_err(|e| error!("can't remove forgot password request: {e}"))?;
-
-    write_txn
-        .open_table(database::user::USERS)
-        .log_err(|e| error!("can't open users table: {e}"))?
-        .get_mut(&user_id)
-        .log_err(|e| error!("can't get user info: {e}"))?
-        .map(|r| {
-            r.value().password_hash = new_password_hash;
-        });
-
-    write_txn
-        .commit()
+    tx.commit()
+        .await
         .log_err(|e| error!("can't commit transaction: {e}"))?;
 
     Ok(StatusCode::OK.into_response())
