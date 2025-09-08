@@ -1,10 +1,5 @@
 [workspace]
-members = [
-    "server/main",
-    "server/frontend-spa",
-    "server/api-endpoints",
-    "server/redb-macros",
-]
+members = ["server/main", "server/frontend-spa", "server/api-endpoints"]
 resolver = "2"
 
 [profile.release]

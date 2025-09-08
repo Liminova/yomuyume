@@ -10,28 +10,31 @@ path = "main.rs"
 [dependencies]
 api-endpoints = { path = "../api-endpoints" }
 argon2 = "0.5.3"
-axum = "0.8.1"
-axum-extra = { version = "0.10.0", features = ["cookie", "query"] }
-chrono = { version = "0.4.30", features = ["serde"] }
+axum = "0.8.4"
+axum-extra = { version = "0.10.1", features = ["cookie", "query"] }
+chrono = { version = "0.4.42", features = ["serde"] }
 frontend-spa = { path = "../frontend-spa" }
-futures-core = "0.3.31"
-image = { version = "0.25.2", features = ["avif-native"] }
-lettre = "0.11.2"
+image = { version = "0.25.8", features = ["avif-native"] }
+lettre = "0.11.18"
 quick-xml = { version = "0.38.3", features = ["serialize", "encoding"] }
 rayon = "1.11.0"
-redb = "3.0.1"
-redb-macros = { path = "../redb-macros" }
-serde = { version = "1.0.188", features = ["serde_derive"] }
-serde_json = "1.0.108"
-serde_with = "3.12.0"
+serde = { version = "1.0.219", features = ["serde_derive"] }
+serde_json = "1.0.143"
+serde_with = "3.14.0"
+sqlx = { version = "0.8.6", features = [
+    "sqlite",
+    "chrono",
+    "runtime-tokio",
+    "sqlx-macros",
+] }
 tantivy = "0.25.0"
-thiserror = "2.0.2"
+thiserror = "2.0.16"
 tokio = { version = "1.47.1", features = ["full"] }
-tokio-util = { version = "0.7.12", features = ["io"] }
-tower-http = { version = "0.6.2", features = ["tracing", "trace", "cors"] }
-tracing = "0.1.37"
+tokio-util = { version = "0.7.16", features = ["io"] }
+tower-http = { version = "0.6.6", features = ["tracing", "trace", "cors"] }
+tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter", "ansi"] }
-utoipa = { version = "5.3.1", features = ["axum_extras", "chrono"] }
+utoipa = { version = "5.4.0", features = ["axum_extras", "chrono"] }
 utoipa-redoc = { version = "6.0.0", features = ["axum"] }
 
 [dev-dependencies]
