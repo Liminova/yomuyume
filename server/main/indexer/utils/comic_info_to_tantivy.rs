@@ -11,9 +11,8 @@ use crate::{
 
 pub async fn comic_info_to_tantivy(
     app_state: &Arc<AppState>,
-    title_identity_path: &str,
-    category_identity_path: Option<&str>,
     comic_info: Option<&ComicInfo>,
+    title_id: &str,
     title_path: &Path,
 ) {
     let mut doc = TantivyDocument::default();
@@ -22,7 +21,12 @@ pub async fn comic_info_to_tantivy(
         comic_info
             .and_then(|ci| ci.title.as_ref())
             .map(|t| t.as_str())
-            .unwrap_or(title_identity_path),
+            .unwrap_or(
+                title_path
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("Untitled"),
+            ),
     );
     if let Some(author) = comic_info.and_then(|ci| ci.writer.as_ref()) {
         doc.add_text(app_state.indexer.fields.author, author);
@@ -35,13 +39,7 @@ pub async fn comic_info_to_tantivy(
             doc.add_text(app_state.indexer.fields.tag, tag);
         }
     }
-    doc.add_text(app_state.indexer.fields.identity_path, &title_identity_path);
-    if let Some(category_identity_path) = category_identity_path.as_ref() {
-        doc.add_text(
-            app_state.indexer.fields.category_identity_path,
-            category_identity_path,
-        );
-    }
+    doc.add_text(app_state.indexer.fields.id, &title_id);
     if let Some(release_date) = comic_info
         .map(|ci| (ci.year, ci.month as u32, ci.day as u32))
         .and_then(|(year, month, day)| {
