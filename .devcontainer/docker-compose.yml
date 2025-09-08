@@ -17,7 +17,8 @@ services:
             LISTEN_ADDRESS: 0.0.0.0:3000
 
             LIBRARY_PATH: /ymym/library
-            DATA_PATH: /ymym/ymym-data
+            DATABASE_URL: sqlite:///ymym/library/yomuyume.db?mode=rwc
+            TANTIVY_DIR: /tmp/ymym-tantivy/
 
             FEATURE_NOMEDIA: 'false'
             FEATURE_KOMGA_ONESHOT: 'false'
