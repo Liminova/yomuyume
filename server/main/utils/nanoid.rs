@@ -30,7 +30,7 @@
 
 use argon2::password_hash::rand_core::{OsRng, RngCore};
 
-const LENGTH: usize = 32;
+const LENGTH: usize = 21;
 const CHARSET: &[char; 64] = &[
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
     't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
