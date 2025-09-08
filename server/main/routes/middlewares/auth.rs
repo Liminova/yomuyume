@@ -8,15 +8,13 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
-use redb::ReadableDatabase;
 use tracing::error;
 
 use crate::{
     AppState,
     config::OperateMode,
-    database,
-    routes::{UserIDExtension, errors::InternalErr},
-    utils::constants::CookieName,
+    routes::{UserIDExtension, errors::InternalError},
+    utils::{constants::CookieName, result_utils::ResultUtils},
 };
 
 /// Middleware checks `user-id` and `session-secret` cookies validity.
@@ -25,7 +23,7 @@ pub async fn auth(
     State(app_state): State<Arc<AppState>>,
     mut req: Request<Body>,
     next: Next,
-) -> Result<Response, InternalErr> {
+) -> Result<Response, InternalError> {
     req.extensions_mut().insert(UserIDExtension(None));
 
     let Some(provided_user_id) = cookie_jar
@@ -48,36 +46,17 @@ pub async fn auth(
         return Ok(StatusCode::UNAUTHORIZED.into_response());
     };
 
-    if app_state
-        .db
-        .user
-        .begin_read()
-        .map_err(|e| {
-            error!("can't begin read transaction: {e:?}");
-            InternalErr::DBTransactionError(e)
-        })?
-        .open_multimap_table(database::user::SESSIONS)
-        .map_err(|e| {
-            error!("can't open sessions table: {e:?}");
-            InternalErr::DBTableError(e)
-        })?
-        .get(&provided_user_id)
-        .map_err(|e| {
-            error!("can't query sessions table: {e:?}");
-            InternalErr::DBStorageError(e)
-        })?
-        .find(|s| match s.as_ref().map(|s| s.value()) {
-            Ok(s) => s.session_secret == provided_session_secret,
-            Err(e) => {
-                error!("can't read session entry: {e:?}");
-                false
-            }
-        })
-        .is_some()
+    if let Some(user) = sqlx::query!(
+        "SELECT user_id FROM sessions WHERE user_id = ? AND secret = ?",
+        provided_user_id,
+        provided_session_secret
+    )
+    .fetch_optional(&app_state.pool)
+    .await
+    .log_err(|e| error!("failed to query sessions: {e}"))?
     {
         req.extensions_mut()
-            .insert(UserIDExtension(Some(provided_user_id)));
-
+            .insert(UserIDExtension(Some(user.user_id)));
         return Ok(next.run(req).await);
     };
 
