@@ -106,8 +106,8 @@ expected="20ab025c487de16840ca4b4a5783ae62bda66ddbb4488ea4a91c0e521cee9dc90513a9
 if [ ! "$checksum" = "$expected" ]; then
     echo "7z tarball checksum failed\nexpected: $expected\ngot: $checksum"
 else
-    rm -f server/utils/7zz
-    tar -xf /tmp/7z.tar.xz -C server/utils 7zz
-    [[ -f server/utils/7zz ]] || { echo "7z not found"; exit 1; }
+    rm -f server/main/utils/7zz
+    tar -xf /tmp/7z.tar.xz -C server/main/utils/ 7zz
+    [[ -f server/main/utils/7zz ]] || { echo "7z not found"; exit 1; }
 fi
 rm -f /tmp/7z.tar.xz
