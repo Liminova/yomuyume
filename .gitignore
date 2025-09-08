@@ -32,7 +32,7 @@ target
 
 docker-compose.yml
 !.devcontainer/docker-compose.yml
-/library
+library
 
 Main.session.sql
 7zz
