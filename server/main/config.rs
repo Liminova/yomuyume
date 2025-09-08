@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use lettre::Address;
-use tracing::info;
 
 use crate::utils::{absolute_path::AbsolutePath, constants};
 
@@ -41,7 +40,9 @@ pub struct Config {
     pub listen_address: String,
 
     pub library_path: AbsolutePath,
-    pub data_path: AbsolutePath,
+    pub database_url: String,
+    pub tantivy_dir: AbsolutePath,
+    pub tantivy_memory: usize,
 
     pub feature_nomedia: bool,
     pub feature_komga_oneshot: bool,
@@ -111,18 +112,6 @@ impl Config {
         let library_path = AbsolutePath::from(&PathBuf::from(must!("LIBRARY_PATH")), None)
             .expect("can't convert LIBRARY_PATH to absolute");
 
-        let data_path = PathBuf::from(optional!("DATA_PATH", "./data"));
-        if !data_path.exists() {
-            std::fs::create_dir_all(&data_path).expect("can't create data directory");
-        }
-        if data_path.is_dir() {
-            info!("data path: {}", data_path.display());
-        } else {
-            panic!("DATA_PATH is not point to a valid directory");
-        }
-        let data_path =
-            AbsolutePath::from(&data_path, None).expect("can't convert DATA_PATH to absolute");
-
         assert!(
             library_path.as_ref().is_dir(),
             "LIBRARY_PATH is not point to a valid directory"
@@ -132,7 +121,13 @@ impl Config {
             listen_address: optional!("LISTEN_ADDRESS", "0.0.0.0:3000"),
 
             library_path,
-            data_path,
+            database_url: optional!("DATABASE_URL", "sqlite://yomuyume.db?mode=rwc"),
+            tantivy_dir: AbsolutePath::from(
+                &PathBuf::from(optional!("TANTIVY_DIR", "/tmp/ymym-tantivy/")),
+                None,
+            )
+            .expect("can't convert TANTIVY_DIR to absolute"),
+            tantivy_memory: optional!(num: "TANTIVY_MEMORY_MB", 50) * 1_000_000,
 
             feature_nomedia: optional!(bool: "FEATURE_NOMEDIA", false),
             feature_komga_oneshot: optional!(bool: "FEATURE_KOMGA_ONESHOT", false),
