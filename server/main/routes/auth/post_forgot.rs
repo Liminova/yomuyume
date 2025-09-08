@@ -14,7 +14,6 @@ use utoipa::ToSchema;
 
 use crate::{
     AppState,
-    database::user::UserID,
     routes::{errors::InternalError, hash_pass, user::Mailer},
     utils::{
         chrono_utils::ChronoUtils,
@@ -63,15 +62,15 @@ pub async fn post_forgot(
     };
 
     match (&query.code, &query.new_password) {
-        (Some(code), Some(new_password)) => reset(&app_state, user_id, code, new_password).await,
-        (None, None) => request(&app_state, user_id, email).await,
+        (Some(code), Some(new_password)) => reset(&app_state, &user_id, code, new_password).await,
+        (None, None) => request(&app_state, &user_id, email).await,
         _ => return Ok((StatusCode::BAD_REQUEST, "invalid request").into_response()),
     }
 }
 
 async fn request(
     app_state: &Arc<AppState>,
-    user_id: UserID,
+    user_id: &str,
     email: Address,
 ) -> Result<Response, InternalError> {
     let mailer = app_state.config.smtp.as_ref().map(Mailer::from);
@@ -142,7 +141,7 @@ async fn request(
 
 async fn reset(
     app_state: &Arc<AppState>,
-    user_id: UserID,
+    user_id: &str,
     code: &str,
     new_password: &str,
 ) -> Result<Response, InternalError> {
