@@ -59,8 +59,4 @@ upgrade-s +args="":
     cargo update {{ args }}
 
 build:
-    #!/usr/bin/env zsh
-    just build-w
-    just gen-api-paths
-    just build-c
-    just build-s
+    just build-c && just build-s
