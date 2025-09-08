@@ -3,23 +3,33 @@ pub mod find_chapter_cover;
 pub mod index_archive_chap_pages;
 pub mod index_directory_chap_pages;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 
-use crate::{database::content::PageIdentityPath, utils::average_color::HexColor};
+use crate::utils::average_color::HexColor;
+
+#[derive(Debug)]
+pub struct PageInDB {
+    pub id: String,
+    pub path: String,
+    pub last_modified: Option<DateTime<Utc>>,
+    pub avg_color: Option<HexColor>,
+}
 
 #[derive(Debug)]
 pub struct PageToUpsert {
-    pub identity_path: PageIdentityPath,
-
+    pub id: String,
+    pub path: String,
     pub width: Option<u32>,
     pub height: Option<u32>,
-    pub color: Option<HexColor>,
+    pub avg_hex_color: Option<String>,
     pub size: Option<i64>,
-    pub last_modified: Option<DateTime<Utc>>,
+    pub last_modified: Option<NaiveDateTime>,
 }
+
+type PageID = String;
 
 #[derive(Debug, Default)]
 pub struct IndexedChapterPages {
     pub upsert: Vec<PageToUpsert>,
-    pub delete: Vec<PageIdentityPath>,
+    pub delete: Vec<PageID>,
 }

@@ -10,12 +10,12 @@ use tracing::warn;
 
 use crate::{
     AppState,
-    database::{self, content::PageIdentityPath},
-    indexer::utils::{IndexedChapterPages, PageToUpsert},
+    indexer::utils::{IndexedChapterPages, PageInDB, PageToUpsert},
     utils::{
         absolute_path::AbsolutePath,
         archive_file::{ArchiveFile, ItemInArchive, ItemsInArchiveUtils},
         average_color::AverageColor,
+        nanoid::nanoid,
         result_utils::ResultUtils,
     },
 };
@@ -24,18 +24,14 @@ pub async fn read_chap_pages_archive(
     app_state: &Arc<AppState>,
     chapter_path: &AbsolutePath,
     files_in_archive: Vec<ItemInArchive>,
-    pages_in_db: &Vec<(PageIdentityPath, database::content::PageInfo)>,
+    pages_in_db: &[PageInDB],
 ) -> Option<IndexedChapterPages> {
     let pages_in_archive = files_in_archive.keep_images(app_state.config.feature_nomedia);
     if pages_in_archive.is_empty() {
         return None;
     }
 
-    let to_delete = 'scoped: {
-        if app_state.indexer.first_time {
-            break 'scoped Vec::new();
-        }
-
+    let to_delete = {
         let page_in_archive_paths = pages_in_archive
             .iter()
             .map(|p| &p.path)
@@ -43,23 +39,22 @@ pub async fn read_chap_pages_archive(
 
         pages_in_db
             .iter()
-            .filter(|(iden_path, _)| !page_in_archive_paths.contains(iden_path))
-            .map(|(p, _)| p.clone())
+            .filter(|p| !page_in_archive_paths.contains(&p.path))
+            .map(|p| p.id.clone())
             .collect::<Vec<_>>()
     };
 
     let pages_in_db_map = pages_in_db
         .iter()
-        .map(|p| (&p.0, p))
+        .map(|p| (&p.path, p))
         .collect::<HashMap<_, _>>();
 
     let to_upsert = {
         let partial = pages_in_archive
             .iter()
             .filter(|p| {
-                if let Some(old_modified) = pages_in_db_map
-                    .get(&p.path)
-                    .and_then(|(_, info)| info.last_modified)
+                if let Some(old_modified) =
+                    pages_in_db_map.get(&p.path).and_then(|p| p.last_modified)
                     && let Some(new_modified) = p.last_modified
                 {
                     return new_modified.timestamp() > old_modified.timestamp();
@@ -99,17 +94,21 @@ pub async fn read_chap_pages_archive(
         partial
             .into_iter()
             .map(|p| {
-                let (width, height, color) = width_height_color
+                let (width, height, avg_hex_color) = width_height_color
                     .remove(&p.path)
-                    .map(|(width, height, color)| (Some(width), Some(height), color))
+                    .map(|(w, h, c)| (Some(w), Some(h), c.map(|c| c.to_string())))
                     .unwrap_or_default();
 
                 PageToUpsert {
-                    identity_path: p.path.clone(),
+                    id: pages_in_db_map
+                        .get(&p.path)
+                        .map(|p| p.id.clone())
+                        .unwrap_or_else(nanoid),
+                    path: p.path.clone(),
                     width,
                     height,
-                    color,
-                    last_modified: p.last_modified,
+                    avg_hex_color,
+                    last_modified: p.last_modified.map(|d| d.naive_utc()),
                     size: p.size,
                 }
             })

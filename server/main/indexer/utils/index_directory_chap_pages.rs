@@ -7,11 +7,10 @@ use tracing::{error, warn};
 
 use crate::{
     AppState,
-    database::{self, content::PageIdentityPath},
-    indexer::utils::{IndexedChapterPages, PageToUpsert},
+    indexer::utils::{IndexedChapterPages, PageInDB, PageToUpsert},
     utils::{
-        absolute_path::AbsolutePath, average_color::AverageColor, pathbuf_utils::PathBufUtils,
-        result_utils::ResultUtils,
+        absolute_path::AbsolutePath, average_color::AverageColor, nanoid::nanoid,
+        pathbuf_utils::PathBufUtils, result_utils::ResultUtils,
     },
 };
 
@@ -27,7 +26,7 @@ pub async fn read_chap_pages_dir(
     app_state: &Arc<AppState>,
     chapter_path: &AbsolutePath,
     files_in_chapter: Option<Vec<DirEntry>>,
-    pages_in_db: &Vec<(PageIdentityPath, database::content::PageInfo)>,
+    pages_in_db: &[PageInDB],
 ) -> Option<IndexedChapterPages> {
     let pages_in_dir = files_in_chapter
         .unwrap_or_else(|| {
@@ -123,12 +122,8 @@ pub async fn read_chap_pages_dir(
         return None;
     }
 
-    let to_delete = 'scoped: {
-        if app_state.indexer.first_time {
-            break 'scoped Vec::new();
-        }
-
-        let pages_in_dir_paths = pages_in_dir
+    let to_delete = {
+        let pages_in_dir_rel_paths = pages_in_dir
             .iter()
             .filter_map(|p| {
                 p.path.to_relative(Some(chapter_path)).okay(|e| {
@@ -143,14 +138,14 @@ pub async fn read_chap_pages_dir(
 
         pages_in_db
             .iter()
-            .filter(|(iden_path, _)| !pages_in_dir_paths.contains(&iden_path))
-            .map(|(iden_path, _)| iden_path.clone())
+            .filter(|p| !pages_in_dir_rel_paths.contains(&p.path))
+            .map(|p| p.id.clone())
             .collect::<Vec<_>>()
     };
 
     let pages_in_db_map = pages_in_db
         .iter()
-        .map(|p| (&p.0, p))
+        .map(|p| (&p.path, p))
         .collect::<HashMap<_, _>>();
 
     let to_upsert = {
@@ -159,7 +154,7 @@ pub async fn read_chap_pages_dir(
             .filter(|p| {
                 if let Some(old_modified) = pages_in_db_map
                     .get(&p.rel_path)
-                    .and_then(|(_, info)| info.last_modified)
+                    .and_then(|p| p.last_modified)
                     && let Some(new_modified) = p.last_modified
                 {
                     return new_modified.timestamp() > old_modified.timestamp();
@@ -190,17 +185,21 @@ pub async fn read_chap_pages_dir(
         partial
             .into_iter()
             .map(|p| {
-                let (width, height, color) = width_height_color
+                let (width, height, avg_hex_color) = width_height_color
                     .remove(&p.path)
-                    .map(|(w, h, c)| (Some(w), Some(h), c))
+                    .map(|(w, h, c)| (Some(w), Some(h), c.map(|c| c.to_string())))
                     .unwrap_or_default();
 
                 PageToUpsert {
-                    identity_path: p.rel_path.clone(),
+                    id: pages_in_db_map
+                        .get(&p.rel_path)
+                        .map(|p| p.id.clone())
+                        .unwrap_or_else(nanoid),
+                    path: p.rel_path.clone(),
                     width,
                     height,
-                    color,
-                    last_modified: p.last_modified,
+                    avg_hex_color,
+                    last_modified: p.last_modified.map(|d| d.naive_utc()),
                     size: p.size,
                 }
             })

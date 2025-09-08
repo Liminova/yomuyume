@@ -1,36 +1,32 @@
 use crate::{
-    database::{self, content::PageIdentityPath},
-    indexer::utils::IndexedChapterPages,
-    utils::{
-        average_color::HexColor,
-        comic_info::{ComicPageInfo, ComicPageType},
-    },
+    indexer::utils::{IndexedChapterPages, PageInDB},
+    utils::comic_info::{ComicPageInfo, ComicPageType},
 };
 
-pub fn find_chapter_cover(
+pub fn find_chapter_cover_page_id(
     chapter_pages: &IndexedChapterPages,
     comic_info_pages: Option<&[ComicPageInfo]>,
-    pages_in_db: &[(PageIdentityPath, database::content::PageInfo)],
-) -> Option<(PageIdentityPath, HexColor)> {
-    let pages_in_db_preview = {
+    pages_in_db: &[PageInDB],
+) -> Option<String> {
+    type PagePath = String;
+
+    let pages_have_avg_color = {
         let mut tmp = pages_in_db
             .iter()
-            .filter(|(page_identity_path, _)| !chapter_pages.delete.contains(page_identity_path))
-            .filter_map(|(page_identity_path, page_info)| {
-                page_info.color.map(|color| (page_identity_path, color))
-            })
+            .filter(|p| !chapter_pages.delete.contains(&p.id))
+            .filter_map(|p| p.avg_color.map(|_| (&p.path, &p.id)))
             .chain(
                 chapter_pages
                     .upsert
                     .iter()
-                    .filter_map(|p| p.color.map(|color| (&p.identity_path, color))),
+                    .filter_map(|p| p.avg_hex_color.as_ref().map(|_| (&p.path, &p.id))),
             )
             .collect::<Vec<_>>();
         tmp.sort_by(|a, b| b.0.cmp(&a.0));
-        tmp
+        tmp.into_iter().map(|(_, id)| id).collect::<Vec<_>>()
     };
 
-    if pages_in_db_preview.is_empty() {
+    if pages_have_avg_color.is_empty() {
         return None;
     }
 
@@ -39,10 +35,10 @@ pub fn find_chapter_cover(
             .iter()
             .filter(|p| p.page_type == ComicPageType::FrontCover)
             .map(|p| p.image)
-            .find_map(|idx| pages_in_db_preview.get(idx as usize))
-            .or_else(|| pages_in_db_preview.get(0))
-            .map(|p| ((*p.0).clone(), p.1))
+            .find_map(|idx| pages_have_avg_color.get(idx as usize))
+            .or_else(|| pages_have_avg_color.get(0))
     } else {
-        pages_in_db_preview.get(0).map(|p| ((*p.0).clone(), p.1))
+        pages_have_avg_color.get(0)
     }
+    .map(|id| (*id).clone())
 }

@@ -1,41 +1,39 @@
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
-use redb::ReadableDatabase;
+use chrono::{NaiveDateTime, TimeZone, Utc};
+use sqlx::QueryBuilder;
 use tokio::task::JoinSet;
 use tracing::{error, info, warn};
 
 use crate::{
     AppState,
-    database::{
-        self,
-        content::{
-            CategoryIdentityPath, PageIdentityPath, TitleIdentityPath, chapter_key, page_key,
-            title_key,
-        },
-    },
     indexer::{
+        IndexedContent,
         dir_entry_guesser::{IndexedChapterKind, PartialIndexedChapter},
         utils::{
-            IndexedChapterPages, comic_info_to_tantivy::comic_info_to_tantivy,
-            find_chapter_cover::find_chapter_cover,
+            IndexedChapterPages, PageInDB, comic_info_to_tantivy::comic_info_to_tantivy,
+            find_chapter_cover::find_chapter_cover_page_id,
             index_archive_chap_pages::read_chap_pages_archive,
             index_directory_chap_pages::read_chap_pages_dir,
         },
     },
     utils::{
-        absolute_path::AbsolutePath, average_color::HexColor, pathbuf_utils::PathBufUtils,
-        result_utils::ResultUtils,
+        absolute_path::AbsolutePath,
+        average_color::HexColor,
+        nanoid::nanoid,
+        pathbuf_utils::PathBufUtils,
+        result_utils::{OptionUtils, ResultUtils},
     },
 };
 
 #[derive(Debug)]
 struct IndexedChapter {
+    pub id: String,
     pub path: AbsolutePath,
-    pub identity_path: String,
-    pub fallback_vol_num: u32,
-    pub last_modified: Option<DateTime<Utc>>,
-    pub cover: Option<(PageIdentityPath, HexColor)>,
+    pub rel_path: String,
+    pub number: i32,
+    pub last_modified: Option<NaiveDateTime>,
+    pub cover_page_id: Option<String>,
     pub pages: IndexedChapterPages,
 }
 
@@ -46,94 +44,65 @@ pub async fn index_series(
     title_path: AbsolutePath,
     partial_indexed_chapters: Vec<PartialIndexedChapter>,
     parent_path: Option<AbsolutePath>,
-) -> Option<(Option<CategoryIdentityPath>, TitleIdentityPath)> {
-    let title_identity_path = title_path
-        .to_relative(Some(
-            parent_path
-                .as_ref()
-                .unwrap_or(&app_state.config.library_path),
-        ))
-        .okay(|e| error!("can't convert title path to relative: {e:?}"))?
-        .to_string_lossy()
-        .to_string();
-
-    let category_identity_path = parent_path.as_ref().and_then(|p| {
-        p.to_relative(Some(&app_state.config.library_path))
-            .map(|p| p.to_string_lossy().to_string())
-            .okay(|e| {
-                warn!("can't convert category path to relative: {e:?}");
-            })
-    });
-
-    let read_txn = app_state
-        .db
-        .content
-        .begin_read()
-        .okay(|e| error!("can't begin read transaction: {e:?}"))?;
-    let pages_table = Arc::new(
-        read_txn
-            .open_table(database::content::PAGES)
-            .okay(|e| error!("can't open pages table: {e:?}"))?,
-    );
-
-    let chapters_table = Arc::new(
-        read_txn
-            .open_table(database::content::CHAPTERS)
-            .okay(|e| error!("can't open chapters table: {e:?}"))?,
-    );
+) -> Option<IndexedContent> {
+    let title_relative_path = title_path
+        .to_relative(Some(&app_state.config.library_path))
+        .okay(|e| error!("can't convert title path to relative: {e:?}"))?;
+    let title_relative_path_str = title_relative_path.to_string_lossy().to_string();
 
     let mut join_set = JoinSet::new();
 
     for partial_indexed_chapter in partial_indexed_chapters {
-        let chapters_table = chapters_table.clone();
-        let pages_table = pages_table.clone();
-        let title_path = title_path.clone();
-        let category_identity_path = category_identity_path.clone();
-        let title_identity_path = title_identity_path.clone();
         let app_state = app_state.clone();
+        let title_path = title_path.clone();
+        let title_relative_path_str = title_relative_path_str.clone();
 
         join_set.spawn(async move {
             let chapter_path = partial_indexed_chapter.path;
-            let chapter_path_display = format!("{}", chapter_path.display());
-            let chapter_identity_path = chapter_path
+
+            let chapter_relative_path = chapter_path
                 .to_relative(Some(&title_path))
-                .map(|p| p.to_string_lossy().to_string())
-                .okay(|e| error!("can't convert chapter path to relative: {e:?}"))?;
+                .okay(|e| {
+                    error!(
+                        "can't convert chapter path to relative: {e:?}, chapter path: {}",
+                        chapter_path.display()
+                    )
+                })
+                .map(|p| p.to_string_lossy().to_string())?;
 
-            let chapter_info = chapters_table
-                .get(chapter_key(
-                    category_identity_path.clone(),
-                    title_identity_path.clone(),
-                    Some(chapter_identity_path.clone()),
-                ))
-                .okay(|e| warn!("can't get ChapterInfo: {e:?}"))?
-                .map(|v| v.value());
+            let chapter_id = sqlx::query!(
+                "SELECT chapters.id FROM chapters JOIN titles ON chapters.title_id = titles.id
+                WHERE titles.path = ? AND chapters.path = ?",
+                title_relative_path_str,
+                chapter_relative_path,
+            )
+            .fetch_optional(&app_state.pool)
+            .await
+            .okay(|e| {
+                error!("can't query existing chapter id of chapter {chapter_relative_path}: {e:?}")
+            })?
+            .map(|r| r.id)
+            .unwrap_or_else(nanoid);
 
-            let pages_in_db = app_state
-                .indexer
-                .first_time
-                .then(|| vec![])
-                .unwrap_or_else(|| {
-                    let Some(chapter_info) = chapter_info else {
-                        return vec![];
-                    };
-                    chapter_info
-                        .pages
-                        .iter()
-                        .filter_map(|page_identity_path| {
-                            pages_table
-                                .get(page_key(
-                                    category_identity_path.clone(),
-                                    title_identity_path.clone(),
-                                    Some(chapter_identity_path.clone()),
-                                    page_identity_path.clone(),
-                                ))
-                                .okay(|e| warn!("can't get PageInfo: {e:?}"))
-                                .flatten()
-                                .map(|p| (page_identity_path.clone(), p.value()))
-                        })
-                        .collect::<Vec<_>>()
-                });
+            let pages_in_db = sqlx::query!(
+                "SELECT pages.id, pages.path, pages.last_modified, pages.avg_hex_color
+                FROM pages JOIN chapters ON pages.chapter_id = chapters.id
+                WHERE chapters.path = ?",
+                chapter_relative_path,
+            )
+            .fetch_all(&app_state.pool)
+            .await
+            .ok()?
+            .into_iter()
+            .map(|r| PageInDB {
+                id: r.id,
+                path: r.path,
+                last_modified: r.last_modified.map(|d| Utc.from_utc_datetime(&d)),
+                avg_color: r.avg_hex_color.as_ref().and_then(|c| {
+                    HexColor::from_str(&c).log_err(|| error!("can't parse hex color: {c}"))
+                }),
+            })
+            .collect::<Vec<_>>();
 
             if let IndexedChapterKind::Archive(items_in_archive) = partial_indexed_chapter.kind {
                 let comic_info = chapter_path
@@ -144,17 +113,24 @@ pub async fn index_series(
                 read_chap_pages_archive(&app_state, &chapter_path, items_in_archive, &pages_in_db)
                     .await
                     .map(|pages| IndexedChapter {
-                        identity_path: chapter_identity_path,
-                        fallback_vol_num: partial_indexed_chapter.fallback_vol_num,
-                        last_modified: chapter_path.last_modified().okay(|e| {
-                            warn!("can't get last modified of {}: {e}", chapter_path_display)
-                        }),
-                        cover: find_chapter_cover(
+                        id: nanoid(),
+                        number: comic_info
+                            .as_ref()
+                            .map(|ci| ci.volume)
+                            .unwrap_or(partial_indexed_chapter.fallback_vol_num),
+                        last_modified: chapter_path
+                            .last_modified()
+                            .okay(|e| {
+                                warn!("can't get last modified of {}: {e}", chapter_relative_path)
+                            })
+                            .map(|d| d.naive_utc()),
+                        cover_page_id: find_chapter_cover_page_id(
                             &pages,
                             comic_info.as_ref().map(|ci| ci.pages().as_slice()),
                             &pages_in_db,
                         ),
                         path: chapter_path,
+                        rel_path: chapter_relative_path,
                         pages,
                     })
             } else {
@@ -166,16 +142,20 @@ pub async fn index_series(
                 read_chap_pages_dir(&app_state, &chapter_path, None, &pages_in_db)
                     .await
                     .map(|pages| IndexedChapter {
-                        identity_path: chapter_identity_path,
-                        fallback_vol_num: partial_indexed_chapter.fallback_vol_num,
-                        last_modified: chapter_path.last_modified().okay(|e| {
-                            warn!("can't get last modified of {chapter_path_display}: {e}")
-                        }),
-                        cover: find_chapter_cover(
+                        id: chapter_id,
+                        number: partial_indexed_chapter.fallback_vol_num,
+                        last_modified: chapter_path
+                            .last_modified()
+                            .okay(|e| {
+                                warn!("can't get last modified of {chapter_relative_path}: {e}")
+                            })
+                            .map(|d| d.naive_utc()),
+                        cover_page_id: find_chapter_cover_page_id(
                             &pages,
                             comic_info.as_ref().map(|ci| ci.pages().as_slice()),
                             &pages_in_db,
                         ),
+                        rel_path: chapter_relative_path,
                         path: chapter_path,
                         pages,
                     })
@@ -198,153 +178,21 @@ pub async fn index_series(
         return None;
     }
 
-    let titles_table = Arc::new(
-        read_txn
-            .open_table(database::content::TITLES)
-            .okay(|e| error!("can't open titles table: {e:?}"))?,
-    );
-    let chapters_to_remove = 'scoped: {
-        if app_state.indexer.first_time {
-            break 'scoped Vec::new();
-        }
-
-        let chapters_in_db = titles_table
-            .get(title_key(
-                category_identity_path.clone(),
-                title_identity_path.clone(),
-            ))
-            .okay(|e| warn!("can't get TitleInfo: {e:?}"))?
-            .and_then(|t| t.value().chapters)
-            .unwrap_or_default();
-
-        let chapters_in_title = indexed_chapters
-            .iter()
-            .map(|c| c.identity_path.clone())
-            .collect::<HashSet<_>>();
-
-        chapters_in_db
-            .into_iter()
-            .filter(|c| !chapters_in_title.contains(c))
-            .collect::<Vec<_>>()
+    let category_id = if let Some(parent_path) = parent_path
+        .and_then(|p| {
+            p.to_relative(Some(&app_state.config.library_path))
+                .okay(|e| error!("can't convert category path to relative: {e:?}"))
+        })
+        .map(|p| p.to_string_lossy().to_string())
+    {
+        sqlx::query!("SELECT id FROM categories WHERE path = ?", parent_path)
+            .fetch_optional(&app_state.pool)
+            .await
+            .okay(|e| error!("can't query category id of path {parent_path}: {e:?}"))?
+            .map(|r| r.id)
+    } else {
+        None
     };
-
-    let write_txn = app_state
-        .db
-        .content
-        .begin_write()
-        .okay(|e| error!("can't begin write transaction: {e:?}"))?;
-
-    '_category: {
-        let mut categories_table = write_txn
-            .open_table(database::content::CATEGORIES)
-            .okay(|e| error!("can't open categories table: {e:?}"))?;
-        if let Some(ref category_identity_path) = category_identity_path
-            && let Some(category) = categories_table
-                .get_mut(category_identity_path.clone())
-                .okay(|e| error!("can't get mut Category: {e:?}"))?
-        {
-            if !category.value().contains(&title_identity_path) {
-                category.value().push(title_identity_path.clone());
-            }
-        } else if let Some(category_identity_path) = category_identity_path.clone() {
-            categories_table.insert(category_identity_path, vec![title_identity_path.clone()]);
-        }
-    }
-
-    '_title: {
-        let mut titles_table = write_txn
-            .open_table(database::content::TITLES)
-            .okay(|e| error!("can't open titles table: {e:?}"))?;
-        titles_table.insert(
-            (category_identity_path.clone(), title_identity_path.clone()),
-            database::content::TitleInfo {
-                chapters: Some(
-                    indexed_chapters
-                        .iter()
-                        .map(|c| c.identity_path.clone())
-                        .collect::<Vec<_>>(),
-                ),
-                last_modified: None,
-            },
-        );
-    }
-
-    '_chapter: {
-        let mut chapters_table = write_txn
-            .open_table(database::content::CHAPTERS)
-            .okay(|e| error!("can't open chapters table: {e:?}"))?;
-        for indexed_chapter in &indexed_chapters {
-            chapters_table.insert(
-                chapter_key(
-                    category_identity_path.clone(),
-                    title_identity_path.clone(),
-                    Some(indexed_chapter.identity_path.clone()),
-                ),
-                database::content::ChapterInfo {
-                    pages: indexed_chapter
-                        .pages
-                        .upsert
-                        .iter()
-                        .map(|p| p.identity_path.clone())
-                        .collect(),
-                    fallback_vol_num: Some(indexed_chapter.fallback_vol_num),
-                    cover: indexed_chapter.cover.clone(),
-                },
-            );
-        }
-        for chapter_to_remove in chapters_to_remove {
-            chapters_table.remove(chapter_key(
-                category_identity_path.clone(),
-                title_identity_path.clone(),
-                Some(chapter_to_remove),
-            ));
-        }
-    }
-
-    '_page: {
-        let mut pages_table = write_txn
-            .open_table(database::content::PAGES)
-            .okay(|e| error!("can't open pages table: {e:?}"))?;
-        for indexed_chapter in indexed_chapters {
-            let parent_path = match indexed_chapter.path.to_relative(Some(&title_path)) {
-                Ok(path) => path,
-                Err(e) => {
-                    warn!("can't convert chapter path to relative: {e:?}");
-                    continue;
-                }
-            };
-            for page in indexed_chapter.pages.upsert.into_iter() {
-                pages_table.insert(
-                    page_key(
-                        category_identity_path.clone(),
-                        title_identity_path.clone(),
-                        Some(indexed_chapter.identity_path.clone()),
-                        page.identity_path,
-                    ),
-                    database::content::PageInfo {
-                        width: page.width,
-                        height: page.height,
-                        color: page.color,
-                        size: page.size,
-                        last_modified: page.last_modified,
-                        parent_path: parent_path.clone(),
-                    },
-                );
-            }
-            for page_to_delete in indexed_chapter.pages.delete {
-                pages_table.remove(page_key(
-                    category_identity_path.clone(),
-                    title_identity_path.clone(),
-                    Some(indexed_chapter.identity_path.clone()),
-                    page_to_delete,
-                ));
-            }
-        }
-    }
-
-    write_txn
-        .commit()
-        .okay(|e| error!("can't commit write transaction: {e:?}"))?;
 
     let comic_info = title_path.as_ref().read_comic_info_from_dir().okay(|e| {
         warn!(
@@ -352,14 +200,167 @@ pub async fn index_series(
             title_path.display()
         )
     });
+    let comic_info_json = comic_info
+        .as_ref()
+        .map(|ci| {
+            serde_json::to_string(ci).okay(|e| {
+                error!(
+                    "can't serialize ComicInfo.xml to json for title {}: {e}",
+                    title_path.display()
+                )
+            })
+        })
+        .flatten();
+    let comic_info_bytes = comic_info_json.as_ref().map(|s| s.as_bytes());
+
+    let new_title_id = nanoid();
+
+    let chapter_id_to_cover_page = indexed_chapters
+        .iter()
+        .filter_map(|c| c.cover_page_id.as_ref().map(|p| (&c.id, p)))
+        .collect::<Vec<_>>();
+
+    let mut tx = app_state
+        .pool
+        .begin()
+        .await
+        .okay(|e| error!("can't begin SQL transaction: {e:?}"))?;
+
+    let title_id = sqlx::query!(
+        "INSERT INTO titles (id, category_id, path, comic_info) VALUES (?, ?, ?, ?)
+        ON CONFLICT(path) DO UPDATE SET
+            category_id = excluded.category_id,
+            last_modified = excluded.last_modified
+        RETURNING id",
+        new_title_id,
+        category_id,
+        title_relative_path_str,
+        comic_info_bytes,
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .okay(|e| error!("can't upsert title {title_relative_path_str}: {e:?}"))?
+    .id;
+
+    '_chapter: {
+        let mut upsert_query =
+            QueryBuilder::new("INSERT INTO chapters (id, title_id, path, number, last_modified) ");
+        upsert_query
+            .push_values(indexed_chapters.iter(), |mut b, c| {
+                b.push_bind(&c.id)
+                    .push_bind(&title_id)
+                    .push_bind(&c.rel_path)
+                    .push_bind(c.number)
+                    .push_bind(c.last_modified);
+            })
+            .push(
+                " ON CONFLICT(title_id, path) DO UPDATE SET
+                number = excluded.number,
+                last_modified = excluded.last_modified
+            ",
+            )
+            .build()
+            .execute(&mut *tx)
+            .await
+            .okay(|e| error!("can't upsert chapters for title {title_relative_path_str}: {e:?}"))?;
+
+        let mut delete_query =
+            QueryBuilder::new("DELETE FROM chapters WHERE title_id = ? AND id NOT IN (");
+        delete_query
+            .push_bind(&title_id)
+            .push_values(indexed_chapters.iter(), |mut b, chapter| {
+                b.push_bind(&chapter.id);
+            })
+            .push(")")
+            .build()
+            .execute(&mut *tx)
+            .await
+            .okay(|e| {
+                error!("can't delete old chapters for title {title_relative_path_str}: {e:?}")
+            })?;
+    }
+
+    '_page: for indexed_chapter in &indexed_chapters {
+        let mut upsert_query = QueryBuilder::new(
+            "INSERT INTO pages (id, chapter_id, path, width, height, avg_hex_color, size, last_modified) ",
+        );
+        upsert_query
+            .push_values(indexed_chapter.pages.upsert.iter(), |mut b, p| {
+                b.push_bind(&p.id)
+                    .push_bind(&indexed_chapter.id)
+                    .push_bind(&p.path)
+                    .push_bind(p.width)
+                    .push_bind(p.height)
+                    .push_bind(&p.avg_hex_color)
+                    .push_bind(p.size)
+                    .push_bind(p.last_modified);
+            })
+            .push(
+                " ON CONFLICT(chapter_id, path) DO UPDATE SET
+                width = excluded.width,
+                height = excluded.height,
+                avg_hex_color = excluded.avg_hex_color,
+                size = excluded.size,
+                last_modified = excluded.last_modified
+            ",
+            )
+            .build()
+            .execute(&mut *tx)
+            .await
+            .okay(|e| {
+                error!(
+                    "can't upsert pages for chapter {}: {e:?}",
+                    indexed_chapter.rel_path
+                )
+            })?;
+
+        let mut delete_query =
+            QueryBuilder::new("DELETE FROM pages WHERE chapter_id = ? AND id NOT IN (");
+        delete_query
+            .push_bind(&indexed_chapter.id)
+            .push_values(indexed_chapter.pages.upsert.iter(), |mut b, p| {
+                b.push_bind(&p.id);
+            })
+            .push(")")
+            .build()
+            .execute(&mut *tx)
+            .await
+            .okay(|e| {
+                error!(
+                    "can't delete old pages for chapter {}: {e:?}",
+                    indexed_chapter.rel_path
+                )
+            })?;
+    }
+
+    let mut upsert_chapter_covers_query =
+        QueryBuilder::new("INSERT INTO chapter_cover (chapter_id, page_id) VALUES ");
+    upsert_chapter_covers_query
+        .push_values(chapter_id_to_cover_page.iter(), |mut b, (ch_id, p_id)| {
+            b.push_bind(ch_id).push_bind(p_id);
+        })
+        .push(
+            " ON CONFLICT(chapter_id) DO UPDATE SET
+            page_id = excluded.page_id
+        ",
+        )
+        .build()
+        .execute(&mut *tx)
+        .await
+        .okay(|e| {
+            error!("can't upsert chapter covers for title {title_relative_path_str}: {e:?}")
+        })?;
+
+    tx.commit()
+        .await
+        .okay(|e| error!("can't commit SQL transaction: {e:?}"))?;
 
     comic_info_to_tantivy(
         &app_state,
         comic_info.as_ref(),
-        &title_identity_path,
-        category_identity_path.as_ref().map(|s| s.as_str()),
-        title_path.as_ref(),
+        &title_id,
+        &title_relative_path,
     );
 
-    Some((category_identity_path, title_identity_path))
+    Some(IndexedContent::TitleID(title_id))
 }

@@ -1,4 +1,5 @@
 mod dir_entry_guesser;
+mod index_category;
 mod index_oneshot;
 mod index_series;
 mod start_index;
@@ -16,10 +17,9 @@ use tokio::sync::Mutex;
 pub struct Indexer {
     pub fields: Fields,
 
+    pub index: Index,
     pub reader: IndexReader,
     pub writer: Mutex<IndexWriter>,
-
-    pub first_time: bool,
 }
 
 impl std::fmt::Debug for Indexer {
@@ -32,31 +32,27 @@ impl std::fmt::Debug for Indexer {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Fields {
-    title: Field,
-    author: Field,
-    description: Field,
-    tag: Field,
-    identity_path: Field,
-    category_identity_path: Field,
-    release_date: Field,
+    pub id: Field,
+    pub title: Field,
+    pub author: Field,
+    pub description: Field,
+    pub tag: Field,
+    pub release_date: Field,
 }
 
 impl Indexer {
     pub fn new(
         index_path: impl AsRef<Path>,
         memory_budget_in_bytes: usize,
-        first_time: bool,
     ) -> tantivy::Result<Self> {
         let mut schema_builder = Schema::builder();
 
         let fields = Fields {
+            id: schema_builder.add_text_field("id", STRING | STORED),
             title: schema_builder.add_text_field("title", TEXT),
             author: schema_builder.add_text_field("author", TEXT),
             description: schema_builder.add_text_field("description", TEXT),
             tag: schema_builder.add_text_field("tag", TEXT),
-            identity_path: schema_builder.add_text_field("identity_path", STRING | STORED),
-            category_identity_path: schema_builder
-                .add_text_field("category_identity_path", STRING | STORED),
             release_date: schema_builder.add_date_field("release_date", INDEXED | FAST),
         };
 
@@ -71,7 +67,14 @@ impl Indexer {
                 .reader_builder()
                 .reload_policy(ReloadPolicy::OnCommitWithDelay)
                 .try_into()?,
-            first_time,
+            index,
         })
     }
+}
+
+#[derive(Debug)]
+enum IndexedContent {
+    TitleID(String),
+    CategoryID(String),
+    CategoryIDs(Vec<String>),
 }
