@@ -48,7 +48,7 @@ pub async fn get_logout(
         )
         .execute(&app_state.pool)
         .await
-        .log_err(|e| error!("can't delete session: {e}"))?;
+        .inspect_err(|e| error!("can't delete session: {e}"))?;
     }
 
     Ok((

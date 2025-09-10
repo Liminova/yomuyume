@@ -46,7 +46,7 @@ pub async fn get_page_file(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .log_err(|e| error!("can't query page file: {e}"))?
+    .inspect_err(|e| error!("can't query page file: {e}"))?
     .map(|r| {
         let parent_path = app_state
             .config
@@ -77,15 +77,15 @@ pub async fn get_page_file(
         let file_path = parent_path.join(page_path);
         let file = File::open(&file_path)
             .await
-            .log_err(|e| error!("can't open page file {file_path:?}: {e}"))?;
         let stream = ReaderStream::new(file);
+            .inspect_err(|e| error!("can't open page file {file_path:?}: {e}"))
 
         Body::from_stream(stream)
     } else {
         let stream = parent_path
             .stream_file_from_archive(&page_path)
             .await
-            .log_err(|e| error!("can't open page file {parent_path:?}::{page_path}: {e}"))
+            .inspect_err(|e| error!("can't open page file {parent_path:?}::{page_path}: {e}"))
             .map(ReaderStream::new)?;
 
         Body::from_stream(stream)

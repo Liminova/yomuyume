@@ -56,7 +56,7 @@ pub async fn post_register(
     .fetch_one(&app_state.pool)
     .await
     .map(|r| r.exists == 1)
-    .log_err(|e| error!("can't query user by email: {e}"))?
+    .inspect_err(|e| error!("can't query user by email: {e}"))?
     {
         return Ok((StatusCode::CONFLICT, RequestErr::EmailAlreadyUsed).into_response());
     }
@@ -79,7 +79,7 @@ pub async fn post_register(
     )
     .execute(&app_state.pool)
     .await
-    .log_err(|e| error!("can't insert new user: {e}"))?;
+    .inspect_err(|e| error!("can't insert new user: {e}"))?;
 
     Ok(StatusCode::OK.into_response())
 }

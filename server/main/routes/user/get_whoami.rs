@@ -53,7 +53,7 @@ pub async fn get_whoami(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .log_err(|e| error!("can't query user info: {e:?}"))?
+    .inspect_err(|e| error!("can't query user info: {e:?}"))?
     {
         return Ok((
             StatusCode::OK,

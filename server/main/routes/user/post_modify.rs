@@ -62,7 +62,7 @@ pub async fn post_modify(
     )
     .execute(&app_state.pool)
     .await
-    .log_err(|e| error!("can't upsert user info: {e}"))?;
+    .inspect_err(|e| error!("can't upsert user info: {e}"))?;
 
     Ok(StatusCode::OK.into_response())
 }

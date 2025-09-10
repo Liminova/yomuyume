@@ -55,7 +55,7 @@ pub async fn post_forgot(
     let Some(user_id) = sqlx::query!("SELECT id FROM users WHERE email = ?", email_str)
         .fetch_optional(&app_state.pool)
         .await
-        .log_err(|e| error!("can't query user by email: {e}"))?
+        .inspect_err(|e| error!("can't query user by email: {e}"))?
         .map(|r| r.id)
     else {
         return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
@@ -82,7 +82,7 @@ async fn request(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .log_err(|e| error!("can't query existing forgot password request: {e}"))?
+    .inspect_err(|e| error!("can't query existing forgot password request: {e}"))?
         && Utc
             .from_utc_datetime(&existing_request.created_at)
             .inside(&now, &ForgotPasswordLimit::Cooldown.into())
@@ -108,12 +108,12 @@ async fn request(
     )
     .execute(&app_state.pool)
     .await
-    .log_err(|e| error!("can't insert forgot password request: {e}"))?;
+    .inspect_err(|e| error!("can't insert forgot password request: {e}"))?;
 
     let username = sqlx::query!("SELECT username FROM users WHERE id = ?", user_id)
         .fetch_optional(&app_state.pool)
         .await
-        .log_err(|e| error!("can't query username by id: {e}"))?
+        .inspect_err(|e| error!("can't query username by id: {e}"))?
         .map(|r| r.username);
 
     if let Some(mailer) =
@@ -128,7 +128,7 @@ async fn request(
                 {code}\n\n\
                 If you don't recognize this action or don't own this account, ignore this email.",
             ),
-        ).log_err(|e| error!("can't send forgot password email: {e}"))?;
+        ).inspect_err(|e| error!("can't send forgot password email: {e}"))?;
     } else {
         info!(
             "forgot password code for user {}: {code}",
@@ -151,7 +151,7 @@ async fn reset(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .log_err(|e| error!("can't query existing forgot password request: {e}"))?
+    .inspect_err(|e| error!("can't query existing forgot password request: {e}"))?
     else {
         return Ok((StatusCode::BAD_REQUEST, "no forgot password request found").into_response());
     };
@@ -168,7 +168,7 @@ async fn reset(
         .pool
         .begin()
         .await
-        .log_err(|e| error!("can't begin SQL transaction: {e}"))?;
+        .inspect_err(|e| error!("can't begin SQL transaction: {e}"))?;
 
     sqlx::query!(
         "DELETE FROM forgot_password_requests WHERE user_id = ?",
@@ -176,7 +176,7 @@ async fn reset(
     )
     .execute(&mut *tx)
     .await
-    .log_err(|e| error!("can't delete used forgot password request: {e}"))?;
+    .inspect_err(|e| error!("can't delete used forgot password request: {e}"))?;
 
     let new_password_hash = hash_pass(new_password).map_err(|e| {
         error!("can't hash new password: {e}");
@@ -190,11 +190,11 @@ async fn reset(
     )
     .execute(&mut *tx)
     .await
-    .log_err(|e| error!("can't update user password: {e}"))?;
+    .inspect_err(|e| error!("can't update user password: {e}"))?;
 
     tx.commit()
         .await
-        .log_err(|e| error!("can't commit transaction: {e}"))?;
+        .inspect_err(|e| error!("can't commit transaction: {e}"))?;
 
     Ok(StatusCode::OK.into_response())
 }

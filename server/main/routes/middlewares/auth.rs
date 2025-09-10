@@ -53,7 +53,7 @@ pub async fn auth(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .log_err(|e| error!("failed to query sessions: {e}"))?
+    .inspect_err(|e| error!("failed to query sessions: {e}"))?
     {
         req.extensions_mut()
             .insert(UserIDExtension(Some(user.user_id)));

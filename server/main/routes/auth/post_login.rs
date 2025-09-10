@@ -47,7 +47,7 @@ pub async fn post_login(
     )
     .fetch_optional(&app_state.pool)
     .await
-    .log_err(|e| error!("can't query user by email: {e}"))?
+    .inspect_err(|e| error!("can't query user by email: {e}"))?
     .map(|r| (r.id, r.password_hash)) else {
         return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
     };
@@ -64,7 +64,7 @@ pub async fn post_login(
     )
     .execute(&app_state.pool)
     .await
-    .log_err(|e| error!("can't create session: {e}"))?;
+    .inspect_err(|e| error!("can't create session: {e}"))?;
 
     Ok((
         StatusCode::OK,
