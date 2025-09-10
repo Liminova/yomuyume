@@ -79,7 +79,7 @@ async fn main() -> Result<(), String> {
         pool: sqlx::SqlitePool::connect(&config.database_url)
             .await
             .expect("can't connect to database"),
-        indexer: Indexer::new(&config.tantivy_dir.as_ref(), config.tantivy_memory)
+        indexer: Indexer::new(config.tantivy_dir.as_ref(), config.tantivy_memory)
             .expect("can't initialize tantivy"),
         config,
     });
