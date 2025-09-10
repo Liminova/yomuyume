@@ -36,7 +36,7 @@ impl HexColor {
 impl AverageColor for DynamicImage {
     fn average_color(&self) -> Option<HexColor> {
         let (width, height) = self.dimensions();
-        let total_pixels = width as u64 * height as u64;
+        let total_pixels = u64::from(width) * u64::from(height);
 
         if total_pixels == 0 {
             return None; // Handle empty images
@@ -49,9 +49,9 @@ impl AverageColor for DynamicImage {
         // Iterate through each pixel and sum its color components.
         for (_x, _y, pixel) in self.pixels() {
             let rgba = pixel.to_rgb(); // Convert to RGBA8 format
-            sum_r += rgba[0] as u64;
-            sum_g += rgba[1] as u64;
-            sum_b += rgba[2] as u64;
+            sum_r += u64::from(rgba[0]);
+            sum_g += u64::from(rgba[1]);
+            sum_b += u64::from(rgba[2]);
         }
 
         // Calculate the average for each component.
