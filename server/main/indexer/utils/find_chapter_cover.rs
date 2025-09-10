@@ -28,15 +28,17 @@ pub fn find_chapter_cover_page_id(
         return None;
     }
 
-    if let Some(comic_info_pages) = comic_info_pages {
-        comic_info_pages
-            .iter()
-            .filter(|p| p.page_type == ComicPageType::FrontCover)
-            .map(|p| p.image)
-            .find_map(|idx| pages_have_avg_color.get(idx as usize))
-            .or_else(|| pages_have_avg_color.get(0))
-    } else {
-        pages_have_avg_color.get(0)
-    }
-    .map(|id| (*id).clone())
+    comic_info_pages
+        .map_or_else(
+            || pages_have_avg_color.first(),
+            |comic_info_pages| {
+                comic_info_pages
+                    .iter()
+                    .filter(|p| p.page_type == ComicPageType::FrontCover)
+                    .map(|p| p.image)
+                    .find_map(|idx| pages_have_avg_color.get(idx as usize))
+                    .or_else(|| pages_have_avg_color.first())
+            },
+        )
+        .map(|id| (*id).clone())
 }
