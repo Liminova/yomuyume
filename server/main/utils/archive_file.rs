@@ -486,7 +486,7 @@ impl ArchiveFile for PathBuf {
             .spawn()
             .map_err(ArchiveFileError::CantSpawn7z)?;
 
-        Ok(child
+        child
             .stdout
             .take()
             .ok_or(ArchiveFileError::CantTakeStdoutPipe)
