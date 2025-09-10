@@ -64,7 +64,7 @@ pub async fn post_forgot(
     match (&query.code, &query.new_password) {
         (Some(code), Some(new_password)) => reset(&app_state, &user_id, code, new_password).await,
         (None, None) => request(&app_state, &user_id, email).await,
-        _ => return Ok((StatusCode::BAD_REQUEST, "invalid request").into_response()),
+        _ => Ok((StatusCode::BAD_REQUEST, "invalid request").into_response()),
     }
 }
 
