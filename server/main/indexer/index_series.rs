@@ -198,17 +198,14 @@ pub async fn index_series(
             title_path.display()
         );
     });
-    let comic_info_json = comic_info
-        .as_ref()
-        .map(|ci| {
-            serde_json::to_string(ci).okay(|e| {
-                error!(
-                    "can't serialize ComicInfo.xml to json for title {}: {e}",
-                    title_path.display()
-                )
-            })
+    let comic_info_json = comic_info.as_ref().and_then(|ci| {
+        serde_json::to_string(ci).okay(|e| {
+            error!(
+                "can't serialize ComicInfo.xml to json for title {}: {e}",
+                title_path.display()
+            );
         })
-        .flatten();
+    });
     let comic_info_bytes = comic_info_json.as_ref().map(|s| s.as_bytes());
 
     let new_title_id = nanoid();
