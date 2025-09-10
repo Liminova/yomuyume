@@ -34,7 +34,7 @@ pub async fn read_chap_pages_dir(
                 .map(|rd| {
                     rd.filter_map(|f| {
                         f.okay(|e| {
-                            error!("can't read dir entry in {}: {e}", chapter_path.display())
+                            error!("can't read dir entry in {}: {e}", chapter_path.display());
                         })
                     })
                     .collect()
@@ -43,7 +43,7 @@ pub async fn read_chap_pages_dir(
                     error!(
                         "can't read chapter directory {}: {e}",
                         chapter_path.display()
-                    )
+                    );
                 })
                 .unwrap_or_default()
         })
