@@ -26,7 +26,7 @@ impl std::fmt::Debug for Indexer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Indexer")
             .field("fields", &self.fields)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
