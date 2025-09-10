@@ -44,6 +44,7 @@ CREATE TABLE
         size INTEGER,
         last_modified TIMESTAMP,
         UNIQUE (chapter_id, path),
+        UNIQUE (chapter_id, page_number),
         FOREIGN KEY (chapter_id) REFERENCES chapters (id) ON DELETE CASCADE ON UPDATE CASCADE
     );
 
@@ -51,6 +52,7 @@ CREATE TABLE
     title_covers (
         title_id TEXT PRIMARY KEY NOT NULL,
         page_id TEXT NOT NULL,
+        UNIQUE (title_id, page_id),
         FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
         FOREIGN KEY (page_id) REFERENCES pages (id) ON DELETE CASCADE
     );
@@ -59,6 +61,7 @@ CREATE TABLE
     chapter_covers (
         chapter_id TEXT PRIMARY KEY NOT NULL,
         page_id TEXT NOT NULL,
+        UNIQUE (chapter_id, page_id),
         FOREIGN KEY (chapter_id) REFERENCES chapters (id) ON DELETE CASCADE,
         FOREIGN KEY (page_id) REFERENCES pages (id) ON DELETE CASCADE
     );
