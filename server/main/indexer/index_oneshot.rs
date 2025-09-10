@@ -213,7 +213,8 @@ pub async fn index_oneshot(
 
     sqlx::query!(
         "INSERT INTO title_covers (title_id, page_id) VALUES (?, ?)
-        ON CONFLICT(title_id) DO UPDATE SET page_id=excluded.page_id",
+        ON CONFLICT (title_id) DO UPDATE SET page_id=excluded.page_id
+        ON CONFLICT (title_id, page_id) DO NOTHING",
         title_id,
         cover_page_id,
     )
@@ -271,21 +272,33 @@ pub async fn index_oneshot(
             .collect::<Vec<_>>();
 
         let mut upsert_query = QueryBuilder::new(
-            "INSERT INTO pages (id, chapter_id, path, width, height, avg_hex_color, size, last_modified) ",
+            "INSERT INTO pages (id, chapter_id, page_number, path, width, height, avg_hex_color, size, last_modified) ",
         );
         upsert_query
-            .push_values(indexed_pages.upsert.into_iter(), |mut b, page| {
-                b.push_bind(new_page_ids.pop().unwrap_or_else(nanoid))
-                    .push_bind(chapter_id.clone())
-                    .push_bind(page.path)
-                    .push_bind(page.width)
-                    .push_bind(page.height)
-                    .push_bind(page.avg_hex_color)
-                    .push_bind(page.size)
-                    .push_bind(page.last_modified);
-            })
+            .push_values(
+                indexed_pages.upsert.into_iter().enumerate(),
+                |mut b, (i, page)| {
+                    b.push_bind(new_page_ids.pop().unwrap_or_else(nanoid))
+                        .push_bind(chapter_id.clone())
+                        .push_bind(i as u32)
+                        .push_bind(page.path)
+                        .push_bind(page.width)
+                        .push_bind(page.height)
+                        .push_bind(page.avg_hex_color)
+                        .push_bind(page.size)
+                        .push_bind(page.last_modified);
+                },
+            )
             .push(
                 " ON CONFLICT(chapter_id, path) DO UPDATE SET
+                page_number=excluded.page_number,
+                last_modified=excluded.last_modified,
+                width=excluded.width,
+                height=excluded.height,
+                avg_hex_color=excluded.avg_hex_color,
+                size=excluded.size,
+                last_modified=excluded.last_modified
+                ON CONFLICT(chapter_id, page_number) DO UPDATE SET
                 last_modified=excluded.last_modified,
                 width=excluded.width,
                 height=excluded.height,
