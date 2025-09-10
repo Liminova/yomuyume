@@ -33,7 +33,7 @@ use crate::{
 )]
 pub async fn get_page_file(
     State(app_state): State<Arc<AppState>>,
-    Path(page_id): Path<i64>,
+    Path((title_id, chapter_id, page_number)): Path<(String, String, u32)>,
 ) -> Result<Response, InternalError> {
     let Some((parent_path, page_path, page_filesize)) = sqlx::query!(
         "SELECT p.path AS page_path,
