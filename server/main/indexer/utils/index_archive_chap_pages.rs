@@ -91,7 +91,7 @@ pub async fn read_chap_pages_archive(
             })
             .collect::<HashMap<_, _>>();
 
-        partial
+        let mut tmp = partial
             .into_iter()
             .map(|p| {
                 let (width, height, avg_hex_color) = width_height_color
@@ -112,7 +112,10 @@ pub async fn read_chap_pages_archive(
                     size: p.size,
                 }
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+
+        tmp.sort_by(|a, b| a.path.cmp(&b.path));
+        tmp
     };
 
     Some(IndexedChapterPages {
