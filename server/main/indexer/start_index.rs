@@ -52,7 +52,7 @@ pub async fn start_index(app_state: Arc<AppState>) -> Option<()> {
         let _ = writer.commit().okay(|e| {
             error!("can't commit changes to tantivy: {e:?}");
         });
-    };
+    }
     drop(writer);
 
     // populate first layer of the library tree to queue
