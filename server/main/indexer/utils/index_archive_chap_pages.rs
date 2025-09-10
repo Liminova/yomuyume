@@ -102,8 +102,7 @@ pub async fn read_chap_pages_archive(
                 PageToUpsert {
                     id: pages_in_db_map
                         .get(&p.path)
-                        .map(|p| p.id.clone())
-                        .unwrap_or_else(nanoid),
+                        .map_or_else(nanoid, |p| p.id.clone()),
                     path: p.path.clone(),
                     width,
                     height,
