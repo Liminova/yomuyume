@@ -62,17 +62,18 @@ pub async fn get_page_file(
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    let mut header = header::HeaderMap::new();
-    header.insert(
-        header::CONTENT_TYPE,
-        match page_path.split('.').next_back().unwrap_or_default() {
-            "" => "image".parse().unwrap(),
-            "jpg" => "image/jpeg".parse().unwrap(),
-            v => format!("image/{v}").parse().unwrap(),
-        },
-    );
+    let mut headers = header::HeaderMap::new();
+    if let Some(mime) = page_path
+        .split('.')
+        .next_back()
+        .and_then(mimatcher::mimatcher)
+        .map(HeaderValue::from_static)
+    {
+        headers.insert(header::CONTENT_TYPE, mime);
+    }
+
     if let Some(size) = page_filesize {
-        header.insert(header::CONTENT_LENGTH, size.into());
+        headers.insert(header::CONTENT_LENGTH, size.into());
     }
 
     let body = if parent_path.is_dir() {
@@ -93,5 +94,5 @@ pub async fn get_page_file(
         Body::from_stream(stream)
     };
 
-    Ok((StatusCode::OK, header, body).into_response())
+    Ok((StatusCode::OK, headers, body).into_response())
 }
