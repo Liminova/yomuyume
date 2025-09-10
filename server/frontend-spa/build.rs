@@ -1,10 +1,12 @@
 use std::{
-    collections::{HashMap, VecDeque, hash_map::Entry},
+    collections::VecDeque,
     env,
     fs::{DirEntry, File},
     io::{BufWriter, Write},
     path::Path,
 };
+
+use mimatcher::mimatcher;
 
 const SPA_DIST_DIR: &str = "../../client/.output/public";
 
@@ -58,7 +60,6 @@ fn include_spa() {
     ensure_minimum_files();
 
     let mut spa_implicit_index_html = Vec::new();
-    let mut spa_mime_type = HashMap::new();
 
     let mut spa_files = Vec::new();
     let mut spa_dirs = VecDeque::new();
@@ -68,43 +69,24 @@ fn include_spa() {
             return;
         }
 
-        let fpath = dir.path();
-        let fext = fpath
+        let file_path = dir.path();
+
+        if let Some(file_extension) = file_path
             .extension()
-            .and_then(|ext| ext.to_str())
-            .unwrap_or_default()
-            .to_string();
+            .map(|s| s.to_string_lossy().to_lowercase())
+        {
+            mimatcher(&file_extension).unwrap_or_else(|| {
+                panic!("MIME type for .{file_extension} is unknown, update mimatcher::mimatcher",)
+            });
+        };
 
-        if let Entry::Vacant(e) = spa_mime_type.entry(fext.clone()) {
-            match fext.as_str() {
-                "html" => e.insert("text/html"),
-                "css" => e.insert("text/css"),
-                "js" => e.insert("application/javascript"),
-                "json" => e.insert("application/json"),
-                "png" => e.insert("image/png"),
-                "jpg" => e.insert("image/jpeg"),
-                "jpeg" => e.insert("image/jpeg"),
-                "gif" => e.insert("image/gif"),
-                "webp" => e.insert("image/webp"),
-                "ico" => e.insert("image/x-icon"),
-                "wasm" => e.insert("application/wasm"),
-                "woff2" => e.insert("font/woff2"),
-                "ttf" => e.insert("font/ttf"),
-                "xml" => e.insert("application/xml"),
-                "svg" => e.insert("image/svg+xml"),
-                "" => e.insert("text/plain"),
-
-                _ => panic!("unhandled file extension \"{}\" in build.rs", fext),
-            };
-        }
-
-        if fpath.ends_with("index.html") {
-            let mut tmp = fpath.clone();
+        if file_path.ends_with("index.html") {
+            let mut tmp = file_path.clone();
             tmp.pop();
             spa_implicit_index_html.push(tmp.to_string_lossy().to_string());
         }
 
-        spa_files.push(fpath);
+        spa_files.push(file_path);
     };
 
     for dir in Path::new(SPA_DIST_DIR).read_dir().unwrap() {
@@ -143,19 +125,6 @@ fn include_spa() {
         tmp
     };
 
-    let spa_mime_type = {
-        let mut tmp = spa_mime_type
-            .into_iter()
-            .filter(|(ext, _)| ext.as_str() != "")
-            .collect::<Vec<_>>();
-        tmp.sort_by(|a, b| a.0.cmp(&b.0));
-        tmp.dedup_by(|a, b| a.0 == b.0);
-        tmp.into_iter()
-            .map(|(ext, mime_type)| format!(r#""{ext}" => Some("{mime_type}"),"#))
-            .collect::<Vec<_>>()
-            .join("\n        ")
-    };
-
     spa_files.sort();
     spa_files.dedup();
     let spa_files = spa_files
@@ -176,13 +145,6 @@ fn include_spa() {
         r#"// Contains paths that are supposed to be served by an `index.html` file, but the request doesn't have the `index.html` postfix.
 const IMPLICIT_INDEX_HTML: [&str; {}] = [{}];
 
-fn get_mime_type(ext: impl AsRef<str>) -> Option<&'static str> {{
-    match ext.as_ref() {{
-        {}
-        _ => None,
-    }}
-}}
-
 fn get_file_(path: impl AsRef<str>) -> Option<&'static [u8]> {{
     #[allow(clippy::match_same_arms)]
     match path.as_ref() {{
@@ -192,7 +154,6 @@ fn get_file_(path: impl AsRef<str>) -> Option<&'static [u8]> {{
 }}"#,
         spa_implicit_index_html.len(),
         spa_implicit_index_html.join(", "),
-        spa_mime_type,
         spa_files
     );
 

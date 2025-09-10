@@ -6,3 +6,9 @@ edition = "2024"
 [lib]
 crate-type = ['lib']
 path = "lib.rs"
+
+[dependencies]
+mimatcher = { path = "../mimatcher" }
+
+[build-dependencies]
+mimatcher = { path = "../mimatcher" }

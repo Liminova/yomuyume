@@ -18,7 +18,7 @@ pub fn get_file(path: &str) -> Content {
             mime_type: path
                 .split('.')
                 .next_back()
-                .and_then(get_mime_type)
+                .and_then(mimatcher::mimatcher)
                 .unwrap_or("text/plain"),
         };
     }
