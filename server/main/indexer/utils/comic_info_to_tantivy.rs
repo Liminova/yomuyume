@@ -18,15 +18,13 @@ pub async fn comic_info_to_tantivy(
     let mut doc = TantivyDocument::default();
     doc.add_text(
         app_state.indexer.fields.title,
-        comic_info
-            .and_then(|ci| ci.title.as_ref())
-            .map(|t| t.as_str())
-            .unwrap_or(
-                title_path
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("Untitled"),
-            ),
+        comic_info.and_then(|ci| ci.title.as_ref()).map_or(
+            title_path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("Untitled"),
+            |t| t.as_str(),
+        ),
     );
     if let Some(author) = comic_info.and_then(|ci| ci.writer.as_ref()) {
         doc.add_text(app_state.indexer.fields.author, author);
