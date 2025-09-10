@@ -95,7 +95,7 @@ async fn request(
             existing_request.created_at
         );
         return Ok(StatusCode::TOO_MANY_REQUESTS.into_response());
-    };
+    }
 
     let code = nanoid();
 
