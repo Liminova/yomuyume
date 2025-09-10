@@ -335,8 +335,8 @@ pub async fn index_series(
             b.push_bind(ch_id).push_bind(p_id);
         })
         .push(
-            " ON CONFLICT(chapter_id) DO UPDATE SET
-            page_id = excluded.page_id
+            " ON CONFLICT (chapter_id) DO UPDATE SET page_id = excluded.page_id
+            ON CONFLICT (chapter_id, page_id) DO NOTHING
         ",
         )
         .build()
