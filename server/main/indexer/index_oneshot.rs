@@ -99,7 +99,7 @@ pub async fn index_oneshot(
     .map(|r| PageInDB {
         avg_color: r.avg_hex_color.and_then(|c| {
             HexColor::from_str(&c)
-                .log_err(|| error!("can't parse hex color for page {}: {c}", r.id))
+                .inspect_err(|| error!("can't parse hex color for page {}: {c}", r.id))
         }),
         id: r.id,
         path: r.path,
