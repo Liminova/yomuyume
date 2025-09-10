@@ -166,7 +166,7 @@ pub async fn index_series(
         .join_all()
         .await
         .into_iter()
-        .filter_map(|c| c)
+        .flatten()
         .collect::<Vec<_>>();
 
     if indexed_chapters.is_empty() {
