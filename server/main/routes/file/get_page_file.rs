@@ -22,11 +22,13 @@ use crate::{
     path = GET_PAGE_FILE_PATH,
     responses(
         (status = 200, description = "Fetch page successful", body = Vec<u8>),
-        (status = 404, description = "Page not found", body = String),
+        (status = 404, description = "Page not found"),
         (status = 500, description = "Internal server error", body = String),
     ),
     params(
-        ("page_id" = i64, Path, description = "Page ID")
+        ("title_id" = String, Path, description = "Title ID"),
+        ("chapter_id" = String, Path, description = "Chapter ID"),
+        ("page_number" = u32, Path, description = "Page number"),
     )
 )]
 pub async fn get_page_file(
