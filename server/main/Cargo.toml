@@ -16,6 +16,7 @@ chrono = { version = "0.4.42", features = ["serde"] }
 frontend-spa = { path = "../frontend-spa" }
 image = { version = "0.25.8", features = ["avif-native"] }
 lettre = "0.11.18"
+mimatcher = { path = "../mimatcher" }
 quick-xml = { version = "0.38.3", features = ["serialize", "encoding"] }
 rayon = "1.11.0"
 serde = { version = "1.0.219", features = ["serde_derive"] }
