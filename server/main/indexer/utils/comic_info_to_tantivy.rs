@@ -62,6 +62,6 @@ pub async fn comic_info_to_tantivy(
             error!(
                 "can't add title {} to tantivy index: {e:?}",
                 title_path.display()
-            )
+            );
         });
 }
