@@ -2,7 +2,6 @@
 #![warn(clippy::perf, clippy::pedantic, clippy::nursery, clippy::unwrap_used)]
 #![allow(
     clippy::use_self,
-    clippy::missing_const_for_fn,
     clippy::redundant_closure_for_method_calls,
     clippy::doc_markdown,
     clippy::cast_possible_truncation,
