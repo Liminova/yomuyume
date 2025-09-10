@@ -291,5 +291,5 @@ _gen-seed-file:
 # Seed the database with random data
 seed-db: _gen-seed-file
     #!/bin/zsh
-    time sqlite3 /ymym/library/yomuyume.db < /tmp/ymym-seed.sql
+    time sqlite3 /ymym/library/yomuyume.db ".read /tmp/ymym-seed.sql"
     rm -f /tmp/ymym-seed.sql
