@@ -78,10 +78,11 @@ pub async fn get_page_file(
 
     let body = if parent_path.is_dir() {
         let file_path = parent_path.join(page_path);
-        let file = File::open(&file_path)
+
+        let stream = File::open(&file_path)
             .await
-        let stream = ReaderStream::new(file);
             .inspect_err(|e| error!("can't open page file {file_path:?}: {e}"))
+            .map(ReaderStream::new)?;
 
         Body::from_stream(stream)
     } else {
