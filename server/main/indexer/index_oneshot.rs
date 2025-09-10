@@ -250,6 +250,21 @@ pub async fn index_oneshot(
     })?;
 
     '_pages: {
+        if !indexed_pages.delete.is_empty() {
+            let mut delete_query = QueryBuilder::new("DELETE FROM pages WHERE id IN (");
+            delete_query
+                .push_values(indexed_pages.delete.into_iter(), |mut b, page_id| {
+                    b.push_bind(page_id);
+                })
+                .push(")")
+                .build()
+                .execute(&mut *tx)
+                .await
+                .okay(|e| {
+                    error!("can't delete old pages of title {title_relative_path_str}: {e:?}");
+                })?;
+        }
+
         let mut new_page_ids = (0..indexed_pages.upsert.len())
             .into_par_iter()
             .map(|_| nanoid())
@@ -282,21 +297,6 @@ pub async fn index_oneshot(
             .execute(&mut *tx)
             .await
             .okay(|e| error!("can't upsert pages of title {title_relative_path_str}: {e:?}"))?;
-
-        if indexed_pages.delete.is_empty() {
-            break '_pages;
-        }
-
-        let mut delete_query = QueryBuilder::new("DELETE FROM pages WHERE id IN (");
-        delete_query
-            .push_values(indexed_pages.delete.into_iter(), |mut b, page_id| {
-                b.push_bind(page_id);
-            })
-            .push(")")
-            .build()
-            .execute(&mut *tx)
-            .await
-            .okay(|e| error!("can't delete old pages of title {title_relative_path_str}: {e:?}"))?;
     }
 
     tx.commit()
