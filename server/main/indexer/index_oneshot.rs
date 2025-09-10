@@ -231,7 +231,7 @@ pub async fn index_oneshot(
     .fetch_one(&mut *tx)
     .await
     .okay(|e| {
-        error!("can't upsert or fetch chapter (oneshot) of title {title_relative_path_str}: {e:?}")
+        error!("can't upsert or fetch chapter (oneshot) of title {title_relative_path_str}: {e:?}");
     })?
     .id;
 
