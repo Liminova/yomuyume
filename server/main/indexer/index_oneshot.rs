@@ -65,14 +65,14 @@ pub async fn index_oneshot(
             warn!(
                 "can't get last modified of title {}: {e}",
                 title_path.display()
-            )
+            );
         }) else {
             break 'skip_process_when_db_is_newer;
         };
 
         if old_last_modified >= new_last_modified {
             return Some(IndexedContent::TitleID(id));
-        };
+        }
     }
 
     let pages_in_db = sqlx::query!(
@@ -118,7 +118,7 @@ pub async fn index_oneshot(
                     warn!(
                         "can't read ComicInfo.xml from oneshot {}: {e}",
                         title_path.display()
-                    )
+                    );
                 }),
         ),
 
@@ -128,7 +128,7 @@ pub async fn index_oneshot(
                 warn!(
                     "can't read ComicInfo.xml from oneshot {}: {e}",
                     title_path.display()
-                )
+                );
             }),
         ),
     };
@@ -178,7 +178,7 @@ pub async fn index_oneshot(
                 error!(
                     "can't serialize ComicInfo.xml of title {}: {e}",
                     title_path.display()
-                )
+                );
             })
         })
         .map(|s| s.into_bytes());
@@ -246,7 +246,7 @@ pub async fn index_oneshot(
         error!(
             "can't delete old chapters (oneshot) of title {}: {e:?}",
             title_relative_path.display()
-        )
+        );
     })?;
 
     '_pages: {
