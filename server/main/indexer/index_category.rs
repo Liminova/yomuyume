@@ -53,8 +53,9 @@ pub async fn index_category(
             .unwrap_or_else(|| {
                 categories[0]
                     .file_name()
-                    .map(|os_str| os_str.to_string_lossy().to_string())
-                    .unwrap_or("Untitled".to_string())
+                    .map_or("Untitled".to_string(), |os_str| {
+                        os_str.to_string_lossy().to_string()
+                    })
             });
         let description = category_info
             .as_ref()
@@ -102,8 +103,9 @@ pub async fn index_category(
                             info.name.unwrap_or_else(|| {
                                 category_path
                                     .file_name()
-                                    .map(|os_str| os_str.to_string_lossy().to_string())
-                                    .unwrap_or("Untitled".to_string())
+                                    .map_or("Untitled".to_string(), |os_str| {
+                                        os_str.to_string_lossy().to_string()
+                                    })
                             }),
                             info.description,
                         )
