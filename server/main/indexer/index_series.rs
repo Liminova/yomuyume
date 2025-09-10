@@ -115,8 +115,7 @@ pub async fn index_series(
                         id: nanoid(),
                         number: comic_info
                             .as_ref()
-                            .map(|ci| ci.volume)
-                            .unwrap_or(partial_indexed_chapter.fallback_vol_num),
+                            .map_or(partial_indexed_chapter.fallback_vol_num, |ci| ci.volume),
                         last_modified: chapter_path
                             .last_modified()
                             .okay(|e| {
