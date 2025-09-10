@@ -66,7 +66,7 @@ pub async fn index_series(
                     error!(
                         "can't convert chapter path to relative: {e:?}, chapter path: {}",
                         chapter_path.display()
-                    )
+                    );
                 })
                 .map(|p| p.to_string_lossy().to_string())?;
 
@@ -79,7 +79,7 @@ pub async fn index_series(
             .fetch_optional(&app_state.pool)
             .await
             .okay(|e| {
-                error!("can't query existing chapter id of chapter {chapter_relative_path}: {e:?}")
+                error!("can't query existing chapter id of chapter {chapter_relative_path}: {e:?}");
             })?
             .map(|r| r.id)
             .unwrap_or_else(nanoid);
@@ -121,7 +121,7 @@ pub async fn index_series(
                         last_modified: chapter_path
                             .last_modified()
                             .okay(|e| {
-                                warn!("can't get last modified of {}: {e}", chapter_relative_path)
+                                warn!("can't get last modified of {}: {e}", chapter_relative_path);
                             })
                             .map(|d| d.naive_utc()),
                         cover_page_id: find_chapter_cover_page_id(
@@ -147,7 +147,7 @@ pub async fn index_series(
                         last_modified: chapter_path
                             .last_modified()
                             .okay(|e| {
-                                warn!("can't get last modified of {chapter_relative_path}: {e}")
+                                warn!("can't get last modified of {chapter_relative_path}: {e}");
                             })
                             .map(|d| d.naive_utc()),
                         cover_page_id: find_chapter_cover_page_id(
@@ -276,7 +276,7 @@ pub async fn index_series(
             .execute(&mut *tx)
             .await
             .okay(|e| {
-                error!("can't delete old chapters for title {title_relative_path_str}: {e:?}")
+                error!("can't delete old chapters for title {title_relative_path_str}: {e:?}");
             })?;
     }
 
@@ -311,7 +311,7 @@ pub async fn index_series(
                 error!(
                     "can't upsert pages for chapter {}: {e:?}",
                     indexed_chapter.rel_path
-                )
+                );
             })?;
 
         let mut delete_query =
@@ -329,7 +329,7 @@ pub async fn index_series(
                 error!(
                     "can't delete old pages for chapter {}: {e:?}",
                     indexed_chapter.rel_path
-                )
+                );
             })?;
     }
 
@@ -348,7 +348,7 @@ pub async fn index_series(
         .execute(&mut *tx)
         .await
         .okay(|e| {
-            error!("can't upsert chapter covers for title {title_relative_path_str}: {e:?}")
+            error!("can't upsert chapter covers for title {title_relative_path_str}: {e:?}");
         })?;
 
     tx.commit()
