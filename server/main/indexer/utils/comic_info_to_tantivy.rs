@@ -40,9 +40,7 @@ pub async fn comic_info_to_tantivy(
     doc.add_text(app_state.indexer.fields.id, title_id);
     if let Some(release_date) = comic_info
         .map(|ci| (ci.year, ci.month as u32, ci.day as u32))
-        .and_then(|(year, month, day)| {
-            chrono::NaiveDate::from_ymd_opt(year, month as u32, day as u32)
-        })
+        .and_then(|(year, month, day)| chrono::NaiveDate::from_ymd_opt(year, month, day))
         .and_then(|d| d.and_hms_opt(0, 0, 0))
         .map(|d| chrono::Utc.from_utc_datetime(&d).timestamp())
         .map(tantivy::time::OffsetDateTime::from_unix_timestamp)
