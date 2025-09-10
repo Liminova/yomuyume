@@ -40,11 +40,17 @@ pub async fn get_page_file(
             c.path AS chapter_path,
             t.path AS title_path,
             p.size AS size
-        FROM pages p
-            JOIN chapters c ON c.id = p.chapter_id
-            JOIN titles t ON t.id = c.title_id
-        WHERE p.id = ?",
-        page_id
+        FROM
+            pages p
+            JOIN chapters c ON p.chapter_id = c.id
+            JOIN titles t ON c.title_id = t.id
+        WHERE
+            t.id = ?
+            AND c.id = ?
+            AND p.page_number = ?",
+        title_id,
+        chapter_id,
+        page_number
     )
     .fetch_optional(&app_state.pool)
     .await
