@@ -134,7 +134,8 @@ _gen-seed-file:
     # —————— Generate pages ——————
     pages = []
     for ch in chapters:
-        for _ in range(random.randint(PAGES_MIN, PAGES_MAX)):
+        n_pages = random.randint(PAGES_MIN, PAGES_MAX)
+        for page_num in range(1, n_pages + 1):
             pid = nanoid()
             width = random.randint(600, 1200)
             height = random.randint(800, 1600)
@@ -148,12 +149,16 @@ _gen-seed-file:
                 'height': height,
                 'avg_hex_color': color,
                 'size': size,
+                'page_number': page_num,
             })
 
     # —————— Build mappings for covers ——————
     chap_to_pages = {}
     for p in pages:
         chap_to_pages.setdefault(p['chapter_id'], []).append(p['id'])
+    # Add page count to each chapter
+    for ch in chapters:
+        ch['page_count'] = len(chap_to_pages.get(ch['id'], []))
 
     title_to_pages = {}
     for ch in chapters:
@@ -220,7 +225,6 @@ _gen-seed-file:
             reading_progress.append({
                 'user_id': uid,
                 'title_id': tid,
-                'chapter_id': cid_sel,
                 'page_id': pid_sel,
                 'updated_at': 'CURRENT_TIMESTAMP',
             })
@@ -257,15 +261,15 @@ _gen-seed-file:
             for t in titles
         ]
     ))
-    sections.append(make_insert('chapters', ['id','title_id','path','number','last_modified'], chapters))
-    sections.append(make_insert('pages', ['id','chapter_id','path','width','height','avg_hex_color','size'], pages))
+    sections.append(make_insert('chapters', ['id','title_id','path','number','last_modified','page_count'], chapters))
+    sections.append(make_insert('pages', ['id','chapter_id','path','width','height','avg_hex_color','size','page_number'], pages))
     sections.append(make_insert('title_covers', ['title_id','page_id'], title_covers))
     sections.append(make_insert('chapter_covers', ['chapter_id','page_id'], chapter_covers))
     sections.append(make_insert('users', ['id','username','email','password_hash','created_at','verified_at'], users))
     sections.append(make_insert('sessions', ['secret','user_id','created_at'], sessions))
     sections.append(make_insert('collections', ['id','name','user_id','created_at'], collections))
     sections.append(make_insert('collection_titles', ['collection_id','title_id'], collection_titles))
-    sections.append(make_insert('reading_progress', ['user_id','title_id','chapter_id','page_id','updated_at'], reading_progress))
+    sections.append(make_insert('reading_progress', ['user_id','title_id','page_id','updated_at'], reading_progress))
 
     with open('/tmp/ymym-seed.sql', 'w') as f:
         f.write(f"-- Auto-generated seed file: {datetime.now().isoformat()}\n\n")
@@ -282,6 +286,7 @@ _gen-seed-file:
     print(f"  {len(users)} users, {len(sessions)} sessions")
     print(f"  {len(collections)} collections, {len(collection_titles)} collection_titles")
     print(f"  {len(reading_progress)} reading_progress entries")
+
 
 # Seed the database with random data
 seed-db: _gen-seed-file
