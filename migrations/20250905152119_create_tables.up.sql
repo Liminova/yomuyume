@@ -26,6 +26,7 @@ CREATE TABLE
         title_id TEXT NOT NULL,
         path TEXT NOT NULL,
         number INTEGER,
+        page_count INTEGER NOT NULL DEFAULT 0,
         last_modified TIMESTAMP,
         FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE ON UPDATE CASCADE,
         UNIQUE (title_id, path)
