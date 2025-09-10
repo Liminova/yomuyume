@@ -1,0 +1,9 @@
+[package]
+name = "mimatcher"
+version = "0.1.0"
+edition = "2024"
+description = "Matching file extensions to MIME types"
+
+[lib]
+name = "mimatcher"
+path = "lib.rs"

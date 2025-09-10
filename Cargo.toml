@@ -1,5 +1,10 @@
 [workspace]
-members = ["server/main", "server/frontend-spa", "server/api-endpoints"]
+members = [
+    "server/main",
+    "server/frontend-spa",
+    "server/api-endpoints",
+    "server/mimatcher",
+]
 resolver = "2"
 
 [profile.release]
