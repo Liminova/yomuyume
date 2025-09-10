@@ -58,7 +58,7 @@ pub async fn auth(
         req.extensions_mut()
             .insert(UserIDExtension(Some(user.user_id)));
         return Ok(next.run(req).await);
-    };
+    }
 
     if app_state.config.operate_mode == OperateMode::Public {
         Ok(next.run(req).await)
