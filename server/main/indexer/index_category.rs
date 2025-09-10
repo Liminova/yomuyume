@@ -22,7 +22,7 @@ pub async fn index_category(
             error!(
                 "failed to get relative path for category {}: {e}",
                 path.display()
-            )
+            );
         })?;
 
     let mut categories = vec![];
@@ -42,7 +42,7 @@ pub async fn index_category(
             error!(
                 "failed to read category info for {}: {e}",
                 categories[0].display()
-            )
+            );
         });
 
         let new_id = nanoid();
@@ -95,7 +95,7 @@ pub async fn index_category(
                         error!(
                             "failed to read category info for {}: {e}",
                             category_path.display()
-                        )
+                        );
                     })
                     .map(|info| {
                         (
