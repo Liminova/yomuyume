@@ -108,7 +108,7 @@ macro_rules! optional {
 }
 
 impl Config {
-    pub fn new() -> Self {
+    pub fn init() -> Self {
         let library_path = AbsolutePath::from(&PathBuf::from(must!("LIBRARY_PATH")), None)
             .expect("can't convert LIBRARY_PATH to absolute");
 

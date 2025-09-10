@@ -74,7 +74,7 @@ async fn main() -> Result<(), String> {
         .with_line_number(true)
         .init();
 
-    let config = Config::new();
+    let config = Config::init();
     let app_state = Arc::new(AppState {
         pool: sqlx::SqlitePool::connect(&config.database_url)
             .await
