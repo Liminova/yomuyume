@@ -81,8 +81,7 @@ pub async fn index_series(
             .okay(|e| {
                 error!("can't query existing chapter id of chapter {chapter_relative_path}: {e:?}");
             })?
-            .map(|r| r.id)
-            .unwrap_or_else(nanoid);
+            .map_or_else(nanoid, |r| r.id);
 
             let pages_in_db = sqlx::query!(
                 "SELECT pages.id, pages.path, pages.last_modified, pages.avg_hex_color
