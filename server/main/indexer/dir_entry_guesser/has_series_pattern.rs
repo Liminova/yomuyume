@@ -64,7 +64,7 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                     return None;
                 }
 
-                (&p).list_files_in_archive()
+                p.list_files_in_archive()
                     .okay(|e| warn!("can't list files in `{}`: {e:?}", p.display()))
                     .filter(|files| {
                         !files.is_empty()

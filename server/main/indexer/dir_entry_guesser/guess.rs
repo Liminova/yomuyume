@@ -57,7 +57,7 @@ impl DirEntryTypeGuesser for DirEntry {
             if !path.has_archive_ext() {
                 return Ok(DirEntryType::Ignored);
             }
-            let archive = (&path)
+            let archive = path
                 .list_files_in_archive()
                 .map_err(DirEntryTypeGuesserError::ArchiveError)?;
             if archive.is_empty()
