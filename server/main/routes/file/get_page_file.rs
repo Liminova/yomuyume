@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{StatusCode, header},
+    http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use tokio::fs::File;
