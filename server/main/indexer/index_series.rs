@@ -196,7 +196,7 @@ pub async fn index_series(
         warn!(
             "can't read ComicInfo.xml from title {}: {e}",
             title_path.display()
-        )
+        );
     });
     let comic_info_json = comic_info
         .as_ref()
