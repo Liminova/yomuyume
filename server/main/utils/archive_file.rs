@@ -230,7 +230,7 @@ impl ArchiveFile for PathBuf {
             child
                 .stdout
                 .take()
-                .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?,
+                .ok_or(ArchiveFileError::CantTakeStdoutPipe)?,
         )
         .read_to_end(&mut stdout_buf)
         .map_err(ArchiveFileError::CantReadStdout)?;
@@ -240,7 +240,7 @@ impl ArchiveFile for PathBuf {
             child
                 .stderr
                 .take()
-                .ok_or_else(|| ArchiveFileError::CantTakeStderrPipe)?,
+                .ok_or(ArchiveFileError::CantTakeStderrPipe)?,
         )
         .read_to_end(&mut stderr_buf)
         .map_err(ArchiveFileError::CantReadStderr)?;
@@ -279,7 +279,7 @@ impl ArchiveFile for PathBuf {
             child
                 .stdout
                 .take()
-                .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?,
+                .ok_or(ArchiveFileError::CantTakeStdoutPipe)?,
         )
         .read_to_end(&mut stdout_buf)
         .map_err(ArchiveFileError::CantReadStdout)?;
@@ -289,7 +289,7 @@ impl ArchiveFile for PathBuf {
             child
                 .stderr
                 .take()
-                .ok_or_else(|| ArchiveFileError::CantTakeStderrPipe)?,
+                .ok_or(ArchiveFileError::CantTakeStderrPipe)?,
         )
         .read_to_end(&mut stderr_buf)
         .map_err(ArchiveFileError::CantReadStderr)?;
@@ -402,7 +402,7 @@ impl ArchiveFile for PathBuf {
             child
                 .stdout
                 .take()
-                .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?,
+                .ok_or(ArchiveFileError::CantTakeStdoutPipe)?,
         )
         .read_to_end(&mut stdout_buf)
         .map_err(ArchiveFileError::CantReadStdout)?;
@@ -412,7 +412,7 @@ impl ArchiveFile for PathBuf {
             child
                 .stderr
                 .take()
-                .ok_or_else(|| ArchiveFileError::CantTakeStderrPipe)?,
+                .ok_or(ArchiveFileError::CantTakeStderrPipe)?,
         )
         .read_to_end(&mut stderr_buf)
         .map_err(ArchiveFileError::CantReadStderr)?;
@@ -450,7 +450,7 @@ impl ArchiveFile for PathBuf {
             child
                 .stdin
                 .take()
-                .ok_or_else(|| ArchiveFileError::CantTakeStdinPipe)?
+                .ok_or(ArchiveFileError::CantTakeStdinPipe)?
                 .write_all((*content).as_ref())
                 .map_err(ArchiveFileError::CantWriteToStdin)?;
         }
@@ -489,7 +489,7 @@ impl ArchiveFile for PathBuf {
         Ok(child
             .stdout
             .take()
-            .ok_or_else(|| ArchiveFileError::CantTakeStdoutPipe)?)
+            .ok_or(ArchiveFileError::CantTakeStdoutPipe)
     }
 }
 
