@@ -193,8 +193,7 @@ pub async fn read_chap_pages_dir(
                 PageToUpsert {
                     id: pages_in_db_map
                         .get(&p.rel_path)
-                        .map(|p| p.id.clone())
-                        .unwrap_or_else(nanoid),
+                        .map_or_else(nanoid, |p| p.id.clone()),
                     path: p.rel_path.clone(),
                     width,
                     height,
