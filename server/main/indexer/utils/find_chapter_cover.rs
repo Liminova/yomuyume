@@ -20,7 +20,7 @@ pub fn find_chapter_cover_page_id(
                     .filter_map(|p| p.avg_hex_color.as_ref().map(|_| (&p.path, &p.id))),
             )
             .collect::<Vec<_>>();
-        tmp.sort_by(|a, b| b.0.cmp(&a.0));
+        tmp.sort_by(|a, b| b.0.cmp(a.0));
         tmp.into_iter().map(|(_, id)| id).collect::<Vec<_>>()
     };
 
