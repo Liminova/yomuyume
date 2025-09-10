@@ -36,6 +36,7 @@ CREATE TABLE
     pages (
         id TEXT PRIMARY KEY NOT NULL,
         chapter_id TEXT NOT NULL,
+        page_number INTEGER NOT NULL,
         path TEXT NOT NULL,
         width INTEGER,
         height INTEGER,
