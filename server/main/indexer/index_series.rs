@@ -98,7 +98,7 @@ pub async fn index_series(
                 path: r.path,
                 last_modified: r.last_modified.map(|d| Utc.from_utc_datetime(&d)),
                 avg_color: r.avg_hex_color.as_ref().and_then(|c| {
-                    HexColor::from_str(&c).log_err(|| error!("can't parse hex color: {c}"))
+                    HexColor::from_str(c).inspect_err(|| error!("can't parse hex color: {c}"))
                 }),
             })
             .collect::<Vec<_>>();
