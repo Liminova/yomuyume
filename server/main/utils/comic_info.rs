@@ -562,7 +562,7 @@ const fn int64_is_zero(i: &i64) -> bool {
 }
 
 impl ComicInfo {
-    pub fn pages(&self) -> &Vec<ComicPageInfo> {
+    pub const fn pages(&self) -> &Vec<ComicPageInfo> {
         &self.pages_.pages_
     }
 
