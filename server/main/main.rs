@@ -30,15 +30,13 @@ use crate::{
     routes::{
         ApiDoc,
         auth::{get_logout, post_forgot, post_login, post_register},
-        content::{get_categories, get_pages, get_search, get_tags, get_title},
         file::{get_cover_file, get_page_file},
         middlewares::auth::auth,
         user::{get_whoami, post_modify, put_progress},
         utils::{get_status, post_status},
     },
     utils::constants::{
-        FORGOT_PATH, GET_CATEGORIES_PATH, GET_COVER_FILE_PATH, GET_PAGE_FILE_PATH, GET_PAGES_PATH,
-        GET_SEARCH_PATH, GET_STATUS_PATH, GET_TAGS_PATH, GET_TITLE_PATH, GET_WHOAMI_PATH,
+        FORGOT_PATH, GET_COVER_FILE_PATH, GET_PAGE_FILE_PATH, GET_STATUS_PATH, GET_WHOAMI_PATH,
         LOGIN_PATH, LOGOUT_PATH, POST_USER_MODIFY_PATH, PUT_READ_PROGRESS_PATH, REGISTER_PATH,
     },
 };
@@ -88,12 +86,7 @@ async fn main() -> Result<(), String> {
         .route(FORGOT_PATH, post(post_forgot))
         .merge(
             Router::new()
-                // content
-                .route(GET_SEARCH_PATH, post(get_search))
-                .route(GET_CATEGORIES_PATH, get(get_categories))
-                .route(GET_TITLE_PATH, get(get_title))
-                .route(GET_PAGES_PATH, get(get_pages))
-                .route(GET_TAGS_PATH, get(get_tags))
+                // TODO: add OPDS routes here
                 // user
                 .route(GET_WHOAMI_PATH, get(get_whoami))
                 .route(POST_USER_MODIFY_PATH, post(post_modify))
