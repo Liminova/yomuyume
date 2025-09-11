@@ -15,7 +15,6 @@ use crate::{
     },
     utils::{
         absolute_path::{AbsolutePath, ToAbsolute},
-        archive_file::ItemInArchive,
         result_utils::ResultUtils,
     },
 };
@@ -25,8 +24,6 @@ struct ScannedEntry {
     entry: DirEntry,
     parent: Option<AbsolutePath>, // None for the library root
 }
-
-type PageInTitle = ItemInArchive;
 
 #[allow(clippy::cognitive_complexity)]
 pub async fn start_index(app_state: Arc<AppState>) -> Option<()> {
