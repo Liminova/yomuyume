@@ -284,7 +284,7 @@ pub async fn index_series(
                     .push_bind(p.width)
                     .push_bind(p.height)
                     .push_bind(&p.avg_hex_color)
-                    .push_bind(p.size)
+                    .push_bind(p.size.map(|s| s.to_string()))
                     .push_bind(p.last_modified);
             })
             .push(
