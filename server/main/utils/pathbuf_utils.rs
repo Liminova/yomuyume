@@ -53,9 +53,7 @@ pub trait PathBufUtils {
     fn contains_nomedia_file(&self, feature_enabled: bool) -> bool;
     fn contains_category_info_file(&self) -> bool;
     fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedError>;
-    fn create_file_if_not_exists(&self) -> Result<(), std::io::Error>;
     fn read_category_info(&self) -> Result<CategoryInfo, ReadCategoryInfoError>;
-    fn read_comic_info(&self) -> Result<ComicInfo, ReadComicInfoError>;
     fn read_comic_info_from_dir(&self) -> Result<ComicInfo, ReadComicInfoError>;
     fn read_comic_info_from_archive(&self) -> Result<ComicInfo, ReadComicInfoError>;
 }
@@ -133,17 +131,6 @@ impl PathBufUtils for PathBuf {
         .unwrap_or_default())
     }
 
-    /// Create the file if it doesn't exist
-    ///
-    /// The only error is from [`std::fs::File::create`]
-    fn create_file_if_not_exists(&self) -> Result<(), std::io::Error> {
-        if self.exists() {
-            return Ok(());
-        }
-        std::fs::File::create(self)?;
-        Ok(())
-    }
-
     fn read_category_info(&self) -> Result<CategoryInfo, ReadCategoryInfoError> {
         if self.is_file() {
             return Err(ReadCategoryInfoError::ExpectPathDir);
@@ -163,15 +150,6 @@ impl PathBufUtils for PathBuf {
         Ok(CategoryInfo::from_str(&std::fs::read_to_string(
             category_info_path,
         )?)?)
-    }
-
-    /// Read and return ComicInfo from disk if it's exists and is a file
-    fn read_comic_info(&self) -> Result<ComicInfo, ReadComicInfoError> {
-        if self.is_file() {
-            self.read_comic_info_from_dir()
-        } else {
-            self.read_comic_info_from_archive()
-        }
     }
 
     fn read_comic_info_from_dir(&self) -> Result<ComicInfo, ReadComicInfoError> {
