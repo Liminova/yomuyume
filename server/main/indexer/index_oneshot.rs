@@ -278,6 +278,14 @@ pub async fn index_oneshot(
             .push_values(
                 indexed_pages.upsert.into_iter().enumerate(),
                 |mut b, (i, page)| {
+                    let Ok(page_number) = u32::try_from(i) else {
+                        error!(
+                            "page number {i} is too large, skip upserting page {}",
+                            page.path
+                        );
+                        return;
+                    };
+
                     b.push_bind(new_page_ids.pop().unwrap_or_else(nanoid))
                         .push_bind(chapter_id.clone())
                         .push_bind(i as u32)
