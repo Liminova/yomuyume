@@ -13,11 +13,13 @@ use utoipa::ToSchema;
 
 use crate::{
     AppState,
-    routes::{check_pass, errors::InternalError},
+    routes::{
+        check_pass,
+        errors::{InternalError, RequestError},
+    },
     utils::{
         constants::{LOGIN_PATH, SESSION_SECRET_COOKIE_NAME},
         nanoid::nanoid,
-        result_utils::ResultUtils,
     },
 };
 
@@ -49,11 +51,11 @@ pub async fn post_login(
     .await
     .inspect_err(|e| error!("can't query user by email: {e}"))?
     .map(|r| (r.id, r.password_hash)) else {
-        return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestError::InvalidCredentials).into_response());
     };
 
     if !check_pass(&password_hash, &query.password) {
-        return Ok((StatusCode::BAD_REQUEST, "invalid password").into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestError::InvalidCredentials).into_response());
     }
 
     let session_secret = nanoid();

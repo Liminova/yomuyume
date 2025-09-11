@@ -13,10 +13,10 @@ use utoipa::ToSchema;
 use crate::{
     AppState,
     routes::{
-        errors::{InternalError, RequestErr},
+        errors::{InternalError, RequestError},
         hash_pass, is_strong,
     },
-    utils::{constants::REGISTER_PATH, nanoid::nanoid, result_utils::ResultUtils},
+    utils::{constants::REGISTER_PATH, nanoid::nanoid},
 };
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -46,7 +46,7 @@ pub async fn post_register(
         .parse::<lettre::Address>()
         .map(|e| e.to_string())
     else {
-        return Ok((StatusCode::BAD_REQUEST, RequestErr::InvalidEmail).into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestError::InvalidEmail).into_response());
     };
 
     if sqlx::query!(
@@ -58,11 +58,11 @@ pub async fn post_register(
     .map(|r| r.exists == 1)
     .inspect_err(|e| error!("can't query user by email: {e}"))?
     {
-        return Ok((StatusCode::CONFLICT, RequestErr::EmailAlreadyUsed).into_response());
+        return Ok((StatusCode::CONFLICT, RequestError::EmailAlreadyUsed).into_response());
     }
 
     if !is_strong(&query.password) {
-        return Ok((StatusCode::BAD_REQUEST, RequestErr::WeakPassword).into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestError::WeakPassword).into_response());
     }
 
     let password_hash = hash_pass(&query.password).map_err(|e| {

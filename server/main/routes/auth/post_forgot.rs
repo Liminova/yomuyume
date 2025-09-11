@@ -14,7 +14,11 @@ use utoipa::ToSchema;
 
 use crate::{
     AppState,
-    routes::{errors::InternalError, hash_pass, user::Mailer},
+    routes::{
+        errors::{InternalError, RequestError},
+        hash_pass,
+        user::Mailer,
+    },
     utils::{
         chrono_utils::ChronoUtils,
         constants::{FORGOT_PATH, ForgotPasswordLimit},
@@ -48,7 +52,7 @@ pub async fn post_forgot(
     query: Json<ForgotRequest>,
 ) -> Result<Response, InternalError> {
     let Ok(email) = query.email.parse::<lettre::Address>() else {
-        return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestError::InvalidEmail).into_response());
     };
     let email_str = email.to_string();
 
@@ -58,13 +62,17 @@ pub async fn post_forgot(
         .inspect_err(|e| error!("can't query user by email: {e}"))?
         .map(|r| r.id)
     else {
-        return Ok((StatusCode::BAD_REQUEST, "invalid email").into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestError::InvalidEmail).into_response());
     };
 
     match (&query.code, &query.new_password) {
         (Some(code), Some(new_password)) => reset(&app_state, &user_id, code, new_password).await,
         (None, None) => request(&app_state, &user_id, email).await,
-        _ => Ok((StatusCode::BAD_REQUEST, "invalid request").into_response()),
+        _ => Ok((
+            StatusCode::BAD_REQUEST,
+            RequestError::MailformedForgotPasswordRequest,
+        )
+            .into_response()),
     }
 }
 
@@ -153,15 +161,22 @@ async fn reset(
     .await
     .inspect_err(|e| error!("can't query existing forgot password request: {e}"))?
     else {
-        return Ok((StatusCode::BAD_REQUEST, "no forgot password request found").into_response());
+        return Ok((
+            StatusCode::BAD_REQUEST,
+            RequestError::NoForgotPasswordRequestFound,
+        )
+            .into_response());
     };
 
-    if code != existing_request.code
-        || Utc
-            .from_utc_datetime(&existing_request.created_at)
-            .outside(&Utc::now(), &ForgotPasswordLimit::ExpiredAfter.into())
+    if code != existing_request.code {
+        return Ok((StatusCode::BAD_REQUEST, RequestError::InvalidCode).into_response());
+    }
+
+    if Utc
+        .from_utc_datetime(&existing_request.created_at)
+        .outside(&Utc::now(), &ForgotPasswordLimit::ExpiredAfter.into())
     {
-        return Ok((StatusCode::BAD_REQUEST, "invalid code").into_response());
+        return Ok((StatusCode::BAD_REQUEST, RequestError::ExpiredCode).into_response());
     }
 
     let mut tx = app_state
