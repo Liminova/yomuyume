@@ -41,7 +41,7 @@ CREATE TABLE
         width INTEGER,
         height INTEGER,
         avg_hex_color TEXT,
-        size INTEGER,
+        size TEXT,
         last_modified TIMESTAMP,
         UNIQUE (chapter_id, path),
         UNIQUE (chapter_id, page_number),
