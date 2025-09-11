@@ -22,7 +22,7 @@ pub struct PageToUpsert {
     pub width: Option<u32>,
     pub height: Option<u32>,
     pub avg_hex_color: Option<String>,
-    pub size: Option<i64>,
+    pub size: Option<u64>,
     pub last_modified: Option<NaiveDateTime>,
 }
 
