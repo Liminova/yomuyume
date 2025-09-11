@@ -7,25 +7,26 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Query;
+use chrono::Utc;
+use tracing::error;
 
 use crate::{
-    routes::errors::InternalErr,
-    structs::ids::UserID,
-    utils::{app_state::AppState, constants::USER_PROGRESS_PATH},
+    AppState,
+    routes::{UserIDExtension, errors::InternalError},
+    utils::constants::PUT_READ_PROGRESS_PATH,
 };
 
 #[derive(serde::Deserialize)]
 pub struct PutProgressQuery {
-    title_id: i64,
-    chapter_id: i64,
-    page_id: i64,
-    percent: i16,
+    title_id: String,
+    chapter_id: String,
+    page_number: u32,
 }
 
 /// Set reading progress
 #[utoipa::path(
     put,
-    path = USER_PROGRESS_PATH,
+    path = PUT_READ_PROGRESS_PATH,
     responses(
         (status = 200, description = "Set progress successfully"),
         (status = 400, description = "Bad request", body = String),
@@ -33,38 +34,39 @@ pub struct PutProgressQuery {
         (status = 500, description = "Internal server error", body = String),
     ),
     params(
-        ("title_id" = i64, Query, description = "Title ID"),
-        ("page_id" = i64, Query, description = "Page ID"),
-        ("percent" = u8, Query, description = "Progress percent (0-100)"),
+        ("title_id" = String, Query, description = "Title ID"),
+        ("chapter_id" = String, Query, description = "Chapter ID"),
+        ("chapter_id" = u32, Query, description = "Page number"),
     ),
     security(("session-secret" = []))
 )]
 pub async fn put_progress(
     State(app_state): State<Arc<AppState>>,
-    Extension(user_id): Extension<UserID>,
+    Extension(user_id): Extension<UserIDExtension>,
     Query(query): Query<PutProgressQuery>,
-) -> Result<Response, InternalErr> {
+) -> Result<Response, InternalError> {
+    let Some(user_id) = user_id.0 else {
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
+    };
+
+    let now = Utc::now().naive_utc();
+
     sqlx::query!(
-        "INSERT INTO progresses (user_id, title_id, chapter_id, page_id, percent, last_read_at)
-        VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (user_id, title_id) DO
+        "INSERT INTO reading_progress (user_id, title_id, chapter_id, page_number, updated_at)
+        VALUES (?, ?, ?, ?, ?) ON CONFLICT (user_id, title_id) DO
         UPDATE
         SET chapter_id = EXCLUDED.chapter_id,
-            page_id = EXCLUDED.page_id,
-            percent = EXCLUDED.percent,
-            last_read_at = EXCLUDED.last_read_at",
-        user_id.as_ref(),
+            page_number = EXCLUDED.page_number,
+            updated_at = EXCLUDED.updated_at",
+        user_id,
         query.title_id,
         query.chapter_id,
-        query.page_id,
-        query.percent,
-        chrono::Utc::now()
+        query.page_number,
+        now
     )
     .execute(&app_state.pool)
     .await
-    .map_err(|e| {
-        tracing::error!("{e}");
-        InternalErr::DB(e)
-    })?;
+    .inspect_err(|e| error!("can't upsert reading progress: {e:?}"))?;
 
     Ok(StatusCode::OK.into_response())
 }
