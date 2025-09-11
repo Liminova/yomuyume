@@ -14,7 +14,7 @@ use utoipa::ToSchema;
 use crate::{
     AppState,
     routes::{UserIDExtension, errors::InternalError},
-    utils::{constants::GET_WHOAMI_PATH, result_utils::ResultUtils},
+    utils::constants::GET_WHOAMI_PATH,
 };
 
 #[skip_serializing_none]
