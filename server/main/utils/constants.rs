@@ -16,7 +16,7 @@ pub enum ForgotPasswordLimit {
 }
 
 impl From<ForgotPasswordLimit> for Duration {
-    fn from(value: ForgotPasswordLimit) -> Self {
+    fn from(value: ForgotPasswordLimit) -> Duration {
         match value {
             ForgotPasswordLimit::Cooldown | ForgotPasswordLimit::ExpiredAfter => {
                 Duration::minutes(5)
