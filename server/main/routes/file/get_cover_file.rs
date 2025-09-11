@@ -8,7 +8,7 @@ use axum::{
 };
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::{
     AppState,
@@ -88,8 +88,18 @@ pub async fn get_cover_file(
         headers.insert(header::CONTENT_TYPE, mime);
     }
 
-    if let Some(size) = page_filesize {
-        headers.insert(header::CONTENT_LENGTH, size.into());
+    if let Some(size) = page_filesize
+        .and_then(|s| {
+            s.parse::<u64>().okay(|e| {
+                warn!(
+                    "can't parse page size for {page_path} in {}: {e:?}",
+                    parent_path.display()
+                );
+            })
+        })
+        .map(HeaderValue::from)
+    {
+        headers.insert(header::CONTENT_LENGTH, size);
     }
 
     let body = if parent_path.is_dir() {
