@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 #![warn(clippy::nursery, clippy::pedantic, clippy::perf, clippy::unwrap_used)]
-#![allow(clippy::doc_markdown, clippy::too_many_lines, clippy::use_self, unused)]
+#![allow(clippy::doc_markdown, clippy::too_many_lines, clippy::use_self, unused)] // TODO: remove unused
 
 mod config;
 mod indexer;
