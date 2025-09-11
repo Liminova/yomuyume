@@ -46,19 +46,19 @@ pub struct ItemInArchive {
 }
 
 impl PartialEq for ItemInArchive {
-    fn eq(&self, other: &Self) -> bool {
+    fn eq(&self, other: &ItemInArchive) -> bool {
         self.path == other.path
     }
 }
 
 impl PartialOrd for ItemInArchive {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &ItemInArchive) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl Ord for ItemInArchive {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &ItemInArchive) -> std::cmp::Ordering {
         self.path.cmp(&other.path)
     }
 }
