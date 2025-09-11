@@ -24,7 +24,7 @@ mod tests {
                 last_modified: Some(DateTime::<Utc>::from(
                     $file.metadata().unwrap().modified().unwrap(),
                 )),
-                size: Some($file.metadata().unwrap().len() as i64),
+                size: Some($file.metadata().unwrap().len()),
             }
         };
     }
