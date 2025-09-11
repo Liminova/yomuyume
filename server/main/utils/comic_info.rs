@@ -4,7 +4,6 @@
 
 use std::str::FromStr;
 
-use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_with::skip_serializing_none;
 
@@ -565,46 +564,6 @@ const fn int64_is_zero(i: &i64) -> bool {
 impl ComicInfo {
     pub fn pages(&self) -> &Vec<ComicPageInfo> {
         &self.pages_.pages_
-    }
-
-    pub fn pages_mut(&mut self) -> &mut Vec<ComicPageInfo> {
-        &mut self.pages_.pages_
-    }
-
-    /// Get the release date of the comic.
-    pub fn get_release(&self) -> Option<NaiveDate> {
-        DateTime::parse_from_str(
-            format!("{}-{}-{}", self.year, self.month, self.day).as_str(),
-            "%Y-%m-%d",
-        )
-        .ok()
-        .map(|d| d.with_timezone(&Utc))
-        .and_then(|d| NaiveDate::from_ymd_opt(d.year(), d.month(), d.day()))
-    }
-
-    /// Get the description of a page file given its file name.
-    pub fn get_page_description(&self, _page_file_name: &str) -> Option<String> {
-        // let with_ext = page_file_name.to_string();
-
-        // let no_ext = PathBuf::from(page_file_name)
-        //     .file_stem()
-        //     .map(|s| s.to_string_lossy().to_string())
-        //     .unwrap_or_default();
-
-        // self.pages().iter().find_map(|page| {
-        //     let image_path = page.image_path.as_ref()?;
-
-        //     let matched_with_ext = image_path == &with_ext;
-        //     let matched_no_ext = image_path == &no_ext;
-
-        //     if matched_with_ext || matched_no_ext {
-        //         return page.description.clone();
-        //     }
-
-        //     None
-        // })
-
-        None
     }
 
     /// Parse a ComicInfo.xml string and return a [`ComicInfo`] object.
