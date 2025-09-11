@@ -158,17 +158,19 @@ impl Config {
             },
         }
     }
+}
 
-    pub fn get_version(&self) -> String {
-        let version = env!("CARGO_PKG_VERSION");
-        let mut parts = version.split('.');
-        let major = parts.next().unwrap_or("0").parse().unwrap_or(0);
-        let minor = parts.next().unwrap_or("0").parse().unwrap_or(0);
+pub fn get_version() -> String {
+    let version = env!("CARGO_PKG_VERSION");
+    let mut parts = version.split('.');
+    let major = parts.next().unwrap_or("0").parse().unwrap_or(0);
+    let minor = parts.next().unwrap_or("0").parse().unwrap_or(0);
 
-        format!(
-            "{} - {}",
-            env!("CARGO_PKG_VERSION"),
-            constants::VERSION_NAMES[(major + minor - 1) as usize]
-        )
-    }
+    format!(
+        "{} - {}",
+        env!("CARGO_PKG_VERSION"),
+        constants::VERSION_NAMES
+            .get(usize::try_from(major + minor - 1).unwrap_or(0))
+            .unwrap_or(&"Unknown")
+    )
 }
