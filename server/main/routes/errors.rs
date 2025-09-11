@@ -1,4 +1,4 @@
-use std::{fmt::Debug, num::ParseIntError};
+use std::fmt::Debug;
 
 use axum::{
     http::StatusCode,
@@ -19,11 +19,6 @@ pub enum InternalError {
     #[error("mailer error: {0}")]
     Mailer(#[from] MailerError),
 
-    #[error("title w/ ID {0} has no chapter, this should not happen")]
-    NoChapter(i64),
-    #[error("chapter w/ ID {0} has no page, this should not happen")]
-    ChapterNoPage(i64),
-
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 
@@ -41,24 +36,18 @@ impl IntoResponse for InternalError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum RequestErr {
-    #[error("missing session-id cookie")]
-    MissingSessionID,
-    #[error("can't parse session id: {0}")]
-    CantParseSessionID(ParseIntError),
+pub enum RequestError {
     #[error("missing session secret cookie")]
     MissingSessionSecret,
-    #[error("invalid session")]
-    InvalidSession,
     #[error("session expired")]
     SessionExpired,
 
-    #[error("you don't even logged in")]
-    YouDontEvenLoggedIn,
     #[error("invalid username or password")]
     InvalidCredentials,
     #[error("invalid email")]
     InvalidEmail,
+    #[error("malformed request, either both 'code' and 'new_password' are provided or none")]
+    MailformedForgotPasswordRequest,
     #[error("email is already used")]
     EmailAlreadyUsed,
     #[error(
@@ -66,6 +55,8 @@ pub enum RequestErr {
     )]
     WeakPassword,
 
+    #[error("current password is required to change password")]
+    CurrentPasswordRequired,
     #[error("invalid current password")]
     InvalidCurrentPassword,
 
@@ -73,12 +64,14 @@ pub enum RequestErr {
     InvalidCode,
     #[error("expired code")]
     ExpiredCode,
+    #[error("no forgot password request found")]
+    NoForgotPasswordRequestFound,
 
     #[error("your email is already verified")]
     AlreadyVerified,
 }
 
-impl IntoResponse for RequestErr {
+impl IntoResponse for RequestError {
     fn into_response(self) -> Response {
         format!("{self}").into_response()
     }
