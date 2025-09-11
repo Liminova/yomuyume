@@ -67,19 +67,16 @@ pub const LOGIN_PATH: &str = "/api/auth/login";
 pub const REGISTER_PATH: &str = "/api/auth/register";
 pub const FORGOT_PATH: &str = "/api/auth/forgot";
 
-pub const GET_CATEGORIES_PATH: &str = "/api/content/categories";
-pub const GET_CATEGORY_PATH: &str = "/api/content/{category_id}";
-pub const GET_TITLE_PATH: &str = "/api/content/{title_id}";
-pub const GET_PAGES_PATH: &str = "/api/content/{chapter_id}";
-pub const GET_TAGS_PATH: &str = "/api/content/tags";
-pub const GET_SEARCH_PATH: &str = "/api/content/search";
+pub const GET_NAVIGATION_FEED_PATH: &str = "/api/opds/navigation/{kind}/{identifier}";
+pub const GET_AQUISITION_FEED_PATH: &str = "/api/opds/acquisition/{kind}/{identifier}";
 
-pub const GET_PAGE_FILE_PATH: &str = "/api/file/page/{page_id}";
-pub const GET_COVER_FILE_PATH: &str = "/api/file/cover/{title_id}";
+pub const GET_PAGE_FILE_PATH: &str = "/api/file/title/{title_id}/{chapter_id}/{page_number}";
+pub const GET_COVER_FILE_PATH: &str = "/api/file/cover/{title_or_chapter_id}";
 
 pub const GET_WHOAMI_PATH: &str = "/api/user/whoami";
 pub const POST_USER_MODIFY_PATH: &str = "/api/user/modify";
 pub const PUT_READ_PROGRESS_PATH: &str = "/api/user/progress";
+
 pub const GET_COLLECTIONS_PATH: &str = "/api/user/collections";
 pub const PUT_COLLECTION_PATH: &str = "/api/user/collection";
 pub const PUT_TITLE_IN_COLLECTION_PATH: &str = "/api/user/collection/{collection_id}/{title_id}";
