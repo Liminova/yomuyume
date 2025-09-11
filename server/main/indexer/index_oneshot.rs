@@ -288,12 +288,12 @@ pub async fn index_oneshot(
 
                     b.push_bind(new_page_ids.pop().unwrap_or_else(nanoid))
                         .push_bind(chapter_id.clone())
-                        .push_bind(i as u32)
+                        .push_bind(page_number)
                         .push_bind(page.path)
                         .push_bind(page.width)
                         .push_bind(page.height)
                         .push_bind(page.avg_hex_color)
-                        .push_bind(page.size)
+                        .push_bind(page.size.map(|s| s.to_string()))
                         .push_bind(page.last_modified);
                 },
             )
