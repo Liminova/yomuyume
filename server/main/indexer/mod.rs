@@ -44,7 +44,7 @@ impl Indexer {
     pub fn new(
         index_path: impl AsRef<Path>,
         memory_budget_in_bytes: usize,
-    ) -> tantivy::Result<Self> {
+    ) -> tantivy::Result<Indexer> {
         let mut schema_builder = Schema::builder();
 
         let fields = Fields {
@@ -60,7 +60,7 @@ impl Indexer {
         let dir = MmapDirectory::open(index_path)?;
         let index = Index::open_or_create(dir, schema)?;
 
-        Ok(Self {
+        Ok(Indexer {
             fields,
             writer: Mutex::new(index.writer(memory_budget_in_bytes)?),
             reader: index
