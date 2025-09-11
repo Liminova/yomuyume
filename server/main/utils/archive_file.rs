@@ -103,7 +103,7 @@ impl ItemsInArchiveUtils for Vec<ItemInArchive> {
                 i.path
                     .clone()
                     .strip_suffix("/.nomedia")
-                    .map(|p| p.to_string())
+                    .map(ToString::to_string)
             })
             .collect::<Vec<_>>();
         ignored_prefixes.sort();
