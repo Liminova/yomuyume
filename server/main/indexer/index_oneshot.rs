@@ -181,7 +181,7 @@ pub async fn index_oneshot(
                 );
             })
         })
-        .map(|s| s.into_bytes());
+        .map(String::into_bytes);
 
     let mut tx = app_state
         .pool
