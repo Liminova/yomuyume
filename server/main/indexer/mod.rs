@@ -2,7 +2,7 @@ mod dir_entry_guesser;
 mod index_category;
 mod index_oneshot;
 mod index_series;
-mod start_index;
+pub mod start_index;
 mod utils;
 
 use std::path::Path;
