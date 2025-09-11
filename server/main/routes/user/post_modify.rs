@@ -12,14 +12,20 @@ use utoipa::ToSchema;
 
 use crate::{
     AppState,
-    routes::{UserIDExtension, errors::InternalError},
-    utils::{constants::POST_USER_MODIFY_PATH, result_utils::ResultUtils},
+    routes::{
+        UserIDExtension, check_pass,
+        errors::{InternalError, RequestError},
+        hash_pass,
+    },
+    utils::constants::POST_USER_MODIFY_PATH,
 };
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
 pub struct ModifyRequest {
-    pub username: Option<String>,
     pub email: Option<String>,
+    pub username: Option<String>,
+    pub old_password: Option<String>,
+    pub new_password: Option<String>,
 }
 
 /// Modify user information
@@ -63,6 +69,44 @@ pub async fn post_modify(
     .execute(&app_state.pool)
     .await
     .inspect_err(|e| error!("can't upsert user info: {e}"))?;
+
+    if let Some(old_password) = body.old_password {
+        let Some(new_password) = body.new_password else {
+            return Ok((
+                StatusCode::BAD_REQUEST,
+                RequestError::CurrentPasswordRequired,
+            )
+                .into_response());
+        };
+
+        let password_hash = sqlx::query!("SELECT password_hash FROM users WHERE id = ?", user_id)
+            .fetch_one(&app_state.pool)
+            .await
+            .inspect_err(|e| error!("can't query user by id: {e}"))
+            .map(|r| r.password_hash)?;
+
+        if !check_pass(password_hash, old_password) {
+            return Ok((
+                StatusCode::BAD_REQUEST,
+                RequestError::InvalidCurrentPassword,
+            )
+                .into_response());
+        }
+
+        let new_password_hash = hash_pass(new_password).map_err(|e| {
+            error!("can't hash new password: {e}");
+            InternalError::PasswordHash(e)
+        })?;
+
+        sqlx::query!(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            new_password_hash,
+            user_id
+        )
+        .execute(&app_state.pool)
+        .await
+        .inspect_err(|e| error!("can't update user password: {e}"))?;
+    }
 
     Ok(StatusCode::OK.into_response())
 }
