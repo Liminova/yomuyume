@@ -26,7 +26,7 @@ use utoipa_redoc::{Redoc, Servable};
 
 use crate::{
     config::Config,
-    indexer::Indexer,
+    indexer::{Indexer, start_index::start_index},
     routes::{
         ApiDoc,
         auth::{get_logout, post_forgot, post_login, post_register},
@@ -111,6 +111,8 @@ async fn main() -> Result<(), String> {
         })
         .layer(TraceLayer::new_for_http())
         .with_state(app_state.clone());
+
+    start_index(app_state.clone()).await;
 
     let listen_address = app_state.config.listen_address.clone();
     let server_handle = tokio::spawn(async move {
