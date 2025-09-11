@@ -276,8 +276,8 @@ pub struct ComicInfo {
 }
 
 impl Default for ComicInfo {
-    fn default() -> Self {
-        Self {
+    fn default() -> ComicInfo {
+        ComicInfo {
             title: None,
             series: None,
             number: None,
@@ -489,7 +489,7 @@ impl Eq for Rating {
 impl FromStr for Rating {
     type Err = String;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Rating, Self::Err> {
         let f = s.parse::<f32>().map_err(|e| e.to_string())?;
         if !(0.0..=5.0).contains(&f) {
             return Err(format!(
@@ -610,9 +610,9 @@ impl ComicInfo {
     /// Parse a ComicInfo.xml string and return a [`ComicInfo`] object.
     ///
     /// If the string is empty, return a default one.
-    pub fn from_str(s: &str) -> Result<Self, quick_xml::DeError> {
+    pub fn from_str(s: &str) -> Result<ComicInfo, quick_xml::DeError> {
         if s.is_empty() {
-            return Ok(Self::default());
+            return Ok(ComicInfo::default());
         }
         quick_xml::de::from_str(s)
     }
@@ -629,7 +629,7 @@ impl ComicInfo {
 impl TryFrom<&str> for ComicInfo {
     type Error = quick_xml::DeError;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn try_from(value: &str) -> Result<ComicInfo, Self::Error> {
         quick_xml::de::from_str(value)
     }
 }
