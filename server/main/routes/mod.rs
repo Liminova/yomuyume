@@ -156,4 +156,4 @@ fn is_strong(input: &str) -> bool {
 }
 
 #[derive(Debug, Clone)]
-pub struct UserIDExtension(pub Option<UserID>);
+pub struct UserIDExtension(pub Option<String>);
