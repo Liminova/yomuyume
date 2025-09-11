@@ -19,7 +19,7 @@ struct PageInDir {
     pub path: AbsolutePath,
     pub rel_path: String,
     pub last_modified: Option<DateTime<Utc>>,
-    pub size: Option<i64>,
+    pub size: Option<u64>,
 }
 
 pub async fn read_chap_pages_dir(
@@ -77,7 +77,7 @@ pub async fn read_chap_pages_dir(
                         .okay(|err| {
                             warn!("can't get metadata for {}: {err}", path.display());
                         })
-                        .map(|m| m.len() as i64),
+                        .map(|m| m.len()),
                 });
                 return acc;
             }
@@ -109,7 +109,7 @@ pub async fn read_chap_pages_dir(
                             last_modified: img.last_modified().okay(|err| {
                                 warn!("can't get last modified for {}: {err}", img.display());
                             }),
-                            size: img.metadata().map(|m| m.len() as i64).okay(|err| {
+                            size: img.metadata().map(|m| m.len()).okay(|err| {
                                 warn!("can't get metadata for {}: {err}", img.display());
                             }),
                         });
