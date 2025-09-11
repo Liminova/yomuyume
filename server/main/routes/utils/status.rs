@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{AppState, utils::constants::GET_STATUS_PATH};
+use crate::{AppState, config, utils::constants::GET_STATUS_PATH};
 
 use axum::{
     Json,
@@ -41,7 +41,7 @@ pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
         StatusCode::OK,
         Json(StatusResponse {
             server_time: Local::now().to_string(),
-            version: app_state.config.get_version(),
+            version: config::get_version(),
             echo: None,
         }),
     )
@@ -64,7 +64,7 @@ pub async fn post_status(
         StatusCode::OK,
         Json(StatusResponse {
             server_time: Local::now().to_string(),
-            version: app_state.config.get_version(),
+            version: config::get_version(),
             echo: query.echo.clone(),
         }),
     )
