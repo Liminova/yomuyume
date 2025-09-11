@@ -352,7 +352,8 @@ pub async fn index_series(
         comic_info.as_ref(),
         &title_id,
         &title_relative_path,
-    );
+    )
+    .await;
 
     Some(IndexedContent::TitleID(title_id))
 }
