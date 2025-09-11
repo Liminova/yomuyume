@@ -106,12 +106,13 @@ CREATE TABLE
     reading_progress (
         user_id TEXT NOT NULL,
         title_id TEXT NOT NULL,
-        page_id TEXT NOT NULL,
+        chapter_id TEXT NOT NULL,
+        page_number INTEGER NOT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (user_id, title_id),
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
         FOREIGN KEY (title_id) REFERENCES titles (id) ON DELETE CASCADE,
-        FOREIGN KEY (page_id) REFERENCES pages (id) ON DELETE CASCADE
+        FOREIGN KEY (chapter_id) REFERENCES chapters (id) ON DELETE CASCADE
     );
 
 CREATE TABLE
