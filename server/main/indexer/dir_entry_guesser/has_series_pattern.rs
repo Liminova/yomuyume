@@ -32,7 +32,7 @@ impl HasPatternOfSeries for Vec<DirEntry> {
 
         let are_we_chapters = self
             .iter()
-            .map(|d| d.path())
+            .map(DirEntry::path)
             .filter(|p| !p.has_recycle_flag(is_komga_recyle_enabled))
             .filter_map(|p| match p.metadata() {
                 Ok(m) => Some((p, m)),
