@@ -1,19 +1,6 @@
 #![forbid(unsafe_code)]
-#![warn(clippy::perf, clippy::pedantic, clippy::nursery, clippy::unwrap_used)]
-#![allow(
-    clippy::use_self,
-    clippy::redundant_closure_for_method_calls,
-    clippy::doc_markdown,
-    clippy::cast_possible_truncation,
-    clippy::cast_possible_wrap,
-    clippy::cast_sign_loss,
-    clippy::unused_self,
-    clippy::too_many_lines,
-    clippy::too_many_arguments,
-    clippy::trivially_copy_pass_by_ref,
-    clippy::inefficient_to_string,
-    clippy::unreadable_literal
-)]
+#![warn(clippy::nursery, clippy::pedantic, clippy::perf, clippy::unwrap_used)]
+#![allow(clippy::doc_markdown, clippy::too_many_lines, clippy::use_self, unused)]
 
 mod config;
 mod indexer;
