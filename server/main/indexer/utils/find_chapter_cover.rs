@@ -1,6 +1,11 @@
+use tracing::warn;
+
 use crate::{
     indexer::utils::{IndexedChapterPages, PageInDB},
-    utils::comic_info::{ComicPageInfo, ComicPageType},
+    utils::{
+        comic_info::{ComicPageInfo, ComicPageType},
+        result_utils::ResultUtils,
+    },
 };
 
 pub fn find_chapter_cover_page_id(
@@ -36,7 +41,12 @@ pub fn find_chapter_cover_page_id(
                     .iter()
                     .filter(|p| p.page_type == ComicPageType::FrontCover)
                     .map(|p| p.image)
-                    .find_map(|idx| pages_have_avg_color.get(idx as usize))
+                    .find_map(|idx| {
+                        pages_have_avg_color.get(
+                            usize::try_from(idx)
+                                .okay(|e| warn!("invalid cover index {idx}: {e}"))?,
+                        )
+                    })
                     .or_else(|| pages_have_avg_color.first())
             },
         )
