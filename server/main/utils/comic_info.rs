@@ -2,8 +2,6 @@
 //!
 //! Schema: https://github.com/anansi-project/comicinfo/blob/0b6e01/drafts/v2.1/ComicInfo.xsd
 
-#![allow(clippy::ref_option)]
-
 use std::str::FromStr;
 
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
