@@ -59,21 +59,9 @@ pub const VERSION_NAMES: [&str; 31] = [
     "Unfinished Dream of All Living Ghost",
 ];
 
-pub enum CookieName {
-    UserID,
-    SessionSecret,
-}
-
-impl AsRef<str> for CookieName {
-    fn as_ref(&self) -> &str {
-        match self {
-            CookieName::UserID => "user-id",
-            CookieName::SessionSecret => "session-secret",
-        }
-    }
-}
-
 // START: API paths - DO NOT MODIFY THIS LINE
+pub const SESSION_SECRET_COOKIE_NAME: &str = "session-secret";
+
 pub const LOGOUT_PATH: &str = "/api/auth/logout";
 pub const LOGIN_PATH: &str = "/api/auth/login";
 pub const REGISTER_PATH: &str = "/api/auth/register";
