@@ -4,6 +4,7 @@ pub mod auth;
 pub mod errors;
 pub mod file;
 pub mod middlewares;
+pub mod opds;
 pub mod user;
 pub mod utils;
 
