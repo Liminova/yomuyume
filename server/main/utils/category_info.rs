@@ -105,9 +105,9 @@ fn description_serializer<S: Serializer>(
 // }
 
 impl CategoryInfo {
-    pub fn from_str(s: &str) -> Result<Self, quick_xml::DeError> {
+    pub fn from_str(s: &str) -> Result<CategoryInfo, quick_xml::DeError> {
         if s.is_empty() {
-            return Ok(Self::default());
+            return Ok(CategoryInfo::default());
         }
         quick_xml::de::from_str::<CategoryInfo>(s)
     }
