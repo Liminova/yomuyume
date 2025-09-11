@@ -369,7 +369,7 @@ impl YesNo {
         }
     }
 
-    fn is_unknown(yes_no: &YesNo) -> bool {
+    const fn is_unknown(yes_no: &YesNo) -> bool {
         matches!(yes_no, YesNo::Unknown)
     }
 }
@@ -384,7 +384,7 @@ pub enum Manga {
 }
 
 impl Manga {
-    fn is_unknown(manga: &Manga) -> bool {
+    const fn is_unknown(manga: &Manga) -> bool {
         matches!(manga, Manga::Unknown)
     }
 }
@@ -419,7 +419,7 @@ pub enum AgeRating {
 }
 
 impl AgeRating {
-    fn is_unknown(age_rating: &AgeRating) -> bool {
+    const fn is_unknown(age_rating: &AgeRating) -> bool {
         matches!(age_rating, AgeRating::Unknown)
     }
 }
@@ -431,7 +431,7 @@ pub struct ArrayOfComicPageInfo {
 }
 
 impl ArrayOfComicPageInfo {
-    fn is_empty(&self) -> bool {
+    const fn is_empty(&self) -> bool {
         self.pages_.is_empty()
     }
 }
@@ -540,7 +540,7 @@ pub enum ComicPageType {
 }
 
 impl ComicPageType {
-    fn is_story(&self) -> bool {
+    const fn is_story(&self) -> bool {
         matches!(self, ComicPageType::Story)
     }
 }
