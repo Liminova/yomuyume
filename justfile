@@ -221,11 +221,17 @@ _gen-seed-file:
         for tid in random.sample(all_title_ids, min(len(all_title_ids), 10)):
             ch_ids = [c['id'] for c in chapters if c['title_id'] == tid]
             cid_sel = random.choice(ch_ids) if ch_ids else None
-            pid_sel = random.choice(chap_to_pages[cid_sel]) if cid_sel and chap_to_pages.get(cid_sel) else None
+            # select a page and get its page number
+            if cid_sel and chap_to_pages.get(cid_sel):
+                pid_sel = random.choice(chap_to_pages[cid_sel])
+                page_num = next((p['page_number'] for p in pages if p['id'] == pid_sel), None)
+            else:
+                page_num = None
             reading_progress.append({
                 'user_id': uid,
                 'title_id': tid,
-                'page_id': pid_sel,
+                'chapter_id': cid_sel,
+                'page_number': page_num,
                 'updated_at': 'CURRENT_TIMESTAMP',
             })
 
@@ -269,7 +275,7 @@ _gen-seed-file:
     sections.append(make_insert('sessions', ['secret','user_id','created_at'], sessions))
     sections.append(make_insert('collections', ['id','name','user_id','created_at'], collections))
     sections.append(make_insert('collection_titles', ['collection_id','title_id'], collection_titles))
-    sections.append(make_insert('reading_progress', ['user_id','title_id','page_id','updated_at'], reading_progress))
+    sections.append(make_insert('reading_progress', ['user_id','title_id','chapter_id','page_number','updated_at'], reading_progress))
 
     with open('/tmp/ymym-seed.sql', 'w') as f:
         f.write(f"-- Auto-generated seed file: {datetime.now().isoformat()}\n\n")
