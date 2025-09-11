@@ -15,7 +15,7 @@ use crate::{
     AppState,
     routes::{check_pass, errors::InternalError},
     utils::{
-        constants::{CookieName, LOGIN_PATH},
+        constants::{LOGIN_PATH, SESSION_SECRET_COOKIE_NAME},
         nanoid::nanoid,
         result_utils::ResultUtils,
     },
@@ -68,26 +68,15 @@ pub async fn post_login(
 
     Ok((
         StatusCode::OK,
-        AppendHeaders([
-            (
-                header::SET_COOKIE,
-                Cookie::build((CookieName::UserID.as_ref(), user_id))
-                    .path("/")
-                    .secure(true)
-                    .http_only(true)
-                    .same_site(SameSite::Strict)
-                    .to_string(),
-            ),
-            (
-                header::SET_COOKIE,
-                Cookie::build((CookieName::SessionSecret.as_ref(), session_secret))
-                    .path("/")
-                    .secure(true)
-                    .http_only(true)
-                    .same_site(SameSite::Strict)
-                    .to_string(),
-            ),
-        ]),
+        AppendHeaders([(
+            header::SET_COOKIE,
+            Cookie::build((SESSION_SECRET_COOKIE_NAME, session_secret))
+                .path("/")
+                .secure(true)
+                .http_only(true)
+                .same_site(SameSite::Strict)
+                .to_string(),
+        )]),
     )
         .into_response())
 }

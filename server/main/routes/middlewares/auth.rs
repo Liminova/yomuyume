@@ -13,8 +13,11 @@ use tracing::error;
 use crate::{
     AppState,
     config::OperateMode,
-    routes::{UserIDExtension, errors::InternalError},
-    utils::{constants::CookieName, result_utils::ResultUtils},
+    routes::{
+        UserIDExtension,
+        errors::{InternalError, RequestError},
+    },
+    utils::constants::SESSION_SECRET_COOKIE_NAME,
 };
 
 /// Middleware checks `user-id` and `session-secret` cookies validity.
@@ -26,29 +29,18 @@ pub async fn auth(
 ) -> Result<Response, InternalError> {
     req.extensions_mut().insert(UserIDExtension(None));
 
-    let Some(provided_user_id) = cookie_jar
-        .get(CookieName::UserID.as_ref())
-        .map(|c| c.value_trimmed().to_string())
-    else {
-        if app_state.config.operate_mode == OperateMode::Public {
-            return Ok(next.run(req).await);
-        }
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
-    };
-
     let Some(provided_session_secret) = cookie_jar
-        .get(CookieName::SessionSecret.as_ref())
+        .get(SESSION_SECRET_COOKIE_NAME)
         .map(|c| c.value_trimmed().to_string())
     else {
         if app_state.config.operate_mode == OperateMode::Public {
             return Ok(next.run(req).await);
         }
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
+        return Ok((StatusCode::UNAUTHORIZED, RequestError::MissingSessionSecret).into_response());
     };
 
     if let Some(user) = sqlx::query!(
-        "SELECT user_id FROM sessions WHERE user_id = ? AND secret = ?",
-        provided_user_id,
+        "SELECT user_id FROM sessions WHERE secret = ?",
         provided_session_secret
     )
     .fetch_optional(&app_state.pool)
