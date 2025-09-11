@@ -512,6 +512,7 @@ impl Rating {
             .map(Some)
     }
 
+    #[allow(clippy::ref_option)]
     fn serializer<S: Serializer>(
         rating: &Option<Rating>,
         serializer: S,
@@ -549,14 +550,17 @@ const fn int32_neg_one() -> i32 {
     -1
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 const fn int32_is_neg_one(i: &i32) -> bool {
     *i == -1
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 const fn int32_is_zero(i: &i32) -> bool {
     *i == 0
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 const fn int64_is_zero(i: &i64) -> bool {
     *i == 0
 }
