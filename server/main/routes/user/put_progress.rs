@@ -37,8 +37,8 @@ pub struct PutProgressQuery {
         ("page_id" = i64, Query, description = "Page ID"),
         ("percent" = u8, Query, description = "Progress percent (0-100)"),
     ),
-    security(("user-id" = [], "session-secret" = [])))
-]
+    security(("session-secret" = []))
+)]
 pub async fn put_progress(
     State(app_state): State<Arc<AppState>>,
     Extension(user_id): Extension<UserID>,

@@ -25,7 +25,7 @@ use crate::{
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String)
     ),
-    security(("user-id" = [], "session-secret" = [])))
+    security(("session-secret" = [])))
 ]
 pub async fn put_favorite(
     State(app_state): State<Arc<AppState>>,

@@ -32,7 +32,7 @@ pub struct ModifyRequest {
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String)
     ),
-    security(("user-id" = [], "session-secret" = []))
+    security(("session-secret" = []))
 )]
 pub async fn post_modify(
     State(app_state): State<Arc<AppState>>,

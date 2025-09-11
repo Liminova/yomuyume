@@ -37,7 +37,7 @@ pub struct WhoAmIResponse {
         (status = 404, description = "User not found"),
         (status = 500, description = "Internal server error", body = String),
     ),
-    security(("user-id" = [], "session-secret" = []))
+    security(("session-secret" = []))
 )]
 pub async fn get_whoami(
     State(app_state): State<Arc<AppState>>,
