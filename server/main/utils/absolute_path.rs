@@ -26,19 +26,19 @@ pub enum AbsolutePathErr {
 }
 
 impl AbsolutePath {
-    pub fn from(path: &Path, base: Option<&PathBuf>) -> Result<Self, AbsolutePathErr> {
+    pub fn from(path: &Path, base: Option<&PathBuf>) -> Result<AbsolutePath, AbsolutePathErr> {
         if path.is_absolute() {
-            return Ok(Self(path.to_path_buf()));
+            return Ok(AbsolutePath(path.to_path_buf()));
         }
         if let Some(cwd) = base {
-            Ok(Self(
+            Ok(AbsolutePath(
                 cwd.join(path)
                     .canonicalize()
                     .map_err(AbsolutePathErr::Canonicalize)?,
             ))
         } else {
             let cwd = std::env::current_dir().map_err(AbsolutePathErr::GetCurrentWorkingDir)?;
-            Ok(Self(
+            Ok(AbsolutePath(
                 cwd.as_path()
                     .join(path)
                     .canonicalize()
