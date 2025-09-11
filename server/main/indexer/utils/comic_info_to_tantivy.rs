@@ -2,11 +2,11 @@ use std::{path::Path, sync::Arc};
 
 use chrono::TimeZone;
 use tantivy::TantivyDocument;
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::{
     AppState,
-    utils::{comic_info::ComicInfo, result_utils::ResultUtils},
+    utils::{comic_info::ComicInfo, constants::COMICINFO, result_utils::ResultUtils},
 };
 
 pub async fn comic_info_to_tantivy(
@@ -39,7 +39,25 @@ pub async fn comic_info_to_tantivy(
     }
     doc.add_text(app_state.indexer.fields.id, title_id);
     if let Some(release_date) = comic_info
-        .map(|ci| (ci.year, ci.month as u32, ci.day as u32))
+        .and_then(|ci| {
+            Some((
+                ci.year,
+                u32::try_from(if ci.month == -1 { 1 } else { ci.month }).okay(|e| {
+                    warn!(
+                        "invalid month {} for {COMICINFO} in {}: {e}",
+                        ci.month,
+                        title_path.display()
+                    );
+                })?,
+                u32::try_from(if ci.day == -1 { 1 } else { ci.day }).okay(|e| {
+                    warn!(
+                        "invalid day {} for {COMICINFO} in {}: {e}",
+                        ci.day,
+                        title_path.display()
+                    );
+                })?,
+            ))
+        })
         .and_then(|(year, month, day)| chrono::NaiveDate::from_ymd_opt(year, month, day))
         .and_then(|d| d.and_hms_opt(0, 0, 0))
         .map(|d| chrono::Utc.from_utc_datetime(&d).timestamp())
