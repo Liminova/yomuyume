@@ -55,9 +55,9 @@ impl AverageColor for DynamicImage {
         }
 
         // Calculate the average for each component.
-        let avg_r = (sum_r / total_pixels) as u8;
-        let avg_g = (sum_g / total_pixels) as u8;
-        let avg_b = (sum_b / total_pixels) as u8;
+        let avg_r = u8::try_from(sum_r / total_pixels).unwrap_or(u8::MAX);
+        let avg_g = u8::try_from(sum_g / total_pixels).unwrap_or(u8::MAX);
+        let avg_b = u8::try_from(sum_b / total_pixels).unwrap_or(u8::MAX);
 
         Some(HexColor((avg_r, avg_g, avg_b)))
     }
