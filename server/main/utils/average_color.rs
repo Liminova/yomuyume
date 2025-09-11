@@ -9,7 +9,7 @@ pub trait AverageColor {
 pub struct HexColor((u8, u8, u8));
 
 impl From<HexColor> for String {
-    fn from(hex: HexColor) -> Self {
+    fn from(hex: HexColor) -> String {
         format!("#{:02x}{:02x}{:02x}", hex.0.0, hex.0.1, hex.0.2)
     }
 }
@@ -21,7 +21,7 @@ impl std::fmt::Display for HexColor {
 }
 
 impl HexColor {
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn from_str(s: &str) -> Option<HexColor> {
         let s = s.strip_prefix('#').unwrap_or(s);
         if s.len() != 6 {
             return None;
