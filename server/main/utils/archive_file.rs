@@ -357,7 +357,7 @@ impl ArchiveFile for PathBuf {
                     .ok_or_else(|| warn!("can't get size for item {path} in {}", self.display()))
                     .ok()
                     .and_then(|val| {
-                        val.trim().parse::<i64>().okay(|e| {
+                        val.trim().parse::<u64>().okay(|e| {
                             warn!("can't parse size for {path} in {}: {e:?}", self.display());
                         })
                     });
