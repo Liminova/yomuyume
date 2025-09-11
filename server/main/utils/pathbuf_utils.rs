@@ -171,10 +171,9 @@ impl PathBufUtils for PathBuf {
     }
 
     fn read_comic_info_from_archive(&self) -> Result<ComicInfo, ReadComicInfoError> {
-        Ok(self
-            .read_file_from_archive(COMICINFO)
+        self.read_file_from_archive(COMICINFO)
             .map_err(ReadComicInfoError::ArchiveFileError)
             .map(|b| String::from(String::from_utf8_lossy(&b)))
-            .and_then(|s| ComicInfo::from_str(&s).map_err(ReadComicInfoError::Decode))?)
+            .and_then(|s| ComicInfo::from_str(&s).map_err(ReadComicInfoError::Decode))
     }
 }
