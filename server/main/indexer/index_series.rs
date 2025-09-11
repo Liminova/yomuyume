@@ -203,7 +203,7 @@ pub async fn index_series(
             );
         })
     });
-    let comic_info_bytes = comic_info_json.as_ref().map(|s| s.as_bytes());
+    let comic_info_bytes = comic_info_json.as_ref().map(String::as_bytes);
 
     let new_title_id = nanoid();
 
