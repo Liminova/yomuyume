@@ -29,7 +29,6 @@ use crate::{
 #[derive(Debug)]
 struct IndexedChapter {
     pub id: String,
-    pub path: AbsolutePath,
     pub rel_path: String,
     pub number: i32,
     pub last_modified: Option<NaiveDateTime>,
@@ -127,7 +126,6 @@ pub async fn index_series(
                             comic_info.as_ref().map(|ci| ci.pages().as_slice()),
                             &pages_in_db,
                         ),
-                        path: chapter_path,
                         rel_path: chapter_relative_path,
                         pages,
                     })
@@ -154,7 +152,6 @@ pub async fn index_series(
                             &pages_in_db,
                         ),
                         rel_path: chapter_relative_path,
-                        path: chapter_path,
                         pages,
                     })
             }
