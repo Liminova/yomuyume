@@ -42,7 +42,7 @@ fn get_7z_async() -> Result<tokio::process::Command, ArchiveFileError> {
 pub struct ItemInArchive {
     pub path: String,
     pub last_modified: Option<DateTime<Utc>>,
-    pub size: Option<i64>,
+    pub size: Option<u64>,
 }
 
 impl PartialEq for ItemInArchive {
