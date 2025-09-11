@@ -1,7 +1,6 @@
 #![allow(clippy::needless_for_each)]
 
 pub mod auth;
-pub mod content;
 pub mod errors;
 pub mod file;
 pub mod middlewares;
@@ -75,24 +74,12 @@ impl Modify for SecurityAddon {
         auth::get_logout,
         auth::post_forgot,
 
-        user::delete_bookmark,
-        user::delete_favorite,
         user::get_whoami,
         user::post_modify,
-        user::post_sensitive,
-        user::put_bookmark,
-        user::put_favorite,
         user::put_progress,
-
-        content::get_categories,
-        content::get_title,
-        content::get_pages,
-        content::get_search,
-        content::get_tags,
 
         utils::get_status,
         utils::post_status,
-        utils::get_scanning_progress,
 
         file::get_page_file,
         file::get_cover_file,
@@ -104,21 +91,9 @@ impl Modify for SecurityAddon {
 
         user::ModifyRequest,
         user::WhoAmIResponse,
-        user::SensitiveRequest,
-        user::SensitiveRequestMode,
-        user::SensitiveRequestPurpose,
-
-        content::InnerCategoriesResponse,
-        content::TitleResponse,
-        content::SearchResponse,
-        content::InnerSearchRequestOrderBy,
-        content::BaseTitleResponse,
-        content::BasePageResponse,
-        content::InnerTagResponse,
 
         utils::StatusRequest,
         utils::StatusResponse,
-        utils::ScanningProgressResponse,
     ))
 )]
 pub struct ApiDoc;
