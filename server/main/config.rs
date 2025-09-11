@@ -22,7 +22,7 @@ pub enum OperateMode {
 }
 
 impl From<&str> for OperateMode {
-    fn from(s: &str) -> Self {
+    fn from(s: &str) -> OperateMode {
         match s.trim().to_lowercase().as_str() {
             "public" => OperateMode::Public,
             "require_register" => OperateMode::RequireRegister,
@@ -108,7 +108,7 @@ macro_rules! optional {
 }
 
 impl Config {
-    pub fn init() -> Self {
+    pub fn init() -> Config {
         let library_path = AbsolutePath::from(&PathBuf::from(must!("LIBRARY_PATH")), None)
             .expect("can't convert LIBRARY_PATH to absolute");
 
@@ -117,7 +117,7 @@ impl Config {
             "LIBRARY_PATH is not point to a valid directory"
         );
 
-        Self {
+        Config {
             listen_address: optional!("LISTEN_ADDRESS", "0.0.0.0:3000"),
 
             library_path,
