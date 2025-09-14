@@ -21,7 +21,7 @@ use axum::{
     http::{StatusCode, header},
     middleware::from_fn_with_state as apply,
     response::IntoResponse,
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
 };
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
@@ -38,13 +38,17 @@ use crate::{
         content::{get_acquisition_feed, get_navigation_feed},
         file::{get_cover_file, get_page_file},
         middlewares::auth::auth,
-        user::{get_whoami, post_modify, put_progress},
+        user::{
+            create_collection, delete_collection, delete_title_from_collection, get_whoami,
+            post_modify, put_progress, put_title_in_collection,
+        },
         utils::{get_status, post_status},
     },
     utils::constants::{
-        FORGOT_PATH, GET_ACQUISITION_FEED_PATH, GET_COVER_FILE_PATH, GET_NAVIGATION_FEED_PATH,
-        GET_PAGE_FILE_PATH, GET_STATUS_PATH, GET_WHOAMI_PATH, LOGIN_PATH, LOGOUT_PATH,
-        POST_USER_MODIFY_PATH, PUT_READ_PROGRESS_PATH, REGISTER_PATH,
+        DELETE_COLLECTION_PATH, FORGOT_PATH, GET_ACQUISITION_FEED_PATH, GET_COVER_FILE_PATH,
+        GET_NAVIGATION_FEED_PATH, GET_PAGE_FILE_PATH, GET_STATUS_PATH, GET_WHOAMI_PATH, LOGIN_PATH,
+        LOGOUT_PATH, POST_USER_MODIFY_PATH, PUT_COLLECTION_PATH, PUT_READ_PROGRESS_PATH,
+        REGISTER_PATH, TITLE_IN_COLLECTION_PATH,
     },
 };
 use frontend_spa::{Content, get_file};
@@ -100,6 +104,12 @@ async fn main() -> Result<(), String> {
                 .route(GET_WHOAMI_PATH, get(get_whoami))
                 .route(POST_USER_MODIFY_PATH, post(post_modify))
                 .route(PUT_READ_PROGRESS_PATH, put(put_progress))
+                .route(PUT_COLLECTION_PATH, put(create_collection))
+                .route(
+                    TITLE_IN_COLLECTION_PATH,
+                    put(put_title_in_collection).delete(delete_title_from_collection),
+                )
+                .route(DELETE_COLLECTION_PATH, delete(delete_collection))
                 // file
                 .route(GET_PAGE_FILE_PATH, get(get_page_file))
                 .route(GET_COVER_FILE_PATH, get(get_cover_file))

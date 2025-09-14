@@ -77,11 +77,9 @@ pub const GET_WHOAMI_PATH: &str = "/api/user/whoami";
 pub const POST_USER_MODIFY_PATH: &str = "/api/user/modify";
 pub const PUT_READ_PROGRESS_PATH: &str = "/api/user/progress";
 
-pub const GET_COLLECTIONS_PATH: &str = "/api/user/collections";
-pub const PUT_COLLECTION_PATH: &str = "/api/user/collection";
-pub const PUT_TITLE_IN_COLLECTION_PATH: &str = "/api/user/collection/{collection_id}/{title_id}";
-pub const DELETE_TITLE_FROM_COLLECTION_PATH: &str = PUT_TITLE_IN_COLLECTION_PATH;
-pub const DELETE_COLLECTION_PATH: &str = "/api/user/collection/{collection_id}";
+pub const PUT_COLLECTION_PATH: &str = "/api/user/collection/new/{name}";
+pub const TITLE_IN_COLLECTION_PATH: &str = "/api/user/collection/{collection_id}/{title_id}";
+pub const DELETE_COLLECTION_PATH: &str = "/api/user/collection/delete/{collection_id}";
 
 pub const GET_STATUS_PATH: &str = "/api/status";
 // END: API paths - DO NOT MODIFY THIS LINE

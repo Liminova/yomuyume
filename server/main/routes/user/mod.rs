@@ -1,7 +1,9 @@
+mod collection;
 mod get_whoami;
 mod post_modify;
 mod put_progress;
 
+pub use collection::*;
 pub use get_whoami::*;
 pub use post_modify::*;
 pub use put_progress::*;
