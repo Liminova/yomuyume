@@ -90,12 +90,9 @@ impl DirEntryTypeGuesser for DirEntry {
             return Ok(DirEntryType::CategoryDir(items_in_dir));
         }
 
-        // only analyze the patterns to see if it's a series either when
-        let not_force_oneshot = !path.has_oneshot_flag(komga_oneshot_support);
-        let not_force_ignore = !path.has_recycle_flag(komga_recycle_support);
-        if (!not_force_oneshot || !not_force_ignore)
-            && let Some(chapter_infos) =
-                items_in_dir.has_series_pattern(nomedia_support, komga_recycle_support)
+        if !path.has_oneshot_flag(komga_oneshot_support)
+            && !path.has_recycle_flag(komga_recycle_support)
+            && let Some(chapter_infos) = items_in_dir.has_series_pattern(nomedia_support)
         {
             return Ok(DirEntryType::SeriesDir(chapter_infos));
         }
