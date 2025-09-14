@@ -7,7 +7,7 @@ pub use guess::{DirEntryType, DirEntryTypeGuesser};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum IndexedChapterKind {
-    Directory,
+    Directory(Vec<AbsolutePath>),
     Archive(Vec<ItemInArchive>),
 }
 
