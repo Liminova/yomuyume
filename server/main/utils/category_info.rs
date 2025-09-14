@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::utils::{comic_info::option_string_deserializer, constants::CATEGORY_INFO_SCHEMA};
+use crate::utils::comic_info::option_string_deserializer;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
 pub struct CategoryInfo {
@@ -27,20 +27,11 @@ impl CategoryInfo {
         }
         quick_xml::de::from_str::<CategoryInfo>(s)
     }
-
-    pub fn _to_pretty_string(&self) -> Result<String, quick_xml::errors::serialize::SeError> {
-        let mut buffer = format!("{CATEGORY_INFO_SCHEMA}\n");
-        let mut ser = quick_xml::se::Serializer::new(&mut buffer);
-        ser.indent(' ', 4);
-        self.serialize(ser)?;
-        Ok(buffer)
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::constants::CATEGORY_INFO_SCHEMA;
 
     #[test]
     fn all_filled() {
@@ -73,10 +64,5 @@ mod tests {
 
         assert_eq!(category_info.name, None);
         assert_eq!(category_info.description, None);
-
-        assert_eq!(
-            category_info._to_pretty_string().unwrap(),
-            format!("{CATEGORY_INFO_SCHEMA}\n<CategoryInfo/>")
-        );
     }
 }
