@@ -9,6 +9,7 @@ services:
             - ../:/ymym
             - cargo-cache:/usr/local/cargo
             - pnpm-store:/home/ymym/.pnpm-store
+            - dav1d-lib:/usr/local/lib/dav1d
         deploy:
             resources:
                 limits:
@@ -37,3 +38,4 @@ services:
 volumes:
     cargo-cache:
     pnpm-store:
+    dav1d-lib:
