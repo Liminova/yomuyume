@@ -141,3 +141,15 @@ impl ToAbsolute<PathBuf> for PathBuf {
         AbsolutePath::from(self.as_path(), base)
     }
 }
+
+pub trait VecAbsolutePathUtils {
+    fn contains_image(&self) -> bool;
+}
+
+impl VecAbsolutePathUtils for Vec<AbsolutePath> {
+    /// Check if the vector contains at least one image file path.
+    fn contains_image(&self) -> bool {
+        self.iter()
+            .any(|p| p.is_file() && p.as_ref().has_image_ext())
+    }
+}
