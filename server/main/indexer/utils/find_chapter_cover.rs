@@ -3,7 +3,7 @@ use tracing::warn;
 use crate::{
     indexer::utils::{IndexedChapterPages, PageInDB},
     utils::{
-        comic_info::{ComicPageInfo, ComicPageType},
+        comic_info::comic_page_info::{ComicPageInfo, ComicPageType},
         result_utils::ResultUtils,
     },
 };
