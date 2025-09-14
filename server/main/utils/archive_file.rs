@@ -5,9 +5,9 @@
 
 use std::{
     collections::HashMap,
-    ffi::OsStr,
     io::{Read, Write},
     path::PathBuf,
+    process::{Command, Stdio},
     sync::Arc,
 };
 
@@ -15,28 +15,8 @@ use chrono::{DateTime, Local, NaiveDateTime, TimeZone, Timelike, Utc};
 use tracing::warn;
 
 use crate::utils::{
-    constants::SUPPORTED_ARCHIVE_FORMATS, result_utils::ResultUtils, string_utils::StringUtils,
+    pathbuf_utils::PathBufUtils, result_utils::ResultUtils, string_utils::StringUtils,
 };
-
-const SZ_BIN: &[u8] = include_bytes!("7zz");
-
-fn get_7z() -> Result<std::process::Command, ArchiveFileError> {
-    let sz_cli_path = std::env::temp_dir().join("7z");
-
-    if !std::path::Path::new(&sz_cli_path).exists() {
-        std::fs::write(&sz_cli_path, SZ_BIN).map_err(ArchiveFileError::CantSpawn7z)?;
-    }
-    Ok(std::process::Command::new(&sz_cli_path))
-}
-
-fn get_7z_async() -> Result<tokio::process::Command, ArchiveFileError> {
-    let sz_cli_path = std::env::temp_dir().join("7z");
-
-    if !std::path::Path::new(&sz_cli_path).exists() {
-        std::fs::write(&sz_cli_path, SZ_BIN).map_err(ArchiveFileError::CantSpawn7zAsync)?;
-    }
-    Ok(tokio::process::Command::new(&sz_cli_path))
-}
 
 #[derive(Debug, Clone, Eq)]
 pub struct ItemInArchive {
@@ -140,13 +120,13 @@ pub enum ArchiveFileError {
     #[error("can't wait 7zz process to complete")]
     CantWaitToComplete(std::io::Error),
     #[error("can't take stdin pipe to write to 7zz input")]
-    CantTakeStdinPipe,
+    _CantTakeStdinPipe,
     #[error("can't take stdout pipe to read 7zz output")]
     CantTakeStdoutPipe,
     #[error("can't take stderr pipe to read 7zz output")]
     CantTakeStderrPipe,
     #[error("can't write to stdin pipe: {0:?}")]
-    CantWriteToStdin(std::io::Error),
+    _CantWriteToStdin(std::io::Error),
     #[error("can't read from stdout pipe to buffer: {0:?}")]
     CantReadStdout(std::io::Error),
     #[error("can't read from stderr pipe to buffer: {0:?}")]
@@ -161,12 +141,9 @@ pub trait ArchiveFile {
         Self: Sized;
     fn list_files_in_archive(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError>;
 
-    fn read_file_from_archive(
-        &self,
-        file_name: impl AsRef<OsStr>,
-    ) -> Result<Vec<u8>, ArchiveFileError>;
+    fn read_file_from_archive(&self, file_name: &str) -> Result<Vec<u8>, ArchiveFileError>;
 
-    fn upsert_file_to_archive(
+    fn _upsert_file_to_archive(
         &self,
         file_name: &str,
         content: Arc<Vec<u8>>,
@@ -187,14 +164,7 @@ impl ArchiveFile for PathBuf {
         if !self.is_file() {
             return Err(ArchiveFileError::NotAFile(self.clone()));
         }
-        if !SUPPORTED_ARCHIVE_FORMATS.contains(
-            &self
-                .extension()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string()
-                .as_str(),
-        ) {
+        if !self.has_archive_ext() {
             return Err(ArchiveFileError::NotAnArchive(self.clone()));
         }
         Ok(())
@@ -215,13 +185,13 @@ impl ArchiveFile for PathBuf {
         })?;
 
         // 7z a -tzip DestinyTest.zip destiny1.txt destiny4.txt destiny6.txt
-        let mut child = get_7z()?
+        let mut child = Command::new("7zz")
             .arg("a")
-            .arg(format!("{}", self.display()))
+            .arg(self)
             .arg("-tzip")
-            .args(items.iter().map(|path| format!("{}", path.display())))
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
+            .args(items)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .spawn()
             .map_err(ArchiveFileError::CantSpawn7z)?;
 
@@ -264,13 +234,13 @@ impl ArchiveFile for PathBuf {
     fn list_files_in_archive(&self) -> Result<Vec<ItemInArchive>, ArchiveFileError> {
         self.validate()?;
 
-        let mut child = get_7z()?
+        let mut child = Command::new("7zz")
             .arg("l")
-            .arg(format!("{}", self.display()))
+            .arg(self)
             .arg("-ba")
             .arg("-slt")
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .spawn()
             .map_err(ArchiveFileError::CantSpawn7z)?;
 
@@ -379,21 +349,18 @@ impl ArchiveFile for PathBuf {
     /// exist, return an empty buffer.
     ///
     /// https://superuser.com/a/148501
-    fn read_file_from_archive(
-        &self,
-        file_name: impl AsRef<OsStr>,
-    ) -> Result<Vec<u8>, ArchiveFileError> {
+    fn read_file_from_archive(&self, file_name: &str) -> Result<Vec<u8>, ArchiveFileError> {
         self.validate()?;
 
         // Read content of specified file to stdout
         // 7zz e -so <input> <file-to-extract>
-        let mut child = get_7z()?
+        let mut child = Command::new("7zz")
             .arg("e")
-            .arg(format!("{}", self.display()))
+            .arg(self)
             .arg("-so")
             .arg(file_name)
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .spawn()
             .map_err(ArchiveFileError::CantSpawn7z)?;
 
@@ -429,30 +396,30 @@ impl ArchiveFile for PathBuf {
     }
 
     /// Upsert a buffer to a specified file in the archive.
-    fn upsert_file_to_archive(
+    fn _upsert_file_to_archive(
         &self,
         file_name: &str,
         content: Arc<Vec<u8>>,
     ) -> Result<(), ArchiveFileError> {
         self.validate()?;
 
-        let mut child = get_7z()?
+        let mut child = Command::new("7zz")
             .arg("u")
-            .arg(format!("{}", self.display()))
+            .arg(self)
             .arg(format!("-si{file_name}"))
             .arg(file_name)
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .spawn()
             .map_err(ArchiveFileError::CantSpawn7z)?;
         {
             child
                 .stdin
                 .take()
-                .ok_or(ArchiveFileError::CantTakeStdinPipe)?
+                .ok_or(ArchiveFileError::_CantTakeStdinPipe)?
                 .write_all((*content).as_ref())
-                .map_err(ArchiveFileError::CantWriteToStdin)?;
+                .map_err(ArchiveFileError::_CantWriteToStdin)?;
         }
         let child_output = child
             .wait_with_output()
@@ -476,15 +443,15 @@ impl ArchiveFile for PathBuf {
     ) -> Result<tokio::process::ChildStdout, ArchiveFileError> {
         self.validate()?;
 
-        let mut child = get_7z_async()?
+        let mut child = tokio::process::Command::new("7zz")
             .arg("e")
-            .arg(format!("{}", self.display()))
+            .arg(self)
             .arg("-so")
             .arg(file_name)
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .spawn()
-            .map_err(ArchiveFileError::CantSpawn7z)?;
+            .map_err(ArchiveFileError::CantSpawn7zAsync)?;
 
         child
             .stdout
@@ -510,8 +477,7 @@ mod tests {
 
     #[test]
     fn seven_zip_cli_in_path() {
-        let mut child = get_7z()
-            .unwrap()
+        let mut child = Command::new("7zz")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -526,7 +492,7 @@ mod tests {
         ))
         .expect("can't read stderr");
 
-        assert!(output.contains("7-Zip (z) 24.08 (x64)"));
+        assert!(output.contains("7-Zip (z) 25.01 (x64)"));
         assert!(err.is_empty());
     }
 
@@ -596,7 +562,7 @@ mod tests {
         // overwrite that empty file
         let content_1 = Arc::new(b"lorem ipsum".to_vec());
         archive_file
-            .upsert_file_to_archive(filename_1, content_1.clone())
+            ._upsert_file_to_archive(filename_1, content_1.clone())
             .unwrap();
 
         assert_eq!(
@@ -610,7 +576,7 @@ mod tests {
         let content_2 = Arc::new(b"dolor sit amet".to_vec());
         File::create(temp_dir.path().join(filename_2)).unwrap();
         archive_file
-            .upsert_file_to_archive(filename_2, content_2.clone())
+            ._upsert_file_to_archive(filename_2, content_2.clone())
             .unwrap();
 
         assert_eq!(
