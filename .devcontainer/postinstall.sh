@@ -104,19 +104,22 @@ if [ ! -d /usr/local/lib/dav1d/$ver/build ]; then
 fi
 cd /usr/local/lib/dav1d/$ver/build && sudo ninja install
 
-# 7zip
-ver="2501"
-curl -L -o /tmp/7z.tar.xz https://www.7-zip.org/a/7z$ver-linux-x64.tar.xz
-checksum=$(openssl dgst -sha3-512 /tmp/7z.tar.xz | awk '{print $2}')
-expected="20ab025c487de16840ca4b4a5783ae62bda66ddbb4488ea4a91c0e521cee9dc90513a93bc52694c1c23e7208c6f03608e1a418c6612ebed19437114fa3933cee"
-if [ ! "$checksum" = "$expected" ]; then
-    echo "7z tarball checksum failed\nexpected: $expected\ngot: $checksum"
+if ! command -v 7zz >/dev/null; then
+    # 7zip
+    ver="2501"
+    curl -L -o /tmp/7z.tar.xz https://www.7-zip.org/a/7z$ver-linux-x64.tar.xz
+    checksum=$(openssl dgst -sha3-512 /tmp/7z.tar.xz | awk '{print $2}')
+    expected="20ab025c487de16840ca4b4a5783ae62bda66ddbb4488ea4a91c0e521cee9dc90513a93bc52694c1c23e7208c6f03608e1a418c6612ebed19437114fa3933cee"
+    if [ "$checksum" != "$expected" ]; then
+        echo "7z tarball checksum failed\nexpected: $expected\ngot: $checksum"
+    else
+        sudo tar -xf /tmp/7z.tar.xz -C /usr/local/bin/ 7zz
+        [[ -f /usr/local/bin/7zz ]] || { echo "7zz not found"; exit 1; }
+    fi
+    rm -f /tmp/7z.tar.xz
 else
-    rm -f server/main/utils/7zz
-    tar -xf /tmp/7z.tar.xz -C server/main/utils/ 7zz
-    [[ -f server/main/utils/7zz ]] || { echo "7z not found"; exit 1; }
+    echo "7zz already installed, skipping"
 fi
-rm -f /tmp/7z.tar.xz
 
 # sqlx-cli
 cargo install sqlx-cli
