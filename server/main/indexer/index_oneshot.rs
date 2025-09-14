@@ -17,7 +17,7 @@ use crate::{
         },
     },
     utils::{
-        absolute_path::AbsolutePath,
+        absolute_path::{AbsolutePath, ToAbsolute},
         archive_file::ItemInArchive,
         average_color::HexColor,
         nanoid::nanoid,
@@ -122,8 +122,24 @@ pub async fn index_oneshot(
                 }),
         ),
 
-        OneshotType::Directory(sub_entries) => (
-            read_chap_pages_dir(&app_state, &title_path, Some(sub_entries), &pages_in_db).await?,
+        OneshotType::Directory(files_in_title) => (
+            read_chap_pages_dir(
+                &app_state,
+                &title_path,
+                files_in_title
+                    .into_iter()
+                    .filter_map(|e| {
+                        e.path().to_absolute(None).okay(|e| {
+                            warn!(
+                                "can't convert entry in oneshot {} to absolute path: {e}",
+                                title_path.display()
+                            );
+                        })
+                    })
+                    .collect(),
+                &pages_in_db,
+            )
+            .await?,
             title_path.as_ref().read_comic_info_from_dir().okay(|e| {
                 warn!(
                     "can't read ComicInfo.xml from oneshot {}: {e}",
