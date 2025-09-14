@@ -78,25 +78,31 @@ echo "cargo config: \n$(cat /usr/local/cargo/config.toml)"
 
 # get & extract dav1d
 ver="1.5.0"
-curl -L -o /tmp/dav1d.tar.gz https://code.videolan.org/videolan/dav1d/-/archive/$ver/dav1d-$ver.tar.gz
-checksum=$(openssl dgst -sha3-512 /tmp/dav1d.tar.gz | awk '{print $2}' | tr -d '\n')
-expected="eab0a27f56576233b4a23f227df77d761ad566333363ac0f9b8babe83990f672a49fa4d7dc79f4596e78bf2f91465081e2ce289dc6b0f5a2e9d120e0c1504291"
-if [ ! "$checksum" = "$expected" ]; then
-    echo "dav1d tarball checksum failed"
-    exit 1
+if [ -d "/usr/local/lib/dav1d/$ver" ]; then
+    echo "dav1d $ver already installed, skipping"
 else
-    sudo tar -xf /tmp/dav1d.tar.gz -C /usr/local/lib
+    curl -L -o /tmp/dav1d.tar.gz https://code.videolan.org/videolan/dav1d/-/archive/$ver/dav1d-$ver.tar.gz
+    checksum=$(openssl dgst -sha3-512 /tmp/dav1d.tar.gz | awk '{print $2}' | tr -d '\n')
+    expected="eab0a27f56576233b4a23f227df77d761ad566333363ac0f9b8babe83990f672a49fa4d7dc79f4596e78bf2f91465081e2ce289dc6b0f5a2e9d120e0c1504291"
+
+    if [ "$checksum" != "$expected" ]; then
+        echo "dav1d tarball checksum failed"
+        exit 1
+    else
+        sudo mkdir -p /usr/local/lib/dav1d/$ver
+        sudo tar -xf /tmp/dav1d.tar.gz -C /usr/local/lib/dav1d/$ver --strip-components=1
+    fi
+    rm -f /tmp/dav1d.tar.gz
 fi
-rm -f /tmp/dav1d.tar.gz
 
 # build dav1d
-if [ ! -d /usr/local/lib/dav1d-$ver/build ]; then
-    cd /usr/local/lib/dav1d-$ver
+if [ ! -d /usr/local/lib/dav1d/$ver/build ]; then
+    cd /usr/local/lib/dav1d/$ver
     sudo mkdir build && cd build
     sudo meson setup --default-library=static ..
     sudo ninja
 fi
-cd /usr/local/lib/dav1d-$ver/build && sudo ninja install
+cd /usr/local/lib/dav1d/$ver/build && sudo ninja install
 
 # 7zip
 ver="2501"
