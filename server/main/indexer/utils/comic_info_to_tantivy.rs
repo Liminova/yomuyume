@@ -6,7 +6,7 @@ use tracing::{error, warn};
 
 use crate::{
     AppState,
-    utils::{comic_info::ComicInfo, constants::COMICINFO, result_utils::ResultUtils},
+    utils::{comic_info::ComicInfo, constants::COMIC_INFO, result_utils::ResultUtils},
 };
 
 pub async fn comic_info_to_tantivy(
@@ -44,14 +44,14 @@ pub async fn comic_info_to_tantivy(
                 ci.year,
                 u32::try_from(if ci.month == -1 { 1 } else { ci.month }).okay(|e| {
                     warn!(
-                        "invalid month {} for {COMICINFO} in {}: {e}",
+                        "invalid month {} for {COMIC_INFO} in {}: {e}",
                         ci.month,
                         title_path.display()
                     );
                 })?,
                 u32::try_from(if ci.day == -1 { 1 } else { ci.day }).okay(|e| {
                     warn!(
-                        "invalid day {} for {COMICINFO} in {}: {e}",
+                        "invalid day {} for {COMIC_INFO} in {}: {e}",
                         ci.day,
                         title_path.display()
                     );

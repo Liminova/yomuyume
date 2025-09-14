@@ -7,7 +7,7 @@ use crate::utils::{
     archive_file::{ArchiveFile, ArchiveFileError},
     category_info::CategoryInfo,
     comic_info::ComicInfo,
-    constants::{CATEGORYINFO, COMICINFO, SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS},
+    constants::{CATEGORY_INFO, COMIC_INFO, SUPPORTED_ARCHIVE_FORMATS, SUPPORTED_IMAGE_FORMATS},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -129,7 +129,7 @@ impl PathBufUtils for PathBuf {
         if self.is_file() {
             return Err(ReadCategoryInfoError::ExpectPathDir);
         }
-        let category_info_path = self.join(CATEGORYINFO);
+        let category_info_path = self.join(CATEGORY_INFO);
         if !category_info_path.exists() {
             return Ok(CategoryInfo::default());
         }
@@ -147,7 +147,7 @@ impl PathBufUtils for PathBuf {
     }
 
     fn read_comic_info_from_dir(&self) -> Result<ComicInfo, ReadComicInfoError> {
-        let comic_info_path = self.join(COMICINFO);
+        let comic_info_path = self.join(COMIC_INFO);
         if !comic_info_path.exists() {
             return Ok(ComicInfo::default());
         }
@@ -165,7 +165,7 @@ impl PathBufUtils for PathBuf {
     }
 
     fn read_comic_info_from_archive(&self) -> Result<ComicInfo, ReadComicInfoError> {
-        self.read_file_from_archive(COMICINFO)
+        self.read_file_from_archive(COMIC_INFO)
             .map_err(ReadComicInfoError::ArchiveFileError)
             .map(|b| String::from(String::from_utf8_lossy(&b)))
             .and_then(|s| ComicInfo::from_str(&s).map_err(ReadComicInfoError::Decode))

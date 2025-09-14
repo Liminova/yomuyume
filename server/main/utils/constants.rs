@@ -5,10 +5,10 @@ pub const SUPPORTED_IMAGE_FORMATS: [&str; 9] = [
     "avif", "bmp", "gif", "jpeg", "jpg", "png", "tif", "tiff", "webp",
 ];
 
-pub const COMICINFO_SCHEMA: &str = r#"<?xml-model href="https://raw.githubusercontent.com/anansi-project/comicinfo/0b6e01/drafts/v2.1/ComicInfo.xsd"?>"#;
-pub const COMICINFO: &str = "ComicInfo.xml";
+pub const COMIC_INFO_SCHEMA: &str = r#"<?xml-model href="https://raw.githubusercontent.com/anansi-project/comicinfo/0b6e01/drafts/v2.1/ComicInfo.xsd"?>"#;
+pub const COMIC_INFO: &str = "ComicInfo.xml";
 pub const CATEGORY_INFO_SCHEMA: &str = r#"<?xml-model href="https://raw.githubusercontent.com/Delnegend/Delnegend/c0114e8/categoryinfo-1.0.xsd"?>"#;
-pub const CATEGORYINFO: &str = "CategoryInfo.xml";
+pub const CATEGORY_INFO: &str = "CategoryInfo.xml";
 
 pub enum ForgotPasswordLimit {
     Cooldown,
