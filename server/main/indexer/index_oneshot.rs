@@ -33,7 +33,6 @@ pub enum OneshotType {
 }
 
 /// index a oneshot to the database and return its ID
-#[allow(clippy::cognitive_complexity)]
 pub async fn index_oneshot(
     app_state: Arc<AppState>,
     title_path: AbsolutePath,

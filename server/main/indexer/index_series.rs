@@ -37,7 +37,6 @@ struct IndexedChapter {
 }
 
 /// index a series to the database and return its ID
-#[allow(clippy::cognitive_complexity)]
 pub async fn index_series(
     app_state: Arc<AppState>,
     title_path: AbsolutePath,

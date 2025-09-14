@@ -25,7 +25,6 @@ struct ScannedEntry {
     parent: Option<AbsolutePath>, // None for the library root
 }
 
-#[allow(clippy::cognitive_complexity)]
 pub async fn start_index(app_state: Arc<AppState>) -> Option<()> {
     // scan library directory
     let library_dir = std::fs::read_dir(app_state.config.library_path.as_ref()).okay(|e| {
