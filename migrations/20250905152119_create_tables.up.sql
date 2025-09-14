@@ -93,6 +93,8 @@ CREATE TABLE
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     );
 
+CREATE INDEX idx_collections_user_id ON collections (user_id);
+
 CREATE TABLE
     collection_titles (
         collection_id TEXT NOT NULL,
