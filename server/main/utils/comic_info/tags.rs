@@ -23,23 +23,28 @@ mod tests {
 
     #[test]
     fn tags() {
-        let comic_info = ComicInfo::from_str(r"<ComicInfo><Tags>  </Tags></ComicInfo>").unwrap();
-        assert_eq!(comic_info.tags, Vec::<String>::new());
-        assert_eq!(
-            comic_info.to_pretty_string(false).unwrap(),
-            format!("<ComicInfo/>")
-        );
+        macro_rules! assert_tags {
+            ($input:expr, $expected:expr, $expected_str:expr) => {
+                let comic_info = ComicInfo::from_str($input).unwrap();
+                assert_eq!(comic_info.tags, $expected);
+                assert_eq!(comic_info.to_pretty_string(false).unwrap(), $expected_str);
+            };
+        }
 
-        let comic_info =
-            ComicInfo::from_str(r"<ComicInfo><Tags>tag3  , tag1  , tag2  </Tags></ComicInfo>")
-                .unwrap();
-        assert_eq!(
-            comic_info.tags,
-            Vec::<String>::from(["tag1".into(), "tag2".into(), "tag3".into()])
+        assert_tags!(
+            r"<ComicInfo><Tags>  </Tags></ComicInfo>",
+            Vec::<String>::new(),
+            "<ComicInfo/>"
         );
-        assert_eq!(
-            comic_info.to_pretty_string(false).unwrap(),
-            format!("<ComicInfo>\n    <Tags>tag1, tag2, tag3</Tags>\n</ComicInfo>")
+        assert_tags!(
+            r"<ComicInfo></ComicInfo>",
+            Vec::<String>::new(),
+            "<ComicInfo/>"
+        );
+        assert_tags!(
+            r"<ComicInfo><Tags>tag3  , tag1  , tag2,tag2  </Tags></ComicInfo>",
+            Vec::<String>::from(["tag1".into(), "tag2".into(), "tag3".into()]),
+            "<ComicInfo>\n    <Tags>tag1, tag2, tag3</Tags>\n</ComicInfo>"
         );
     }
 }
