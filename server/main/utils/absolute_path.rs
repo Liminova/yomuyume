@@ -25,6 +25,14 @@ pub enum AbsolutePathError {
     StripCwdPrefix(String, StripPrefixError),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ListItemsInDirectoryError {
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("absolute path error: {0}")]
+    ToAbsolute(#[from] AbsolutePathError),
+}
+
 impl AbsolutePath {
     pub fn from(path: &Path, base: Option<&PathBuf>) -> Result<AbsolutePath, AbsolutePathError> {
         if path.is_absolute() {
@@ -99,6 +107,16 @@ impl AbsolutePath {
     /// Alias of `.as_ref().display()`
     pub fn display(&self) -> impl Display + '_ {
         self.0.display()
+    }
+
+    /// List files and directories in a directory (non-recursively)
+    /// Returns an empty vector if the path is not a directory
+    pub fn list_items_in_directory(&self) -> Result<Vec<AbsolutePath>, ListItemsInDirectoryError> {
+        let mut files = vec![];
+        for entry in self.as_ref().read_dir()? {
+            files.push(entry?.path().to_absolute(None)?);
+        }
+        Ok(files)
     }
 }
 
