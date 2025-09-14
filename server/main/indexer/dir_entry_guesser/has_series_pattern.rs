@@ -5,7 +5,7 @@ use tracing::{debug, warn};
 use crate::{
     indexer::dir_entry_guesser::{IndexedChapterKind, PartialIndexedChapter},
     utils::{
-        absolute_path::ToAbsolute,
+        absolute_path::{ToAbsolute, VecAbsolutePathUtils},
         archive_file::{ArchiveFile, ItemsInArchiveUtils},
         pathbuf_utils::PathBufUtils,
         result_utils::ResultUtils,
@@ -13,81 +13,77 @@ use crate::{
 };
 
 pub trait HasPatternOfSeries {
-    fn has_series_pattern(
-        &self,
-        nomedia_support: bool,
-        komga_recycle_support: bool,
-    ) -> Option<Vec<PartialIndexedChapter>>;
+    fn has_series_pattern(&self, nomedia_support: bool) -> Option<Vec<PartialIndexedChapter>>;
 }
 
 impl HasPatternOfSeries for Vec<DirEntry> {
-    fn has_series_pattern(
-        &self,
-        is_nomedia_enabled: bool,
-        is_komga_recyle_enabled: bool,
-    ) -> Option<Vec<PartialIndexedChapter>> {
+    fn has_series_pattern(&self, nomedia_support: bool) -> Option<Vec<PartialIndexedChapter>> {
         if self.len() < 2 {
             return None;
         }
 
-        let are_we_chapters = self
-            .iter()
-            .map(DirEntry::path)
-            .filter(|p| !p.has_recycle_flag(is_komga_recyle_enabled))
-            .filter_map(|p| match p.metadata() {
-                Ok(m) => Some((p, m)),
-                Err(e) => {
-                    warn!("can't get metadata of `{}`: {e:?}", p.display());
-                    None
+        let mut partial_indexed_chapters: Vec<PartialIndexedChapter> = Vec::new();
+        for entry in self {
+            let path = entry.path();
+            let Some(absolute_path) = path.to_absolute(None).okay(|e| {
+                warn!("can't convert `{}` to absolute path: {e}", path.display());
+            }) else {
+                continue;
+            };
+
+            if path.is_dir() {
+                if path.contains_nomedia_file(nomedia_support) {
+                    continue;
                 }
-            })
-            .filter(|(p, m)| {
-                let is_file_but = m.is_file() && p.has_archive_ext();
-                let is_dir_but = m.is_dir() && !p.contains_nomedia_file(is_nomedia_enabled);
-                is_file_but || is_dir_but
-            })
-            .filter_map(|(p, m)| {
-                let Ok(path) = p.to_absolute(None) else {
-                    warn!("can't convert `{}` to absolute path", p.display());
-                    return None;
+                let Some(items_in_dir) = absolute_path.list_items_in_directory().okay(|e| {
+                    warn!("can't list items in `{}`: {e}", path.display());
+                }) else {
+                    continue;
                 };
-
-                if m.is_dir() {
-                    return Some(PartialIndexedChapter {
-                        fallback_vol_num: 0,
-                        path,
-                        kind: IndexedChapterKind::Directory,
-                    });
+                if items_in_dir.is_empty() || !items_in_dir.contains_image() {
+                    continue;
                 }
 
-                if !p.has_archive_ext() {
-                    return None;
-                }
+                partial_indexed_chapters.push(PartialIndexedChapter {
+                    fallback_vol_num: 0,
+                    path: absolute_path,
+                    kind: IndexedChapterKind::Directory(items_in_dir),
+                });
+                continue;
+            }
 
-                p.list_files_in_archive()
-                    .okay(|e| warn!("can't list files in `{}`: {e:?}", p.display()))
-                    .filter(|files| {
-                        !files.is_empty()
-                            || !files.contains_nomedia(is_nomedia_enabled)
-                            || files.contains_image()
-                    })
-                    .map(|files| PartialIndexedChapter {
-                        fallback_vol_num: 0,
-                        path,
-                        kind: IndexedChapterKind::Archive(files),
-                    })
-            })
-            .collect::<Vec<_>>();
+            if !path.has_archive_ext() {
+                continue;
+            }
 
-        if are_we_chapters.is_empty() {
+            let Some(files_in_archive) = path.list_files_in_archive().okay(|e| {
+                warn!("can't list files in `{}`: {e}", path.display());
+            }) else {
+                continue;
+            };
+
+            if files_in_archive.is_empty()
+                || files_in_archive.contains_nomedia(nomedia_support)
+                || !files_in_archive.contains_image()
+            {
+                continue;
+            }
+
+            partial_indexed_chapters.push(PartialIndexedChapter {
+                fallback_vol_num: 0,
+                path: absolute_path,
+                kind: IndexedChapterKind::Archive(files_in_archive),
+            });
+        }
+
+        if partial_indexed_chapters.is_empty() {
             return None;
         }
 
         let mut basename = String::new();
-        let mut chapters: Vec<PartialIndexedChapter> = Vec::with_capacity(are_we_chapters.len());
 
-        for am_i_chapter in are_we_chapters {
-            let path_last_component = am_i_chapter
+        for partial_indexed_chapter in &mut partial_indexed_chapters {
+            let title = partial_indexed_chapter
                 .path
                 .as_ref()
                 .with_extension("")
@@ -95,18 +91,18 @@ impl HasPatternOfSeries for Vec<DirEntry> {
                 .to_string_lossy()
                 .to_string();
 
-            let mut curr_basename_rev = String::with_capacity(path_last_component.len());
-            let mut chapter_number = String::with_capacity(path_last_component.len());
+            let mut curr_basename_rev = String::with_capacity(title.len());
+            let mut chapter_number = String::with_capacity(title.len());
 
             // iterate backwards
-            for char in path_last_component.chars().rev() {
+            for char in title.chars().rev() {
                 let is_digit = char.is_ascii_digit();
 
                 if !is_digit && chapter_number.is_empty() {
                     #[cfg(debug_assertions)]
                     debug!(
                         "returning None because `{:?}` doesn't have a chapter number",
-                        am_i_chapter.path
+                        partial_indexed_chapter.path
                     );
 
                     return None;
@@ -141,18 +137,14 @@ impl HasPatternOfSeries for Vec<DirEntry> {
             }
             basename = curr_basename_normalized;
 
-            chapters.push(PartialIndexedChapter {
-                path: am_i_chapter.path,
-                fallback_vol_num: chapter_number
-                    .chars()
-                    .rev()
-                    .collect::<String>()
-                    .parse()
-                    .unwrap_or_default(),
-                kind: am_i_chapter.kind,
-            });
+            partial_indexed_chapter.fallback_vol_num = chapter_number
+                .chars()
+                .rev()
+                .collect::<String>()
+                .parse()
+                .unwrap_or_default();
         }
 
-        Some(chapters)
+        Some(partial_indexed_chapters)
     }
 }
