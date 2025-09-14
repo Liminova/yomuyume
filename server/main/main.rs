@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 #![warn(clippy::nursery, clippy::pedantic, clippy::perf, clippy::unwrap_used)]
-#![allow(clippy::doc_markdown, clippy::too_many_lines, clippy::use_self, unused)] // TODO: remove unused
+#![allow(clippy::doc_markdown, clippy::too_many_lines, clippy::use_self)]
 
 mod config;
 mod indexer;
@@ -30,14 +30,16 @@ use crate::{
     routes::{
         ApiDoc,
         auth::{get_logout, post_forgot, post_login, post_register},
+        content::{get_acquisition_feed, get_navigation_feed},
         file::{get_cover_file, get_page_file},
         middlewares::auth::auth,
         user::{get_whoami, post_modify, put_progress},
         utils::{get_status, post_status},
     },
     utils::constants::{
-        FORGOT_PATH, GET_COVER_FILE_PATH, GET_PAGE_FILE_PATH, GET_STATUS_PATH, GET_WHOAMI_PATH,
-        LOGIN_PATH, LOGOUT_PATH, POST_USER_MODIFY_PATH, PUT_READ_PROGRESS_PATH, REGISTER_PATH,
+        FORGOT_PATH, GET_ACQUISITION_FEED_PATH, GET_COVER_FILE_PATH, GET_NAVIGATION_FEED_PATH,
+        GET_PAGE_FILE_PATH, GET_STATUS_PATH, GET_WHOAMI_PATH, LOGIN_PATH, LOGOUT_PATH,
+        POST_USER_MODIFY_PATH, PUT_READ_PROGRESS_PATH, REGISTER_PATH,
     },
 };
 use frontend_spa::{Content, get_file};
@@ -86,7 +88,9 @@ async fn main() -> Result<(), String> {
         .route(FORGOT_PATH, post(post_forgot))
         .merge(
             Router::new()
-                // TODO: add OPDS routes here
+                // content
+                .route(GET_NAVIGATION_FEED_PATH, get(get_navigation_feed))
+                .route(GET_ACQUISITION_FEED_PATH, get(get_acquisition_feed))
                 // user
                 .route(GET_WHOAMI_PATH, get(get_whoami))
                 .route(POST_USER_MODIFY_PATH, post(post_modify))
