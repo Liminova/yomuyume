@@ -1,10 +1,10 @@
 #![allow(clippy::needless_for_each)]
 
 pub mod auth;
+pub mod content;
 pub mod errors;
 pub mod file;
 pub mod middlewares;
-pub mod opds;
 pub mod user;
 pub mod utils;
 
@@ -48,7 +48,7 @@ impl Modify for SecurityAddon {
         ),
         (
             name = "content",
-            description = "Categories, titles, chapters,..."
+            description = "OPDS feeds fetching"
         ),
         (
             name = "user",
@@ -68,6 +68,9 @@ impl Modify for SecurityAddon {
         auth::post_register,
         auth::get_logout,
         auth::post_forgot,
+
+        content::get_acquisition_feed,
+        content::get_navigation_feed,
 
         user::get_whoami,
         user::post_modify,
