@@ -67,8 +67,8 @@ pub const LOGIN_PATH: &str = "/api/auth/login";
 pub const REGISTER_PATH: &str = "/api/auth/register";
 pub const FORGOT_PATH: &str = "/api/auth/forgot";
 
-pub const GET_NAVIGATION_FEED_PATH: &str = "/api/opds/navigation/{kind}/{identifier}";
-pub const GET_AQUISITION_FEED_PATH: &str = "/api/opds/acquisition/{kind}/{identifier}";
+pub const GET_NAVIGATION_FEED_PATH: &str = "/api/opds/navigation/{series_or_category}/{id}";
+pub const GET_ACQUISITION_FEED_PATH: &str = "/api/opds/acquisition/{title_id}";
 
 pub const GET_PAGE_FILE_PATH: &str = "/api/file/title/{title_id}/{chapter_id}/{page_number}";
 pub const GET_COVER_FILE_PATH: &str = "/api/file/cover/{title_or_chapter_id}";
