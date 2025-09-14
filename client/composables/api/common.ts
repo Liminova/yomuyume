@@ -22,14 +22,14 @@ export const GET_COVER_FILE_PATH = (titleOrChapterId: string) =>
 export const GET_WHOAMI_PATH = '/api/user/whoami'
 export const POST_USER_MODIFY_PATH = '/api/user/modify'
 export const PUT_READ_PROGRESS_PATH = '/api/user/progress'
-export const GET_COLLECTIONS_PATH = '/api/user/collections'
-export const PUT_COLLECTION_PATH = '/api/user/collection'
-export const PUT_TITLE_IN_COLLECTION_PATH = (
+export const PUT_COLLECTION_PATH = (name: string) =>
+	`/api/user/collection/new/${name}`
+export const TITLE_IN_COLLECTION_PATH = (
 	collectionId: string,
 	titleId: string
 ) => `/api/user/collection/${collectionId}/${titleId}`
 export const DELETE_COLLECTION_PATH = (collectionId: string) =>
-	`/api/user/collection/${collectionId}`
+	`/api/user/collection/delete/${collectionId}`
 export const GET_STATUS_PATH = '/api/status'
 // END: API paths - DO NOT MODIFY THIS LINE
 
