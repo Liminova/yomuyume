@@ -41,24 +41,26 @@ pub async fn read_chap_pages_dir(
                 return acc;
             };
 
-            if abs_path.is_file() {
+            if path.is_file() {
                 acc.push(PageInDir {
-                    path: abs_path,
                     rel_path,
                     last_modified: path.last_modified().okay(|err| {
                         warn!("can't get last modified for {}: {err}", path.display());
                     }),
-                    size: e
+                    size: path
+                        .as_ref()
                         .metadata()
                         .okay(|err| {
                             warn!("can't get metadata for {}: {err}", path.display());
                         })
                         .map(|m| m.len()),
+                    path,
                 });
                 return acc;
             }
             acc.append(
-                path.scan_dir_recursively_for_image(app_state.config.feature_nomedia)
+                path.as_ref()
+                    .scan_dir_recursively_for_image(app_state.config.feature_nomedia)
                     .into_iter()
                     .fold(&mut Vec::new(), |acc, img| {
                         let Some(abs_path) = AbsolutePath::from(&img, None).okay(|err| {
