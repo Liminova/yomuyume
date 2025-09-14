@@ -1,29 +1,35 @@
 import { StatusCode } from '~/lib/status-code'
 
 // START: API paths - DO NOT MODIFY THIS LINE
+export const SESSION_SECRET_COOKIE_NAME = 'session-secret'
 export const LOGOUT_PATH = '/api/auth/logout'
 export const LOGIN_PATH = '/api/auth/login'
 export const REGISTER_PATH = '/api/auth/register'
 export const FORGOT_PATH = '/api/auth/forgot'
-export const GET_CATEGORIES_PATH = '/api/content/categories'
-export const GET_TITLE_PATH = (titleId: string) =>
-	`/api/content/title/${titleId}`
-export const GET_PAGES_PATH = (chapterId: string) =>
-	`/api/content/pages/${chapterId}`
-export const GET_TAGS_PATH = '/api/content/tags'
-export const SEARCH_PATH = '/api/content/search'
-export const GET_PAGE_FILE_PATH = (pageId: string) => `/api/file/page/${pageId}`
-export const GET_COVER_FILE_PATH = (titleId: string) =>
-	`/api/file/cover/${titleId}`
-export const FAVORITE_PATH = (titleId: string) =>
-	`/api/user/favorite/${titleId}`
-export const BOOKMARK_PATH = (titleId: string) =>
-	`/api/user/bookmark/${titleId}`
-export const WHOAMI_PATH = '/api/user/whoami'
-export const USER_MODIFY_PATH = '/api/user/modify'
-export const USER_SENSITIVE_PATH = '/api/user/sensitive'
-export const USER_PROGRESS_PATH = '/api/user/progress'
-export const GET_SCANNING_PROGRESS_PATH = '/api/admin/scanning_progress'
+export const GET_NAVIGATION_FEED_PATH = (
+	seriesOrCategory: string,
+	id: string
+) => `/api/opds/navigation/${seriesOrCategory}/${id}`
+export const GET_ACQUISITION_FEED_PATH = (titleId: string) =>
+	`/api/opds/acquisition/${titleId}`
+export const GET_PAGE_FILE_PATH = (
+	titleId: string,
+	chapterId: string,
+	pageNumber: string
+) => `/api/file/title/${titleId}/${chapterId}/${pageNumber}`
+export const GET_COVER_FILE_PATH = (titleOrChapterId: string) =>
+	`/api/file/cover/${titleOrChapterId}`
+export const GET_WHOAMI_PATH = '/api/user/whoami'
+export const POST_USER_MODIFY_PATH = '/api/user/modify'
+export const PUT_READ_PROGRESS_PATH = '/api/user/progress'
+export const GET_COLLECTIONS_PATH = '/api/user/collections'
+export const PUT_COLLECTION_PATH = '/api/user/collection'
+export const PUT_TITLE_IN_COLLECTION_PATH = (
+	collectionId: string,
+	titleId: string
+) => `/api/user/collection/${collectionId}/${titleId}`
+export const DELETE_COLLECTION_PATH = (collectionId: string) =>
+	`/api/user/collection/${collectionId}`
 export const GET_STATUS_PATH = '/api/status'
 // END: API paths - DO NOT MODIFY THIS LINE
 
