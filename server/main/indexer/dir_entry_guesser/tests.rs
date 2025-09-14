@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
+    use std::fs::{File, create_dir};
 
     use chrono::{DateTime, Utc};
     use tempfile::tempdir;
@@ -71,7 +71,7 @@ mod tests {
                 .unwrap()
                 .map(|e| e.unwrap())
                 .collect::<Vec<_>>()
-                .has_series_pattern(true, false)
+                .has_series_pattern(true)
                 .unwrap(),
             vec![
                 PartialIndexedChapter {
@@ -109,7 +109,7 @@ mod tests {
                 .unwrap()
                 .map(|e| e.unwrap())
                 .collect::<Vec<_>>()
-                .has_series_pattern(false, false),
+                .has_series_pattern(false),
             None
         );
 
@@ -130,7 +130,7 @@ mod tests {
                 .unwrap()
                 .map(|e| e.unwrap())
                 .collect::<Vec<_>>()
-                .has_series_pattern(false, false),
+                .has_series_pattern(false),
             Some(vec![
                 PartialIndexedChapter {
                     fallback_vol_num: 100,
@@ -158,16 +158,12 @@ mod tests {
     fn test_contains_file() {
         let tmp = tempdir().unwrap();
 
-        std::fs::create_dir(tmp.path().join("inner")).unwrap();
-        std::fs::create_dir(tmp.path().join("inner2")).unwrap();
+        create_dir(tmp.path().join("inner")).unwrap();
+        create_dir(tmp.path().join("inner2")).unwrap();
         File::create(tmp.path().join("inner/.nomedia")).unwrap();
         File::create(tmp.path().join("inner2/CategoryInfo.xml")).unwrap();
 
-        assert!(tmp.path().join("inner").contains_category_info_file());
-        assert!(!tmp.path().join("inner/CategoryInfo.xml").exists());
-
         assert!(!tmp.path().join("inner2").contains_nomedia_file(true));
         assert!(!tmp.path().join("inner2").contains_nomedia_file(false));
-        assert!(tmp.path().join("inner2").contains_category_info_file());
     }
 }
