@@ -39,8 +39,6 @@ impl IntoResponse for InternalError {
 pub enum RequestError {
     #[error("missing session secret cookie")]
     MissingSessionSecret,
-    #[error("session expired")]
-    SessionExpired,
 
     #[error("invalid username or password")]
     InvalidCredentials,
@@ -66,9 +64,6 @@ pub enum RequestError {
     ExpiredCode,
     #[error("no forgot password request found")]
     NoForgotPasswordRequestFound,
-
-    #[error("your email is already verified")]
-    AlreadyVerified,
 }
 
 impl IntoResponse for RequestError {
