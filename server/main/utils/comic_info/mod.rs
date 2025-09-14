@@ -13,7 +13,7 @@ mod yes_no;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
 
-use crate::utils::constants::COMICINFO_SCHEMA;
+use crate::utils::constants::COMIC_INFO_SCHEMA;
 use age_rating::AgeRating;
 use comic_page_info::{ArrayOfComicPageInfo, ComicPageInfo};
 use integer_skip_condition::{int32_is_neg_one, int32_is_zero, int32_neg_one};
@@ -372,7 +372,7 @@ impl ComicInfo {
         include_schema: bool,
     ) -> Result<String, quick_xml::errors::serialize::SeError> {
         let mut buffer = if include_schema {
-            format!("{COMICINFO_SCHEMA}\n")
+            format!("{COMIC_INFO_SCHEMA}\n")
         } else {
             String::new()
         };
