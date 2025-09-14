@@ -11,7 +11,7 @@ use crate::utils::pathbuf_utils::{LastModifiedError, PathBufUtils};
 pub struct AbsolutePath(PathBuf);
 
 #[derive(Debug, thiserror::Error)]
-pub enum AbsolutePathErr {
+pub enum AbsolutePathError {
     #[error("can't get current working dir: {0:?}")]
     GetCurrentWorkingDir(std::io::Error),
 
@@ -26,7 +26,7 @@ pub enum AbsolutePathErr {
 }
 
 impl AbsolutePath {
-    pub fn from(path: &Path, base: Option<&PathBuf>) -> Result<AbsolutePath, AbsolutePathErr> {
+    pub fn from(path: &Path, base: Option<&PathBuf>) -> Result<AbsolutePath, AbsolutePathError> {
         if path.is_absolute() {
             return Ok(AbsolutePath(path.to_path_buf()));
         }
@@ -34,15 +34,15 @@ impl AbsolutePath {
             Ok(AbsolutePath(
                 cwd.join(path)
                     .canonicalize()
-                    .map_err(AbsolutePathErr::Canonicalize)?,
+                    .map_err(AbsolutePathError::Canonicalize)?,
             ))
         } else {
-            let cwd = std::env::current_dir().map_err(AbsolutePathErr::GetCurrentWorkingDir)?;
+            let cwd = std::env::current_dir().map_err(AbsolutePathError::GetCurrentWorkingDir)?;
             Ok(AbsolutePath(
                 cwd.as_path()
                     .join(path)
                     .canonicalize()
-                    .map_err(AbsolutePathErr::Canonicalize)?,
+                    .map_err(AbsolutePathError::Canonicalize)?,
             ))
         }
     }
@@ -51,13 +51,13 @@ impl AbsolutePath {
         self.0.to_string_lossy().to_string()
     }
 
-    pub fn to_relative(&self, base: Option<&AbsolutePath>) -> Result<PathBuf, AbsolutePathErr> {
+    pub fn to_relative(&self, base: Option<&AbsolutePath>) -> Result<PathBuf, AbsolutePathError> {
         if let Some(base) = base {
             Ok(self
                 .0
                 .strip_prefix(base.as_ref())
                 .map_err(|e| {
-                    AbsolutePathErr::StripPrefix(
+                    AbsolutePathError::StripPrefix(
                         base.to_string_lossy(),
                         self.0.to_string_lossy().to_string(),
                         e,
@@ -65,12 +65,12 @@ impl AbsolutePath {
                 })?
                 .to_path_buf())
         } else {
-            let cwd = std::env::current_dir().map_err(AbsolutePathErr::GetCurrentWorkingDir)?;
+            let cwd = std::env::current_dir().map_err(AbsolutePathError::GetCurrentWorkingDir)?;
             Ok(self
                 .0
                 .strip_prefix(cwd.as_path())
                 .map_err(|e| {
-                    AbsolutePathErr::StripCwdPrefix(self.0.to_string_lossy().to_string(), e)
+                    AbsolutePathError::StripCwdPrefix(self.0.to_string_lossy().to_string(), e)
                 })?
                 .to_path_buf())
         }
@@ -115,11 +115,11 @@ impl Display for AbsolutePath {
 }
 
 pub trait ToAbsolute<T> {
-    fn to_absolute(&self, base: Option<&T>) -> Result<AbsolutePath, AbsolutePathErr>;
+    fn to_absolute(&self, base: Option<&T>) -> Result<AbsolutePath, AbsolutePathError>;
 }
 
 impl ToAbsolute<PathBuf> for PathBuf {
-    fn to_absolute(&self, base: Option<&PathBuf>) -> Result<AbsolutePath, AbsolutePathErr> {
+    fn to_absolute(&self, base: Option<&PathBuf>) -> Result<AbsolutePath, AbsolutePathError> {
         AbsolutePath::from(self.as_path(), base)
     }
 }
