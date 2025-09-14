@@ -5,6 +5,7 @@ use crate::{
     indexer::dir_entry_guesser::{PartialIndexedChapter, has_series_pattern::HasPatternOfSeries},
     utils::{
         archive_file::{ArchiveFile, ArchiveFileError, ItemInArchive, ItemsInArchiveUtils},
+        constants::CATEGORY_INFO,
         pathbuf_utils::PathBufUtils,
         result_utils::ResultUtils,
     },
@@ -85,7 +86,7 @@ impl DirEntryTypeGuesser for DirEntry {
             return Ok(DirEntryType::Ignored);
         }
 
-        if path.contains_category_info_file() {
+        if path.join(CATEGORY_INFO).is_file() {
             return Ok(DirEntryType::CategoryDir(items_in_dir));
         }
 
