@@ -129,13 +129,15 @@ pub async fn index_series(
                         rel_path: chapter_relative_path,
                         pages,
                     })
-            } else {
+            } else if let IndexedChapterKind::Directory(items_in_chapter) =
+                partial_indexed_chapter.kind
+            {
                 let comic_info = chapter_path
                     .as_ref()
                     .read_comic_info_from_dir()
                     .okay(|e| warn!("can't read ComicInfo.xml from chapter: {e}"));
 
-                read_chap_pages_dir(&app_state, &chapter_path, None, &pages_in_db)
+                read_chap_pages_dir(&app_state, &chapter_path, items_in_chapter, &pages_in_db)
                     .await
                     .map(|pages| IndexedChapter {
                         id: chapter_id,
@@ -154,6 +156,8 @@ pub async fn index_series(
                         rel_path: chapter_relative_path,
                         pages,
                     })
+            } else {
+                unreachable!()
             }
         });
     }
