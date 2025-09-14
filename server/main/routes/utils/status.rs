@@ -1,10 +1,7 @@
-use std::sync::Arc;
-
-use crate::{AppState, config, utils::constants::GET_STATUS_PATH};
+use crate::{config, utils::constants::GET_STATUS_PATH};
 
 use axum::{
     Json,
-    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -36,7 +33,7 @@ pub struct StatusResponse {
         (status = 200, description = "Status check success", body = StatusResponse)
     ))
 ]
-pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
+pub async fn get_status() -> Response {
     (
         StatusCode::OK,
         Json(StatusResponse {
@@ -56,10 +53,7 @@ pub async fn get_status(State(app_state): State<Arc<AppState>>) -> Response {
         (status = 200, description = "Status check success", body = StatusResponse)
     ))
 ]
-pub async fn post_status(
-    State(app_state): State<Arc<AppState>>,
-    query: Json<StatusRequest>,
-) -> Response {
+pub async fn post_status(query: Json<StatusRequest>) -> Response {
     (
         StatusCode::OK,
         Json(StatusResponse {
