@@ -51,7 +51,6 @@ pub trait PathBufUtils {
     fn has_recycle_flag(&self, feature_enabled: bool) -> bool;
     fn has_oneshot_flag(&self, feature_enabled: bool) -> bool;
     fn contains_nomedia_file(&self, feature_enabled: bool) -> bool;
-    fn contains_category_info_file(&self) -> bool;
     fn last_modified(&self) -> Result<DateTime<Utc>, LastModifiedError>;
     fn read_category_info(&self) -> Result<CategoryInfo, ReadCategoryInfoError>;
     fn read_comic_info_from_dir(&self) -> Result<ComicInfo, ReadComicInfoError>;
@@ -112,11 +111,6 @@ impl PathBufUtils for PathBuf {
     /// Check if the path (assumed to be a directory) contains `.nomedia`
     fn contains_nomedia_file(&self, feature_enabled: bool) -> bool {
         feature_enabled && self.join(".nomedia").exists()
-    }
-
-    /// Check if the path (assumed to be a directory) contains `CategoryInfo.xml`
-    fn contains_category_info_file(&self) -> bool {
-        self.join(CATEGORYINFO).exists()
     }
 
     /// Get the last modified time of the path
