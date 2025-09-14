@@ -122,6 +122,6 @@ else
 fi
 
 # sqlx-cli
-cargo install sqlx-cli
-sqlx completions zsh > ~/.sqlx.zsh
+/usr/local/cargo/bin/cargo install sqlx-cli
+/usr/local/cargo/bin/sqlx completions zsh > ~/.sqlx.zsh
 echo '[[ -f ~/.sqlx.zsh ]] && source ~/.sqlx.zsh' >> ~/.zshrc
