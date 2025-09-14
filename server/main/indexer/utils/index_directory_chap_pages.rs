@@ -1,9 +1,9 @@
-use std::{collections::HashMap, fs::DirEntry, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use image::{GenericImageView, ImageReader};
 use rayon::prelude::*;
-use tracing::{error, warn};
+use tracing::warn;
 
 use crate::{
     AppState,
@@ -25,37 +25,13 @@ struct PageInDir {
 pub async fn read_chap_pages_dir(
     app_state: &Arc<AppState>,
     chapter_path: &AbsolutePath,
-    files_in_chapter: Option<Vec<DirEntry>>,
+    items_in_chapter: Vec<AbsolutePath>,
     pages_in_db: &[PageInDB],
 ) -> Option<IndexedChapterPages> {
-    let pages_in_dir = files_in_chapter
-        .unwrap_or_else(|| {
-            std::fs::read_dir(chapter_path.as_ref())
-                .map(|rd| {
-                    rd.filter_map(|f| {
-                        f.okay(|e| {
-                            error!("can't read dir entry in {}: {e}", chapter_path.display());
-                        })
-                    })
-                    .collect()
-                })
-                .okay(|e| {
-                    error!(
-                        "can't read chapter directory {}: {e}",
-                        chapter_path.display()
-                    );
-                })
-                .unwrap_or_default()
-        })
+    let pages_in_dir = items_in_chapter
         .into_iter()
-        .fold(Vec::new(), |mut acc, e| {
-            let path = e.path();
-            let Some(abs_path) = AbsolutePath::from(&e.path(), None).okay(|err| {
-                warn!("can't convert {} to absolute path: {err}", path.display());
-            }) else {
-                return acc;
-            };
-            let Some(rel_path) = abs_path
+        .fold(Vec::new(), |mut acc, path| {
+            let Some(rel_path) = path
                 .to_relative(Some(chapter_path))
                 .map(|p| p.to_string_lossy().to_string())
                 .okay(|e| {
